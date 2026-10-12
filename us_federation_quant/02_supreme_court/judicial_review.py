@@ -42,10 +42,16 @@ class JudicialReview:
         oos_override: Optional[pd.DataFrame] = None,
         factor_matrix: Optional[np.ndarray] = None,
         strategy_weights: Optional[np.ndarray] = None,
-        factor_tolerance: float = 1e-6
+        factor_tolerance: float = 1e-6,
+        spread_bps: float = 2.0,
+        turnover_per_year: float = 12.0,
+        annual_vol_pct: float = 16.0,
+        max_cost_drag_ratio: float = 0.50,
+        min_net_sr: float = 0.20,
     ) -> Dict[str, Any]:
         """
-        Conducts a rigorous Blind Trial on the submitted AlphaBill.
+        Conducts a rigorous Blind Trial on the submitted AlphaBill under Out-Of-Sample scrutiny,
+        institutional factor constraints, and Robert Carver's Cost-to-Sharpe Drag Filter.
         """
         data = oos_override if oos_override is not None else self.oos_data
         returns = data["returns"].values
@@ -79,16 +85,31 @@ class JudicialReview:
         is_stationary = getattr(bill, "is_fracdiff_stationary", True)
         meta_prob = getattr(bill, "meta_win_probability", 0.50)
 
-        # 6. Tổng hợp điều kiện chuẩn phê chuẩn Hiến pháp:
+        # 6. Robert Carver Cost-to-Sharpe Penalty Audit (pysystemtrade / Man AHL)
+        # Cost Drag (in Sharpe units) = (Turnover * Cost_per_turnover) / Annual_Volatility
+        cost_drag_sr = ((spread_bps / 10_000.0) * turnover_per_year) / max(0.01, (annual_vol_pct / 100.0))
+        net_sr = sr - cost_drag_sr
+        cost_drag_ratio = (cost_drag_sr / max(1e-4, abs(sr))) if sr > 0 else 1.0
+
+        carver_cost_audit_passed = True
+        if sr > 0:
+            if cost_drag_ratio > max_cost_drag_ratio or net_sr < min_net_sr:
+                carver_cost_audit_passed = False
+        else:
+            carver_cost_audit_passed = False
+
+        # 7. Tổng hợp điều kiện chuẩn phê chuẩn Hiến pháp:
         # - DSR >= 0.90
         # - Max Drawdown <= 7.5%
         # - Không bị cấm vì rò rỉ factor
         # - Đạt tính dừng FracDiff
+        # - Vượt qua kiểm toán chi phí Carver Cost Drag
         pass_audit = bool(
             dsr >= 0.90
             and max_dd <= 0.075
             and factor_neutral_verified
             and is_stationary
+            and carver_cost_audit_passed
         )
 
         rejection_reasons = []
@@ -100,12 +121,21 @@ class JudicialReview:
             rejection_reasons.append(f"FACTOR_LEAKAGE_{max_factor_leakage:.2e}_TOL_{factor_tolerance:.2e}")
         if not is_stationary:
             rejection_reasons.append("FRACDIFF_NON_STATIONARY_VIOLATION")
+        if not carver_cost_audit_passed:
+            rejection_reasons.append(
+                f"CARVER_COST_DRAG_EXCESSIVE_RATIO_{cost_drag_ratio*100:.1f}%_NET_SR_{net_sr:.2f}"
+            )
 
         return {
             "bill_id": getattr(bill, "bill_id", "UNKNOWN"),
             "target_asset": getattr(bill, "target_asset", "UNKNOWN"),
             "action": getattr(bill, "action", "BUY"),
             "annualized_sr": sr,
+            "annualized_gross_sr": sr,
+            "cost_drag_sr": round(cost_drag_sr, 4),
+            "annualized_net_sr": round(net_sr, 4),
+            "cost_drag_ratio": round(cost_drag_ratio, 4),
+            "carver_cost_audit_passed": carver_cost_audit_passed,
             "dsr": dsr,
             "psr": psr,
             "max_drawdown": round(max_dd, 4),
