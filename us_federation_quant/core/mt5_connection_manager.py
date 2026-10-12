@@ -60,9 +60,41 @@ TIMEFRAME_MAP = {
 }
 
 
+class StateMachineAdapter:
+    """Adapter bridging OrderReconciliationManager to live runner's state_machine interface."""
+    def __init__(self, reconciler: OrderReconciliationManager):
+        self.reconciler = reconciler
+
+    def create_order(
+        self,
+        client_order_id: str,
+        symbol: str,
+        order_type: str = "MARKET",
+        direction: str = "BUY",
+        volume: float = 0.01,
+        magic: int = 0,
+        warrant_id: Optional[str] = None,
+        price: float = 0.0,
+        sl: float = 0.0,
+        tp: float = 0.0,
+    ) -> FederationOrder:
+        return self.reconciler.register_order(
+            symbol=symbol,
+            direction=direction,
+            volume=volume,
+            price=price,
+            sl=sl,
+            tp=tp,
+            magic=magic,
+            comment=client_order_id,
+            client_order_id=client_order_id,
+            parent_warrant_id=warrant_id,
+        )
+
+
 class MT5ConnectionManager:
     _instance = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __new__(cls, *args, **kwargs):
         with cls._lock:
@@ -82,6 +114,8 @@ class MT5ConnectionManager:
         self.connected = False
         self._last_health_check = 0.0
         self.reconciler = OrderReconciliationManager()
+        self.state_machine = StateMachineAdapter(self.reconciler)
+        self._symbol_cache: Dict[str, str] = {}
         self._initialized = True
 
     def connect(self) -> bool:
@@ -182,11 +216,105 @@ class MT5ConnectionManager:
                 "leverage": info.leverage,
             }
 
+    def resolve_symbol(self, raw_symbol: str) -> str:
+        """
+        Resolve an asset identifier or symbol into the broker's exact MT5 symbol.
+        Handles suffixes (e.g. 'm', '.m', 'pro'), aliases (e.g. 'GOOG' -> 'GOOGL', 'DE40' -> 'DE30'),
+        and case variations. Caches resolved symbols for sub-millisecond lookups.
+        """
+        if not raw_symbol:
+            return ""
+
+        if not hasattr(self, "_symbol_cache"):
+            self._symbol_cache = {}
+
+        if raw_symbol in self._symbol_cache:
+            return self._symbol_cache[raw_symbol]
+
+        if not self.ensure_connected():
+            return raw_symbol
+
+        # Known institutional broker aliases
+        aliases = {
+            "GOOG": "GOOGL",
+            "GOOGM": "GOOGL",
+            "NATGAS": "XNGUSD",
+            "NATGASM": "XNGUSD",
+            "DE40": "DE30",
+            "DE40M": "DE30",
+            "AU200": "AUS200",
+            "AU200M": "AUS200",
+            "BRK": "BAC",
+            "BRKM": "BAC",
+        }
+
+        clean = raw_symbol.strip()
+        clean_upper = clean.upper()
+        base = clean[:-1] if clean_upper.endswith("M") and len(clean) >= 2 else clean
+        base_upper = base.upper()
+
+        candidates = [clean]
+        if clean_upper in aliases:
+            candidates.append(aliases[clean_upper])
+        if base_upper in aliases:
+            candidates.append(aliases[base_upper])
+        if base != clean:
+            candidates.append(base)
+
+        env_suffix = os.getenv("MT5_SUFFIX", "").strip()
+        if env_suffix:
+            candidates.append(base + env_suffix)
+            candidates.append(clean + env_suffix)
+
+        for sfx in ["m", ".m", "c", "pro"]:
+            candidates.append(base + sfx)
+
+        with self._lock:
+            for cand in candidates:
+                info = mt5.symbol_info(cand)
+                if info is not None:
+                    if not info.visible:
+                        mt5.symbol_select(cand, True)
+                    self._symbol_cache[raw_symbol] = cand
+                    return cand
+
+            all_symbols = mt5.symbols_get()
+            if all_symbols:
+                sym_map = {s.name.upper(): s.name for s in all_symbols}
+                for cand in candidates:
+                    if cand.upper() in sym_map:
+                        exact_name = sym_map[cand.upper()]
+                        mt5.symbol_select(exact_name, True)
+                        self._symbol_cache[raw_symbol] = exact_name
+                        return exact_name
+
+        resolved = base if base else raw_symbol
+        self._symbol_cache[raw_symbol] = resolved
+        return resolved
+
+    def get_filling_mode(self, symbol: str) -> int:
+        """Determines the broker's valid MT5 filling mode for the symbol (FOK, IOC, or RETURN)."""
+        symbol = self.resolve_symbol(symbol)
+        info = mt5.symbol_info(symbol) if MT5_AVAILABLE else None
+        if info is None:
+            return mt5.ORDER_FILLING_FOK if MT5_AVAILABLE else 0
+        modes = info.filling_mode
+        # Exness bitmask:
+        # bit 0 (1): FOK
+        # bit 1 (2): IOC
+        if modes & 1:
+            return mt5.ORDER_FILLING_FOK
+        elif modes & 2:
+            return mt5.ORDER_FILLING_IOC
+        else:
+            return mt5.ORDER_FILLING_RETURN
+
     def get_rates(self, symbol: str, timeframe_str: str, count: int = 100) -> Optional[pd.DataFrame]:
         """Fetch latest candles for a symbol. Returns DataFrame with UTC datetime index."""
         if not self.ensure_connected():
             return None
 
+        symbol = self.resolve_symbol(symbol)
         tf = TIMEFRAME_MAP.get(timeframe_str.upper(), mt5.TIMEFRAME_H1)
 
         with self._lock:
@@ -209,6 +337,7 @@ class MT5ConnectionManager:
         if not self.ensure_connected():
             return None
 
+        symbol = self.resolve_symbol(symbol)
         with self._lock:
             tick = mt5.symbol_info_tick(symbol)
             if not tick:
@@ -225,6 +354,7 @@ class MT5ConnectionManager:
         if not self.ensure_connected():
             return None
 
+        symbol = self.resolve_symbol(symbol)
         with self._lock:
             info = mt5.symbol_info(symbol)
             if not info:
@@ -241,6 +371,7 @@ class MT5ConnectionManager:
 
     def normalize_lot(self, symbol: str, lot: float) -> float:
         """Round volume down to the instrument's volume_step and clamp between min and max."""
+        symbol = self.resolve_symbol(symbol)
         spec = self.get_symbol_spec(symbol)
         if not spec:
             return round(lot, 2)
@@ -314,6 +445,7 @@ class MT5ConnectionManager:
         if not self.ensure_connected():
             return {"success": False, "error": "Not connected to MT5"}
 
+        symbol = self.resolve_symbol(symbol)
         spec = self.get_symbol_spec(symbol)
         if not spec:
             return {"success": False, "error": f"Invalid symbol {symbol}"}
@@ -356,6 +488,7 @@ class MT5ConnectionManager:
                 "ticket": existing.ticket if existing else None,
             }
 
+        filling_mode = self.get_filling_mode(symbol)
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
@@ -368,7 +501,7 @@ class MT5ConnectionManager:
             "magic": magic,
             "comment": order_comment,
             "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
+            "type_filling": filling_mode,
         }
 
         # 2. Advance to SUBMITTED
@@ -376,6 +509,15 @@ class MT5ConnectionManager:
 
         with self._lock:
             result = mt5.order_send(request)
+            if result and result.retcode == 10030:
+                for fallback in [mt5.ORDER_FILLING_FOK, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_RETURN]:
+                    if fallback != request["type_filling"]:
+                        request["type_filling"] = fallback
+                        retry_res = mt5.order_send(request)
+                        if retry_res and retry_res.retcode == mt5.TRADE_RETCODE_DONE:
+                            result = retry_res
+                            break
+
             if not result or result.retcode != mt5.TRADE_RETCODE_DONE:
                 err_msg = result.comment if result else str(mt5.last_error())
                 retcode = result.retcode if result else -1
@@ -455,6 +597,7 @@ class MT5ConnectionManager:
 
             price = tick.bid if pos.type == mt5.ORDER_TYPE_BUY else tick.ask
 
+            filling_mode = self.get_filling_mode(pos.symbol)
             request = {
                 "action": mt5.TRADE_ACTION_DEAL,
                 "position": pos.ticket,
@@ -466,10 +609,19 @@ class MT5ConnectionManager:
                 "magic": pos.magic,
                 "comment": "Fleet Close",
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
+                "type_filling": filling_mode,
             }
 
             result = mt5.order_send(request)
+            if result and result.retcode == 10030:
+                for fallback in [mt5.ORDER_FILLING_FOK, mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_RETURN]:
+                    if fallback != request["type_filling"]:
+                        request["type_filling"] = fallback
+                        retry_res = mt5.order_send(request)
+                        if retry_res and retry_res.retcode == mt5.TRADE_RETCODE_DONE:
+                            result = retry_res
+                            break
+
             if not result or result.retcode != mt5.TRADE_RETCODE_DONE:
                 err_msg = result.comment if result else str(mt5.last_error())
                 logger.error(f"❌ Close Failed #{ticket}: {err_msg}")
@@ -477,6 +629,73 @@ class MT5ConnectionManager:
 
             logger.info(f"✅ POSITION CLOSED: Ticket #{ticket} ({pos.symbol} {pos.volume}L, Profit: ${pos.profit:.2f})")
             return {"success": True, "ticket": ticket, "profit": pos.profit}
+
+    def modify_position_sltp(self, ticket: int, sl: float = 0.0, tp: float = 0.0) -> Dict[str, Any]:
+        """
+        Modify Stop Loss and Take Profit for an open position by ticket.
+        """
+        if not self.ensure_connected():
+            return {"success": False, "error": "Not connected to MT5"}
+
+        with self._lock:
+            positions = mt5.positions_get(ticket=ticket)
+            if not positions or len(positions) == 0:
+                return {"success": False, "error": f"Position #{ticket} not found"}
+
+            pos = positions[0]
+            spec = self.get_symbol_spec(pos.symbol)
+            digits = spec.get("digits", 2) if spec else 2
+
+            new_sl = round(sl, digits) if sl > 0 else float(pos.sl)
+            new_tp = round(tp, digits) if tp > 0 else float(pos.tp)
+
+            request = {
+                "action": mt5.TRADE_ACTION_SLTP,
+                "position": pos.ticket,
+                "symbol": pos.symbol,
+                "sl": new_sl,
+                "tp": new_tp,
+            }
+
+            result = mt5.order_send(request)
+            if not result or result.retcode != mt5.TRADE_RETCODE_DONE:
+                err_msg = result.comment if result else str(mt5.last_error())
+                retcode = result.retcode if result else -1
+                return {"success": False, "error": err_msg, "retcode": retcode}
+
+            return {"success": True, "ticket": ticket, "sl": new_sl, "tp": new_tp}
+
+    def enforce_mandatory_sl_protection(self, default_sl_pct: float = 0.015) -> List[Dict[str, Any]]:
+        """
+        Enforce Article 00 of Constitution: Every open position must have a valid Stop Loss.
+        If a position has no SL (sl == 0.0), assign a mandatory protective Stop Loss.
+        """
+        if not self.ensure_connected():
+            return []
+
+        modified = []
+        positions = self.get_positions()
+        for p in positions:
+            ticket = p["ticket"]
+            sl = p["sl"]
+            if sl == 0.0 or sl is None:
+                symbol = p["symbol"]
+                open_price = p["price_open"]
+                pos_type = p["type"]
+                spec = self.get_symbol_spec(symbol)
+                digits = spec.get("digits", 2) if spec else 2
+
+                if pos_type == "BUY":
+                    calc_sl = round(open_price * (1.0 - default_sl_pct), digits)
+                else:
+                    calc_sl = round(open_price * (1.0 + default_sl_pct), digits)
+
+                res = self.modify_position_sltp(ticket=ticket, sl=calc_sl)
+                if res.get("success"):
+                    logger.info(f"🛡️ [MANDATORY SL ASSIGNED] Ticket #{ticket} ({symbol} {pos_type}) assigned SL={calc_sl}")
+                    modified.append(res)
+
+        return modified
 
     def shutdown(self):
         """Cleanly shutdown MT5 connection."""

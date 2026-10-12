@@ -167,6 +167,18 @@ class BaseStatePod(StatePod):
         3. Carver Trade Buffering (+/- 10%) against current_position_lot to eliminate churn.
         """
         clean_asset = self.primary_asset.upper().replace("M", "")
+        if max_lot == 5.0:
+            if any(fx in clean_asset for fx in ["EUR", "GBP", "USD", "JPY", "AUD", "CAD", "CHF", "NZD"]) and not any(i in clean_asset for i in ["US30", "US500", "USTEC", "BTC", "ETH", "XAU"]):
+                max_lot = 0.15
+            elif "US30" in clean_asset or "US500" in clean_asset or "USTEC" in clean_asset:
+                max_lot = 0.50
+            elif any(c in clean_asset for c in ["BTC", "ETH", "SOL"]):
+                max_lot = 0.10
+            elif any(m in clean_asset for m in ["XAU", "XAG", "XPT", "XPD", "XNG"]):
+                max_lot = 0.10
+            else:
+                max_lot = 0.15
+
         if contract_size is None:
             if "XAU" in clean_asset or "GOLD" in clean_asset:
                 contract_size = 100.0

@@ -320,6 +320,21 @@ class USFederationQuantRuntime:
                         asset_notional=proposal.target_lots * current_price,
                     )
 
+                    # Constitutional Firewall: Strict Asset Class Lot Capping
+                    sym_clean = actual_symbol.upper()
+                    if any(fx in sym_clean for fx in ["EUR", "GBP", "USD", "JPY", "AUD", "CAD", "CHF", "NZD"]) and not any(i in sym_clean for i in ["US30", "US500", "USTEC", "BTC", "ETH", "XAU", "XAG", "XPT", "XPD", "XNG"]):
+                        cleared_lots = min(cleared_lots, 0.15)
+                    elif "US30" in sym_clean or "US500" in sym_clean or "USTEC" in sym_clean:
+                        cleared_lots = min(cleared_lots, 0.50)
+                    elif any(c in sym_clean for c in ["BTC", "ETH", "SOL"]):
+                        cleared_lots = min(cleared_lots, 0.10)
+                    elif any(m in sym_clean for m in ["XAU", "XAG", "XPT", "XPD", "XNG"]):
+                        cleared_lots = min(cleared_lots, 0.10)
+                    else:
+                        cleared_lots = min(cleared_lots, 0.15)
+
+                    cleared_lots = self.mt5_mgr.normalize_lot(actual_symbol, cleared_lots)
+
                     # 3. NautilusTrader Order State Machine Tracking
                     client_order_id = generate_client_order_id(pod.state_id, proposal.action)
                     order_state = self.mt5_mgr.state_machine.create_order(

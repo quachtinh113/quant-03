@@ -139,6 +139,25 @@ class FederationOrder:
     def remaining_volume(self) -> float:
         return max(0.0, round(self.volume - self.filled_volume, 4))
 
+    def transition_to(
+        self,
+        new_state: OrderState,
+        reason: Optional[str] = None,
+        fill_volume: Optional[float] = None,
+        fill_price: Optional[float] = None,
+        broker_order_id: Optional[int] = None,
+    ) -> None:
+        """Transitions order state using OrderStateMachine."""
+        if new_state == OrderState.FILLED and fill_volume is not None and fill_price is not None:
+            OrderStateMachine.apply_fill(
+                self,
+                price=fill_price,
+                volume=fill_volume,
+                ticket=broker_order_id,
+            )
+        else:
+            OrderStateMachine.transition(self, new_state, reason=reason)
+
 
 def generate_client_order_id(magic: int = 0, prefix: str = "FED") -> str:
     """
