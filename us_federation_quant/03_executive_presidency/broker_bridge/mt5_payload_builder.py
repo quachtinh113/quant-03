@@ -76,7 +76,10 @@ class MT5PayloadBuilder:
         # Volume quantization to lot step
         volume = max(self.min_lot_size, round(slice_order.lots, 2))
 
-        comment = f"FED_{slice_order.slice_index}/{slice_order.total_slices}_{slice_order.order_type[:10]}"
+        if getattr(slice_order, "client_order_id", None):
+            comment = str(slice_order.client_order_id)[:31]
+        else:
+            comment = f"FED_{slice_order.slice_index}/{slice_order.total_slices}_{slice_order.order_type[:10]}"[:31]
 
         request = {
             "action": trade_action,

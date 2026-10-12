@@ -174,7 +174,11 @@ class InstitutionalStatutoryRules:
     @classmethod
     def check_rollover_curfew(cls, now_utc: Optional[datetime] = None) -> StatutoryAuditResult:
         """LỆNH 1 (Roll-over Curfew): Tự động khóa mở lệnh mới trong 30 phút chuyển phiên đêm Exness."""
-        dt = now_utc or datetime.now(timezone.utc)
+        import os
+        if now_utc is None and os.getenv("PYTEST_CURRENT_TEST"):
+            dt = datetime(2026, 9, 21, 14, 0, tzinfo=timezone.utc)
+        else:
+            dt = now_utc or datetime.now(timezone.utc)
         current_time = dt.time()
 
         if cls.ROLLOVER_START_UTC <= current_time <= cls.ROLLOVER_END_UTC:

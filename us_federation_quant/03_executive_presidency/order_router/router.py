@@ -30,6 +30,8 @@ class MicroOrderSlice:
     lots: float
     target_price: float
     order_type: str
+    client_order_id: str = ""
+    parent_warrant_id: Optional[str] = None
 
 
 class ExecutiveOrderRouter:
@@ -118,6 +120,8 @@ class ExecutiveOrderRouter:
 
         strategy_upper = execution_strategy.upper()
         micro_orders: List[MicroOrderSlice] = []
+        w_id = getattr(warrant, "warrant_id", "WAR")[:8]
+        full_w_id = getattr(warrant, "warrant_id", None)
 
         if strategy_upper == "VWAP":
             vwap_slices = self.vwap_slicer.slice_order(total_lots=total_lots, n_slices=slices)
@@ -129,7 +133,9 @@ class ExecutiveOrderRouter:
                     action=warrant.action,
                     lots=v_slice["slice_lots"],
                     target_price=target_price,
-                    order_type="LIMIT_SKEWED_VWAP"
+                    order_type="LIMIT_SKEWED_VWAP",
+                    client_order_id=f"VWAP-{w_id}-S{v_slice['step']}"[:31],
+                    parent_warrant_id=full_w_id,
                 )
                 micro_orders.append(order)
 
@@ -147,7 +153,9 @@ class ExecutiveOrderRouter:
                     action=warrant.action,
                     lots=ac_slice["slice_lots"],
                     target_price=target_price,
-                    order_type="LIMIT_SKEWED_ALMGREN_CHRISS"
+                    order_type="LIMIT_SKEWED_ALMGREN_CHRISS",
+                    client_order_id=f"AC-{w_id}-S{ac_slice['step']}"[:31],
+                    parent_warrant_id=full_w_id,
                 )
                 micro_orders.append(order)
 
@@ -168,7 +176,9 @@ class ExecutiveOrderRouter:
                     action=warrant.action,
                     lots=allocated_lots[i - 1],
                     target_price=target_price,
-                    order_type="LIMIT_SKEWED_TWAP"
+                    order_type="LIMIT_SKEWED_TWAP",
+                    client_order_id=f"TWAP-{w_id}-S{i}"[:31],
+                    parent_warrant_id=full_w_id,
                 )
                 micro_orders.append(order)
 
@@ -191,6 +201,29 @@ class ExecutiveOrderRouter:
         })
 
         return micro_orders
+
+    def handle_slice_failure(
+        self,
+        client_order_id: str,
+        error_reason: str,
+        reconciler: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Nautilus-inspired Quota Clawback & Failure Isolation:
+        When a child slice fails (broker reject or slippage cap), aborts all
+        subsequent pending slices under the parent warrant to stop cascading risk.
+        """
+        if reconciler is not None:
+            return reconciler.handle_slice_failure(
+                client_order_id=client_order_id,
+                error_reason=error_reason,
+                auto_clawback=True,
+            )
+        return {
+            "failed_order_id": client_order_id,
+            "reason": error_reason,
+            "status": "SLICE_FAILED_NO_RECONCILER",
+        }
 
     def to_mt5_requests(
         self,

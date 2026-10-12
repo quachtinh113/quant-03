@@ -44,9 +44,19 @@ class JudicialWarrant:
     black_swan_scenarios_passed: int
     timestamp: float
     signature_token: str
+    is_revoked: bool = False
+    revocation_reason: Optional[str] = None
+
+    def revoke(self, reason: str = "EXECUTION_BREACH_QUOTA_CLAWBACK") -> None:
+        """Revokes judicial authorization, invalidating token immediately."""
+        self.is_revoked = True
+        self.revocation_reason = reason
 
     def verify_token(self, secret_key: str = "SUPREME_COURT_SEAL") -> bool:
         """Verifies cryptographic authenticity of the warrant using HMAC-SHA256."""
+        if self.is_revoked:
+            return False
+
         payload = (
             f"{self.warrant_id}:{self.bill_id}:{self.target_asset}:{self.action}:"
             f"{self.authorized_lots}:{self.dsr}:{self.psr}:{self.trials_count}:"
