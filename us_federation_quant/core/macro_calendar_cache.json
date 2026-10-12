@@ -1,0 +1,60 @@
+{
+  "updated_at": "2026-09-19T16:52:43.385535+00:00",
+  "events": [
+    {
+      "name": "US Non-Farm Payrolls (NFP) & Unemployment Rate",
+      "currency": "USD",
+      "impact": "CRITICAL",
+      "timestamp_utc": "2026-09-25T12:30:00+00:00",
+      "pre_embargo_minutes": 30,
+      "post_embargo_minutes": 20,
+      "forecast": null,
+      "previous": null,
+      "actual": null
+    },
+    {
+      "name": "US Consumer Price Index (CPI MoM/YoY)",
+      "currency": "USD",
+      "impact": "CRITICAL",
+      "timestamp_utc": "2026-09-23T12:30:00+00:00",
+      "pre_embargo_minutes": 25,
+      "post_embargo_minutes": 20,
+      "forecast": null,
+      "previous": null,
+      "actual": null
+    },
+    {
+      "name": "FOMC Interest Rate Decision & Fed Press Conference",
+      "currency": "USD",
+      "impact": "CRITICAL",
+      "timestamp_utc": "2026-09-23T18:00:00+00:00",
+      "pre_embargo_minutes": 45,
+      "post_embargo_minutes": 30,
+      "forecast": null,
+      "previous": null,
+      "actual": null
+    },
+    {
+      "name": "US Producer Price Index (Core PPI)",
+      "currency": "USD",
+      "impact": "HIGH",
+      "timestamp_utc": "2026-09-24T12:30:00+00:00",
+      "pre_embargo_minutes": 15,
+      "post_embargo_minutes": 15,
+      "forecast": null,
+      "previous": null,
+      "actual": null
+    },
+    {
+      "name": "US Initial Jobless Claims",
+      "currency": "USD",
+      "impact": "HIGH",
+      "timestamp_utc": "2026-09-24T12:30:00+00:00",
+      "pre_embargo_minutes": 10,
+      "post_embargo_minutes": 10,
+      "forecast": null,
+      "previous": null,
+      "actual": null
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+constitution_title: "The Supreme Constitution of the Federation"
+article_number: "ARTICLE_II"
+title: "Value-at-Risk & Microstructure Liquidity Limits"
+version: "1.0.0"
+
+var_limits:
+  confidence_level: 0.99       # 99% 1-day Value-at-Risk
+  max_var_equity_pct: 0.025   # Max 2.5% portfolio equity at risk per 24h
+
+market_microstructure_limits:
+  max_adv_participation: 0.10 # Max 10% of Average Daily Volume across all orders
+  max_leverage_ratio: 3.0      # Hard ceiling on gross portfolio leverage
+
+judicial_standard:
+  dsr_minimum_threshold: 0.90  # Deflated Sharpe Ratio must be >= 0.90 for live deployment

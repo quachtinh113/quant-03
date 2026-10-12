@@ -1,0 +1,33 @@
+# Credentials and Secrets (TUYỆT ĐỐI BẢO MẬT)
+.env
+.env.*
+!.env.example
+*credential*
+*secret*
+*.pem
+*.key
+*.p12
+
+# Runtime & Logs & DB
+logs/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+env/
+
+# Research & Backtest Large Datasets
+research/real_data/
+
+# OS Artifacts
+.DS_Store
+Thumbs.db

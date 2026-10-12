@@ -1,0 +1,27 @@
+# Bí mật — không bao giờ commit, không bao giờ đóng gói, không bao giờ đánh chỉ mục.
+# codebase-memory-mcp tôn trọng file này; thiếu nó thì .env bị đọc vào CSDL cache
+# và MCP sẽ trả mật khẩu MT5 / Telegram token cho bất kỳ truy vấn nào.
+.env
+.env.*
+!.env.example
+*credential*
+*secret*
+*.pem
+*.key
+*.p12
+
+# Gói triển khai — có thể chứa bí mật của bản dựng cũ
+*.zip
+
+# Sinh ra lúc chạy
+logs/
+*.log
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Dữ liệu giá thật kéo từ MT5 — sinh lại bằng:
+#   python research/backtest_real_data.py --fetch
+research/real_data/

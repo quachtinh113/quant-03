@@ -1,0 +1,12 @@
+constitution_title: "The Supreme Constitution of the Federation"
+article_number: "ARTICLE_I"
+title: "Maximum Financial Drawdown Ladder"
+version: "1.0.0"
+
+drawdown_ladder:
+  warning_threshold: -0.03    # -3% Drawdown -> Freeze scaling & issue advisory alert
+  halving_threshold: -0.05    # -5% Drawdown -> Executive mandatory 50% position halving
+  kill_threshold: -0.075      # -7.5% Drawdown -> Nuclear Football full liquidation to 100% Cash
+
+jurisdiction: "All 50 States & Federal Execution Engines"
+enforcement: "Strictly Non-Negotiable"
