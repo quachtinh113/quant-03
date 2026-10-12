@@ -177,10 +177,13 @@ def generate_signals(
     df: pd.DataFrame,
     lookback: int = 200,
     account_equity: float = 10_000.0,
+    cash_vol_budget: Optional[float] = None,
+    use_buffering: bool = False,
     progress_every: int = 15_000,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Chạy `GoldScalpPod.generate_trade_proposal` trên từng nến.
+    Hỗ trợ Carver Continuous Forecasting và Position Buffering để giảm turnover churn.
 
     Cửa sổ `lookback` phản ánh đúng hành vi live: MT5 trả về một lượng nến cố
     định, nên pod trong thực tế cũng chỉ thấy bấy nhiêu quá khứ.
@@ -197,11 +200,28 @@ def generate_signals(
     lots = np.zeros(n, dtype=float)
     ohlc = df[["open", "high", "low", "close"]]
 
+    current_pos_lot = 0.0
+    current_sig = 0
+
     for i in range(lookback, n - 1):
         window = ohlc.iloc[i - lookback:i + 1]
-        p = pod.generate_trade_proposal(window, account_equity=account_equity)
-        signals[i] = 1 if p.action == "BUY" else (-1 if p.action == "SELL" else 0)
-        lots[i] = p.target_lots
+        p = pod.generate_trade_proposal(
+            window,
+            account_equity=account_equity,
+            cash_vol_budget=cash_vol_budget,
+            current_position_lot=current_pos_lot,
+        )
+
+        if use_buffering and p.is_buffered:
+            signals[i] = current_sig
+            lots[i] = abs(current_pos_lot)
+        else:
+            sig = 1 if p.action == "BUY" else (-1 if p.action == "SELL" else 0)
+            signals[i] = sig
+            lots[i] = p.target_lots
+            current_sig = sig
+            current_pos_lot = p.target_lots * sig
+
         if progress_every and (i - lookback) % progress_every == 0:
             print(f"  ...nến {i:,}/{n:,}", flush=True)
 
@@ -432,6 +452,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--capital", type=float, default=10_000.0)
     ap.add_argument("--lookback", type=int, default=200)
     ap.add_argument("--slippage-points", type=float, default=DEFAULT_SLIPPAGE_POINTS)
+    ap.add_argument("--carver", action="store_true", help="Bật Carver Systematic Sizing & Trade Buffering")
     ap.add_argument("--report", action="store_true", help="Ghi báo cáo JSON + Markdown vào logs/")
     args = ap.parse_args(argv)
 
@@ -451,7 +472,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"\n🧮 Sinh tín hiệu bằng GoldScalpPod production (cửa sổ {args.lookback} nến)...")
     signals, lots = generate_signals(df, args.lookback, args.capital)
     n_buy, n_sell, n_hold = int((signals == 1).sum()), int((signals == -1).sum()), int((signals == 0).sum())
-    print(f"   BUY={n_buy:,} SELL={n_sell:,} HOLD={n_hold:,} "
+    print(f"   [BASELINE] BUY={n_buy:,} SELL={n_sell:,} HOLD={n_hold:,} "
           f"-> ở ngoài thị trường chỉ {n_hold / len(signals) * 100:.2f}% thời gian")
 
     fixed_lot = None if str(args.lot).lower() == "auto" else float(args.lot)
@@ -462,6 +483,26 @@ def main(argv: Optional[List[str]] = None) -> int:
         results.append(run_backtest(
             df, signals, lots, spec, args.lookback, args.capital, fixed_lot,
             args.slippage_points, True, hold_flat, f"{lot_lbl} / {mode}"))
+
+    # Kịch bản Carver Systematic Sizing & Position Buffering
+    if args.carver:
+        daily_cash_vol = float(args.capital * 0.16 / 16.0) # 16% annual vol target -> ~100 USD/day
+        print(f"\n🦅 [CARVER ENGINE] Đang sinh tín hiệu với Continuous Forecasting & Trade Buffering (Budget: ${daily_cash_vol:,.2f}/ngày)...")
+        c_signals, c_lots = generate_signals(
+            df,
+            args.lookback,
+            args.capital,
+            cash_vol_budget=daily_cash_vol,
+            use_buffering=True,
+        )
+        c_buy, c_sell, c_hold = int((c_signals == 1).sum()), int((c_signals == -1).sum()), int((c_signals == 0).sum())
+        print(f"   [CARVER BUFFER] BUY={c_buy:,} SELL={c_sell:,} HOLD={c_hold:,} "
+              f"-> ở ngoài thị trường {c_hold / len(c_signals) * 100:.2f}% thời gian")
+        carver_res = run_backtest(
+            df, c_signals, c_lots, spec, args.lookback, args.capital, None,
+            args.slippage_points, True, False, "CARVER Vol Target + Buffer (+/-10%)"
+        )
+        results.append(carver_res)
 
     # Phân rã chi phí: cùng tín hiệu, bật/tắt phí.
     diag_lot = fixed_lot if fixed_lot is not None else 0.01

@@ -101,12 +101,14 @@ class GoldScalpPod(BaseStatePod):
         atr_price = gk_vol * current_price if gk_vol > 0 else current_price * 0.005
 
         if cash_vol_budget and cash_vol_budget > 0 and action != "HOLD":
+            lot_cap = 0.05 if account_equity <= 25000.0 else (0.20 if account_equity <= 100000.0 else 5.0)
             carver_sizing = self.calculate_carver_target_position(
                 cash_vol_target=cash_vol_budget,
                 forecast=forecast,
                 current_position_lot=current_position_lot,
                 atr_price=atr_price,
                 contract_size=100.0,
+                max_lot=lot_cap,
             )
             raw_lots = carver_sizing["raw_lots"]
             effective_lots = carver_sizing["buffered_lots"]

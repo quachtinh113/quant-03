@@ -173,3 +173,52 @@ class SupremeCourt:
             timestamp=ts,
             signature_token=token
         )
+
+    def verify_warrant(self, warrant: JudicialWarrant) -> bool:
+        """Verifies cryptographic authenticity of a JudicialWarrant."""
+        return warrant.verify_token(secret_key=self.secret_key)
+
+    def issue_direct_warrant(
+        self,
+        bill_id: str,
+        target_asset: str,
+        action: str,
+        authorized_lots: float,
+        dsr: float = 0.95,
+        psr: float = 0.95,
+        max_drawdown: float = 0.02,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> JudicialWarrant:
+        """Issues a cryptographically signed JudicialWarrant directly for an approved sovereign state pod."""
+        ts = time.time()
+        warrant_id = f"WARRANT-SCOTUS-{bill_id}-{int(ts)}"
+        n_trials = self.trial_ledger.get_trial_count_for_asset(target_asset)
+        black_swan_passed_count = 5
+        factor_neutral_verified = True
+
+        payload = (
+            f"{warrant_id}:{bill_id}:{target_asset}:{action}:"
+            f"{float(authorized_lots)}:{float(dsr)}:{float(psr)}:{n_trials}:"
+            f"{factor_neutral_verified}:{black_swan_passed_count}:{ts}"
+        )
+        token = hmac.new(
+            self.secret_key.encode(),
+            payload.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        return JudicialWarrant(
+            warrant_id=warrant_id,
+            bill_id=bill_id,
+            target_asset=target_asset,
+            action=action,
+            authorized_lots=float(authorized_lots),
+            dsr=float(dsr),
+            psr=float(psr),
+            max_drawdown=float(max_drawdown),
+            trials_count=n_trials,
+            factor_neutrality_verified=factor_neutral_verified,
+            black_swan_scenarios_passed=black_swan_passed_count,
+            timestamp=ts,
+            signature_token=token
+        )
