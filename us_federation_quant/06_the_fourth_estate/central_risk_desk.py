@@ -44,7 +44,7 @@ class CentralRiskDesk:
         max_net_leverage: float = 0.20,
         max_market_beta: float = 0.05,
         max_allowed_slippage_bps: float = 15.0,
-        kill_switch_red_threshold: float = -0.075
+        kill_switch_red_threshold: float = -0.12
     ):
         self.var_engine = CentralVaREngine(default_confidence=var_confidence)
         self.exposure_desk = ExposureAndBetaDesk(

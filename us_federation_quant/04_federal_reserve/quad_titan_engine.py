@@ -119,15 +119,15 @@ class WallStreetPodDefense:
     def enforce_drawdown_ladder(drawdown_pct: float) -> Tuple[float, str, bool]:
         """
         Drawdown Ladder:
-        - Drawdown <= -3%: De-leverage by 50% (capital_multiplier = 0.50).
-        - Drawdown <= -5%: Pod Quarantine (halt trading, capital_multiplier = 0.0).
-        - Drawdown <= -7.5%: NUCLEAR FOOTBALL KILL-SWITCH (Emergency Liquidate All).
+        - Drawdown <= -5%: De-leverage by 50% (capital_multiplier = 0.50).
+        - Drawdown <= -8%: De-leverage by 75% / Orange Alert (capital_multiplier = 0.25).
+        - Drawdown <= -12.0%: NUCLEAR FOOTBALL KILL-SWITCH (Emergency Liquidate All).
         """
-        if drawdown_pct <= -0.075:
+        if drawdown_pct <= -0.12:
             return 0.0, "NUCLEAR_KILL_SWITCH_ACTIVE", True
+        elif drawdown_pct <= -0.08:
+            return 0.25, "DELEVERAGE_75_PERCENT", False
         elif drawdown_pct <= -0.05:
-            return 0.0, "QUARANTINE_LOCKED", False
-        elif drawdown_pct <= -0.03:
             return 0.50, "DELEVERAGE_50_PERCENT", False
         return 1.0, "NORMAL_ACTIVE", False
 

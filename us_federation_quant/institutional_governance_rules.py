@@ -157,7 +157,7 @@ class InstitutionalStatutoryRules:
     MAX_SINGLE_ASSET_WEIGHT = 0.15
     POD_DRAWDOWN_WARNING = -0.030   # -3%
     POD_DRAWDOWN_QUARANTINE = -0.050 # -5%
-    PORTFOLIO_NUCLEAR_LIMIT = -0.075 # -7.5%
+    PORTFOLIO_NUCLEAR_LIMIT = -0.12 # -12.0%
 
     # Singleton Hamilton Vault Manager
     _vault_mgr = HamiltonColdVaultManager()
@@ -362,7 +362,7 @@ class InstitutionalStatutoryRules:
     def check_drawdown_ladder(cls, pod_drawdown: float, portfolio_drawdown: float) -> StatutoryAuditResult:
         """Thang bậc bảo vệ Pod Defense (-3%, -5%, -7.5%)."""
         if portfolio_drawdown <= cls.PORTFOLIO_NUCLEAR_LIMIT:
-            reason = f"NUCLEAR EMERGENCY: Sụt giảm toàn danh mục {portfolio_drawdown*100:.2f}% chạm trần -7.5%!"
+            reason = f"NUCLEAR EMERGENCY: Sụt giảm toàn danh mục {portfolio_drawdown*100:.2f}% chạm trần -12.0%!"
             return StatutoryAuditResult(
                 is_compliant=False,
                 statute_code="STATUTE_DRAWDOWN_LADDER",

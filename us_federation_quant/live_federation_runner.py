@@ -492,7 +492,7 @@ class USFederationQuantRuntime:
                     if titan_audit.get("nuclear_football_triggered"):
                         logger.critical("🚨 NUCLEAR FOOTBALL TRIGGERED! Initiating emergency federation liquidation...")
                         self.hub.central_risk_desk.kill_switch.manual_emergency_shutdown(
-                            reason=f"Drawdown ladder exceeded -7.5% federal boundary (Drawdown: {drawdown * 100:.2f}%)",
+                            reason=f"Drawdown ladder exceeded -12.0% federal boundary (Drawdown: {drawdown * 100:.2f}%)",
                             broker_connector=self.mt5_mgr,
                         )
                         self.telemetry.broadcast_critical_alert(

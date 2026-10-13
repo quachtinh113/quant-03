@@ -202,11 +202,11 @@ class SupremeCourtCircuitBreakerManager:
         port_dd = (self.portfolio_peak_equity - current_portfolio_equity) / self.portfolio_peak_equity
         port_dd_pct = round(port_dd * 100.0, 2)
 
-        # 1. Nuclear Football Check (-7.5% System Portfolio Drawdown)
-        if port_dd >= 0.075:
+        # 1. Nuclear Football Check (-12.0% System Portfolio Drawdown)
+        if port_dd >= 0.12:
             self.nuclear_football_triggered = True
             logger.critical(
-                f"🔥 [TÒA ÁN TỐI CAO - NUCLEAR FOOTBALL]: PORTFOLIO DRAWDOWN {port_dd_pct}% >= 7.5%! "
+                f"🔥 [TÒA ÁN TỐI CAO - NUCLEAR FOOTBALL]: PORTFOLIO DRAWDOWN {port_dd_pct}% >= 12.0%! "
                 f"KÍCH HOẠT LỆNH BÀI PHONG TỎA TỐI CAO: KHÓA ROUTER & PHẲNG TOÀN BỘ 50 TIỂU BANG!"
             )
         else:

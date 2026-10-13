@@ -14,7 +14,7 @@ class NuclearFootball:
     Overrides all 50 states and shuts down trading activity instantly.
     """
 
-    def __init__(self, kill_threshold: float = -0.075):
+    def __init__(self, kill_threshold: float = -0.12):
         self.kill_threshold = kill_threshold
         self.is_detonated: bool = False
         self.detonation_reason: str = ""
@@ -22,7 +22,7 @@ class NuclearFootball:
 
     def check_portfolio_drawdown(self, current_drawdown: float) -> bool:
         """
-        Monitors drawdown level. If drawdown <= -0.075, automatically detonates.
+        Monitors drawdown level. If drawdown <= -0.12, automatically detonates.
         """
         if current_drawdown <= self.kill_threshold:
             self.detonate(f"CRITICAL DRAWDOWN BREACHED: {round(current_drawdown * 100, 2)}% <= {round(self.kill_threshold * 100, 2)}%")

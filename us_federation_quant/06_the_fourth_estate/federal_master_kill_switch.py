@@ -40,7 +40,7 @@ class FederalMasterKillSwitch:
         self,
         yellow_threshold: float = -0.03,  # -3%
         orange_threshold: float = -0.05,  # -5%
-        red_threshold: float = -0.075,    # -7.5%
+        red_threshold: float = -0.12,     # -12.0%
         secret_passphrase: str = "CONSTITUTIONAL_EMERGENCY_OVERRIDE_KEY"
     ):
         self.yellow_threshold = yellow_threshold

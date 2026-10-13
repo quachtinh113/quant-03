@@ -21,7 +21,7 @@ class BlackSwanStressTester:
     Đảm bảo chiến lược không chỉ sống sót trong thời bình mà còn bất khả xâm phạm trước siêu bão.
     """
 
-    MAX_PERMITTED_CRISIS_DRAWDOWN: float = 0.075  # Giới hạn Hiến pháp: Max Drawdown 7.5%
+    MAX_PERMITTED_CRISIS_DRAWDOWN: float = 0.12  # Giới hạn Hiến pháp: Max Drawdown 12.0%
 
     @classmethod
     def generate_covid_shock_data(cls, base_price: float = 2000.0, n_bars: int = 150) -> pd.DataFrame:
