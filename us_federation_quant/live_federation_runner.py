@@ -245,6 +245,10 @@ class USFederationQuantRuntime:
             actual_symbol = self.mt5_mgr.resolve_symbol(pod.primary_asset)
             asset_clean = pod.primary_asset.upper()
 
+            # 0. Market Session & Trade Mode Gatekeeper (skip closed markets like US Equities outside NYSE)
+            if not self.mt5_mgr.is_market_open(actual_symbol):
+                continue
+
             # Cluster Risk Control: Max 2 active positions per currency cluster (e.g. GBP)
             if "GBP" in asset_clean:
                 gbp_positions = [p for p in self.mt5_mgr.get_positions() if "GBP" in p["symbol"].upper()]

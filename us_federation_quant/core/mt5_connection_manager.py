@@ -309,6 +309,39 @@ class MT5ConnectionManager:
         else:
             return mt5.ORDER_FILLING_RETURN
 
+    def is_market_open(self, symbol: str, max_tick_age_seconds: float = 600.0) -> bool:
+        """
+        Market Session Gatekeeper:
+        Checks if trading is active and broker session is open for the given symbol.
+        Returns False if:
+        1. MT5 is not connected or symbol is invalid.
+        2. Trade mode is disabled (SYMBOL_TRADE_MODE_DISABLED).
+        3. Most recent tick is older than max_tick_age_seconds (e.g. US Equities outside NYSE hours).
+        """
+        if not self.ensure_connected():
+            return False
+
+        symbol = self.resolve_symbol(symbol)
+        with self._lock:
+            info = mt5.symbol_info(symbol) if MT5_AVAILABLE else None
+            if not info:
+                return False
+
+            # Check if trading is explicitly disabled (trade_mode == 0)
+            if hasattr(info, "trade_mode") and info.trade_mode == mt5.SYMBOL_TRADE_MODE_DISABLED:
+                return False
+
+            tick = mt5.symbol_info_tick(symbol) if MT5_AVAILABLE else None
+            if not tick or tick.time == 0:
+                return False
+
+            now_ts = datetime.now(timezone.utc).timestamp()
+            tick_age = now_ts - tick.time
+            if tick_age > max_tick_age_seconds:
+                return False
+
+            return True
+
     def get_rates(self, symbol: str, timeframe_str: str, count: int = 100) -> Optional[pd.DataFrame]:
         """Fetch latest candles for a symbol. Returns DataFrame with UTC datetime index."""
         if not self.ensure_connected():
@@ -446,6 +479,9 @@ class MT5ConnectionManager:
             return {"success": False, "error": "Not connected to MT5"}
 
         symbol = self.resolve_symbol(symbol)
+        if not self.is_market_open(symbol):
+            return {"success": False, "error": f"Market closed or trading disabled for {symbol}", "retcode": 10018}
+
         spec = self.get_symbol_spec(symbol)
         if not spec:
             return {"success": False, "error": f"Invalid symbol {symbol}"}
@@ -629,6 +665,15 @@ class MT5ConnectionManager:
 
             logger.info(f"✅ POSITION CLOSED: Ticket #{ticket} ({pos.symbol} {pos.volume}L, Profit: ${pos.profit:.2f})")
             return {"success": True, "ticket": ticket, "profit": pos.profit}
+
+    def close_all_positions(self) -> List[Dict[str, Any]]:
+        """Emergency liquidation: Close all open positions immediately."""
+        positions = self.get_positions()
+        results = []
+        for p in positions:
+            res = self.close_position(p["ticket"])
+            results.append(res)
+        return results
 
     def modify_position_sltp(self, ticket: int, sl: float = 0.0, tp: float = 0.0) -> Dict[str, Any]:
         """
