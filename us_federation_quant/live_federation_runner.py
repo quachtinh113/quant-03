@@ -297,6 +297,22 @@ class USFederationQuantRuntime:
                         # State pod already holds a live position on this asset
                         continue
 
+                    # Federal Index Exposure Cap: prevent multiple pods from stacking > 0.50L on US Indices
+                    if any(idx in actual_symbol.upper() for idx in ["US30", "US500", "USTEC"]):
+                        existing_idx_same_dir = [
+                            p for p in self.mt5_mgr.get_positions()
+                            if any(idx in p["symbol"].upper() for idx in ["US30", "US500", "USTEC"])
+                            and self.mt5_mgr.resolve_symbol(p["symbol"]).upper() == actual_symbol.upper()
+                            and p["type"] == proposal.action
+                        ]
+                        total_idx_lots = sum(p["volume"] for p in existing_idx_same_dir)
+                        if total_idx_lots >= 0.50:
+                            logger.info(
+                                f"🛡️ [INDEX CAP ACTIVE] {pod.state_id} ({pod.state_name}): {proposal.action} proposal "
+                                f"on {actual_symbol} held back: Directional index exposure already at {total_idx_lots:.2f}L (Cap: 0.50L)."
+                            )
+                            continue
+
                     # 1. Supreme Court: Cryptographic Judicial Warrant
                     bill_id = f"BILL_{pod.state_id}_{int(time.time())}"
                     warrant = self.hub.court.issue_direct_warrant(
@@ -390,7 +406,14 @@ class USFederationQuantRuntime:
         return executed_trades
 
     def enforce_trailing_stop_and_breakeven(self, min_profit_usd: float = 15.0) -> List[Dict[str, Any]]:
-        """Automatically moves Stop Loss to Break-Even (+offset) when position profit >= min_profit_usd."""
+        """
+        Multi-Tier Dynamic Trailing Stop & Break-Even Engine:
+        - Tier 1 (Profit >= $15): Move SL to Break-Even (+0.05% buffer).
+        - Tier 2 (Profit >= $50): Lock in 30% of profit distance.
+        - Tier 3 (Profit >= $100): Lock in 50% of profit distance (e.g. XNGUSD locks > $85).
+        - Tier 4 (Profit >= $200): Lock in 70% of profit distance.
+        Guarantees winning positions never turn into losses while allowing trends to run.
+        """
         positions = self.mt5_mgr.get_positions()
         protected = []
         for p in positions:
@@ -398,6 +421,7 @@ class USFederationQuantRuntime:
             profit = p["profit"]
             sl = p["sl"]
             open_price = p["price_open"]
+            curr_price = p.get("price_current", open_price)
             pos_type = p["type"]
             symbol = p["symbol"]
 
@@ -405,22 +429,73 @@ class USFederationQuantRuntime:
                 spec = self.mt5_mgr.get_symbol_spec(symbol)
                 digits = spec.get("digits", 2) if spec else 2
 
+                # Determine profit locking fraction
+                if profit >= 200.0:
+                    lock_ratio = 0.70
+                    tier_name = "TIER_4_LOCK_70PCT"
+                elif profit >= 100.0:
+                    lock_ratio = 0.50
+                    tier_name = "TIER_3_LOCK_50PCT"
+                elif profit >= 50.0:
+                    lock_ratio = 0.30
+                    tier_name = "TIER_2_LOCK_30PCT"
+                else:
+                    lock_ratio = 0.0
+                    tier_name = "TIER_1_BREAK_EVEN"
+
                 if pos_type == "BUY":
-                    be_sl = round(open_price * 1.0005, digits)
-                    if sl < open_price:
-                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=be_sl)
+                    if lock_ratio > 0.0 and curr_price > open_price:
+                        target_sl = round(open_price + (curr_price - open_price) * lock_ratio, digits)
+                    else:
+                        target_sl = round(open_price * 1.0005, digits)
+
+                    if target_sl > sl and target_sl < curr_price:
+                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_sl)
                         if res.get("success"):
-                            logger.info(f"🔒 [AUTO BREAK-EVEN] Ticket #{ticket} ({symbol} BUY) SL moved to {be_sl} (Profit: ${profit:,.2f})")
+                            logger.info(
+                                f"🔒 [{tier_name}] Ticket #{ticket} ({symbol} BUY) SL trailed from {sl} -> {target_sl} "
+                                f"(Current: {curr_price}, Profit: ${profit:,.2f})"
+                            )
                             protected.append(res)
+
                 elif pos_type == "SELL":
-                    be_sl = round(open_price * 0.9995, digits)
-                    if sl == 0.0 or sl > open_price:
-                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=be_sl)
+                    if lock_ratio > 0.0 and curr_price < open_price:
+                        target_sl = round(open_price - (open_price - curr_price) * lock_ratio, digits)
+                    else:
+                        target_sl = round(open_price * 0.9995, digits)
+
+                    if (sl == 0.0 or target_sl < sl) and target_sl > curr_price:
+                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_sl)
                         if res.get("success"):
-                            logger.info(f"🔒 [AUTO BREAK-EVEN] Ticket #{ticket} ({symbol} SELL) SL moved to {be_sl} (Profit: ${profit:,.2f})")
+                            logger.info(
+                                f"🔒 [{tier_name}] Ticket #{ticket} ({symbol} SELL) SL trailed from {sl} -> {target_sl} "
+                                f"(Current: {curr_price}, Profit: ${profit:,.2f})"
+                            )
                             protected.append(res)
 
         return protected
+
+    def reconcile_index_duplicate_derisking(self) -> List[Dict[str, Any]]:
+        """
+        Tactical De-risking: Closes older duplicate positions on US Indices when price rebounds near break-even.
+        If total directional lots on US30 > 0.50L, and a position rebounds to profit >= -$50 USD,
+        close it to normalize total index exposure back to the 0.50L cap.
+        """
+        positions = self.mt5_mgr.get_positions()
+        us30_buys = [p for p in positions if "US30" in p["symbol"].upper() and p["type"] == "BUY"]
+        closed = []
+        if len(us30_buys) > 1:
+            for p in sorted(us30_buys, key=lambda x: x["profit"], reverse=True):
+                if p["profit"] >= -50.0:
+                    res = self.mt5_mgr.close_position(p["ticket"])
+                    if res.get("success"):
+                        logger.info(
+                            f"🛡️ [TACTICAL INDEX DE-RISKING] Closed duplicate US30 BUY #{p['ticket']} "
+                            f"@ profit ${p['profit']:.2f} USD. Index exposure normalized to 0.50L."
+                        )
+                        closed.append(res)
+                        break
+        return closed
 
 
     def run(self):
@@ -443,7 +518,8 @@ class USFederationQuantRuntime:
         # Initial Quad-Titan Audit & Startup Dashboard (CHỈ IN 1 LẦN DỰ ÁN BAN ĐẦU)
         account_info = self.mt5_mgr.get_account_info() or {}
         equity = float(account_info.get("equity", 10_000.0))
-        hwm_state = self.hwm.update(current_equity=equity)
+        balance = float(account_info.get("balance", 10_000.0))
+        hwm_state = self.hwm.update(current_equity=equity, current_balance=balance)
         drawdown = hwm_state.drawdown_fraction
 
         initial_audit = self.quad_titans.execute_quad_audit(
@@ -478,7 +554,7 @@ class USFederationQuantRuntime:
                 equity = float(account_info.get("equity", 10_000.0))
                 balance = float(account_info.get("balance", 10_000.0))
 
-                hwm_state = self.hwm.update(current_equity=equity)
+                hwm_state = self.hwm.update(current_equity=equity, current_balance=balance)
                 drawdown = hwm_state.drawdown_fraction
                 floating_pnl = equity - balance
 
@@ -523,8 +599,11 @@ class USFederationQuantRuntime:
                     # 1. Enforce Mandatory Stop Loss Protection (Article 00 Safeguard)
                     self.mt5_mgr.enforce_mandatory_sl_protection(default_sl_pct=0.015)
 
-                    # 2. Enforce Auto Break-Even Lock on profitable positions (+$15 USD)
+                    # 2. Enforce Multi-Tier Dynamic Trailing Stop on profitable positions
                     self.enforce_trailing_stop_and_breakeven(min_profit_usd=15.0)
+
+                    # 3. Tactical Index Over-exposure De-risking on rebound
+                    self.reconcile_index_duplicate_derisking()
 
 
                     positions = self.mt5_mgr.get_positions()

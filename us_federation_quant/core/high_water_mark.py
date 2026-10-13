@@ -149,15 +149,41 @@ class HighWaterMarkTracker:
         """Đỉnh vốn hiện tại, hoặc None nếu chưa từng ghi nhận equity nào."""
         return self._hwm
 
-    def update(self, current_equity: float) -> HighWaterMarkState:
+    def update(self, current_equity: float, current_balance: Optional[float] = None) -> HighWaterMarkState:
         """
         Ghi nhận equity mới, nâng đỉnh nếu cần, rồi trả về drawdown tính từ đỉnh.
+        Đồng thời hỗ trợ Weekly Re-anchoring: nếu đỉnh cũ thuộc tuần trước (> 4 ngày)
+        và balance hiện tại có lãi (balance >= 10,000 USD), tự động điều chỉnh mốc HWM về balance
+        để bảo vệ chu kỳ giao dịch tuần mới mà không bị dính bẫy đỉnh ảo.
 
         :param current_equity: Equity tài khoản hiện tại (USD).
+        :param current_balance: Số dư balance tài khoản hiện tại (USD).
         :return: HighWaterMarkState với drawdown_fraction <= 0.0
         """
         equity = float(current_equity)
-        now = datetime.now(timezone.utc).isoformat()
+        now_dt = datetime.now(timezone.utc)
+        now = now_dt.isoformat()
+
+        # Weekly Re-anchoring logic: prevent phantom peaks from older calendar weeks from distorting current week
+        if self._peak_at_utc and current_balance and current_balance >= 10_000.0:
+            try:
+                peak_dt = datetime.fromisoformat(self._peak_at_utc)
+                if (now_dt - peak_dt).total_seconds() > 4 * 86400:
+                    peak_iso_week = peak_dt.isocalendar()[1]
+                    now_iso_week = now_dt.isocalendar()[1]
+                    if now_iso_week != peak_iso_week and self._hwm and self._hwm > current_balance:
+                        logger.info(
+                            "🔄 [WEEKLY HWM RE-ANCHORING] Re-anchoring benchmark from phantom peak $%.2f "
+                            "(Week %d) to current balance $%.2f (Week %d).",
+                            self._hwm,
+                            peak_iso_week,
+                            current_balance,
+                            now_iso_week,
+                        )
+                        self._hwm = float(current_balance)
+                        self._peak_at_utc = now
+            except Exception as e:
+                logger.warning("Weekly HWM check notice: %s", e)
 
         if equity <= 0.0:
             # Equity <= 0 là tài khoản đã cháy. Drawdown = -100%, và KHÔNG hạ đỉnh.
