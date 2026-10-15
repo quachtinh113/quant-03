@@ -10,7 +10,8 @@ echo.
 :: Ensure we are in the correct directory
 cd /d "%~dp0"
 
-:: Set utf-8 encoding for proper emoji display
+:: Set utf-8 encoding for proper emoji and terminal display
+chcp 65001 > nul
 set PYTHONIOENCODING=utf-8
 
 :: Auto-restart loop (max 50 restarts to prevent infinite crash loops)
@@ -32,11 +33,18 @@ if %RESTART_COUNT% GTR %MAX_RESTARTS% (
 )
 
 echo.
-:: Start MT5 GUI explicitly if not already visible
-start "" "C:\Program Files\MetaTrader 5 EXNESS\terminal64.exe"
-timeout /t 3 /nobreak > nul
+echo =======================================================
+echo  [STEP 1/2] Checking MT5 GUI Process Lifecycle...
+echo =======================================================
+powershell -NoProfile -ExecutionPolicy Bypass -File "ensure_mt5_gui.ps1"
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] ensure_mt5_gui returned non-zero code. Attempting to proceed...
+)
 
-:: Run the bot
+echo.
+echo =======================================================
+echo  [STEP 2/2] Launching US Federation Live Runner...
+echo =======================================================
 python live_federation_runner.py
 
 :: Check exit code
@@ -58,7 +66,7 @@ echo  Restarting in %RESTART_DELAY% seconds...
 echo  (Press Ctrl+C to cancel restart)
 echo =======================================================
 
-:: Wait before restart (allows user to cancel)
-timeout /t %RESTART_DELAY% /nobreak
+:: Wait before restart without using timeout redirection bug
+ping 127.0.0.1 -n 31 > nul
 
 goto start_loop

@@ -125,10 +125,6 @@ class MT5ConnectionManager:
             return False
 
         with self._lock:
-            try:
-                mt5.shutdown()
-            except Exception:
-                pass
             init_kwargs = {"timeout": 30000}
             if self.terminal_path and os.path.exists(self.terminal_path):
                 init_kwargs["path"] = self.terminal_path
@@ -139,7 +135,17 @@ class MT5ConnectionManager:
             if self.server:
                 init_kwargs["server"] = str(self.server)
 
-            if not mt5.initialize(**init_kwargs):
+            # Attempt direct initialization to attach to running MT5 GUI
+            init_ok = mt5.initialize(**init_kwargs)
+            if not init_ok:
+                try:
+                    mt5.shutdown()
+                except Exception:
+                    pass
+                time.sleep(1)
+                init_ok = mt5.initialize(**init_kwargs)
+
+            if not init_ok:
                 err = mt5.last_error()
                 logger.error(f"❌ MT5 initialize() failed: {err}")
                 self.connected = False
@@ -615,8 +621,8 @@ class MT5ConnectionManager:
 
         return reconciled
 
-    def close_position(self, ticket: int) -> Dict[str, Any]:
-        """Close an open position by ticket using an opposite deal."""
+    def close_position(self, ticket: int, volume: Optional[float] = None, comment: str = "Fleet Close") -> Dict[str, Any]:
+        """Close an open position (or partially close specified volume) by ticket."""
         if not self.ensure_connected():
             return {"success": False, "error": "Not connected to MT5"}
 
@@ -634,16 +640,22 @@ class MT5ConnectionManager:
             price = tick.bid if pos.type == mt5.ORDER_TYPE_BUY else tick.ask
 
             filling_mode = self.get_filling_mode(pos.symbol)
+
+            # Determine execution volume (supports partial close)
+            exec_volume = pos.volume
+            if volume is not None and 0.0 < volume < pos.volume:
+                exec_volume = self.normalize_lot(pos.symbol, volume)
+
             request = {
                 "action": mt5.TRADE_ACTION_DEAL,
                 "position": pos.ticket,
                 "symbol": pos.symbol,
-                "volume": pos.volume,
+                "volume": exec_volume,
                 "type": close_type,
                 "price": price,
                 "deviation": 20,
                 "magic": pos.magic,
-                "comment": "Fleet Close",
+                "comment": comment[:31],
                 "type_time": mt5.ORDER_TIME_GTC,
                 "type_filling": filling_mode,
             }
@@ -663,8 +675,17 @@ class MT5ConnectionManager:
                 logger.error(f"❌ Close Failed #{ticket}: {err_msg}")
                 return {"success": False, "error": err_msg}
 
-            logger.info(f"✅ POSITION CLOSED: Ticket #{ticket} ({pos.symbol} {pos.volume}L, Profit: ${pos.profit:.2f})")
-            return {"success": True, "ticket": ticket, "profit": pos.profit}
+            is_partial = exec_volume < pos.volume
+            log_desc = f"PARTIAL CLOSE ({exec_volume}L of {pos.volume}L)" if is_partial else f"FULL CLOSE ({exec_volume}L)"
+            logger.info(f"✅ POSITION {log_desc}: Ticket #{ticket} ({pos.symbol}, Profit: ${pos.profit:.2f})")
+            return {
+                "success": True,
+                "ticket": ticket,
+                "closed_volume": exec_volume,
+                "remaining_volume": round(pos.volume - exec_volume, 2) if is_partial else 0.0,
+                "profit": pos.profit,
+                "is_partial": is_partial,
+            }
 
     def close_all_positions(self) -> List[Dict[str, Any]]:
         """Emergency liquidation: Close all open positions immediately."""

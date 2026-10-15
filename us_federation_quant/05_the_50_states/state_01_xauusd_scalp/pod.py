@@ -98,29 +98,43 @@ class GoldScalpPod(BaseStatePod):
             confidence = 0.50
 
         current_price = float(close.iloc[-1])
-        atr_price = gk_vol * current_price if gk_vol > 0 else current_price * 0.005
+
+        # Dynamic Volatility Sizing based on ATR(14) and $75.00 Hard Stop Cap
+        if "high" in market_df.columns and "low" in market_df.columns:
+            tr1 = market_df["high"] - market_df["low"]
+            tr2 = (market_df["high"] - market_df["close"].shift(1)).abs()
+            tr3 = (market_df["low"] - market_df["close"].shift(1)).abs()
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            atr14 = float(tr.rolling(14).mean().iloc[-1]) if len(tr) >= 14 else float(tr.mean())
+        else:
+            atr14 = gk_vol * current_price if gk_vol > 0 else current_price * 0.005
+
+        if np.isnan(atr14) or atr14 <= 0:
+            atr14 = 20.0
+
+        max_risk_usd = 75.0
+        multiplier = 1.5
+        contract_size = 100.0
+        dollar_risk_per_lot = atr14 * multiplier * contract_size
+
+        dynamic_xau_lot = max_risk_usd / dollar_risk_per_lot if dollar_risk_per_lot > 0 else 0.02
+        volatility_capped_lot = float(np.clip(round(dynamic_xau_lot, 2), 0.01, 0.05))
 
         if cash_vol_budget and cash_vol_budget > 0 and action != "HOLD":
-            lot_cap = 0.05 if account_equity <= 25000.0 else (0.20 if account_equity <= 100000.0 else 5.0)
             carver_sizing = self.calculate_carver_target_position(
                 cash_vol_target=cash_vol_budget,
                 forecast=forecast,
                 current_position_lot=current_position_lot,
-                atr_price=atr_price,
-                contract_size=100.0,
-                max_lot=lot_cap,
+                atr_price=atr14,
+                contract_size=contract_size,
+                max_lot=volatility_capped_lot,
             )
-            raw_lots = carver_sizing["raw_lots"]
-            effective_lots = carver_sizing["buffered_lots"]
+            raw_lots = min(carver_sizing["raw_lots"], volatility_capped_lot)
+            effective_lots = min(carver_sizing["buffered_lots"], volatility_capped_lot)
             is_buffered = carver_sizing["is_buffered"]
         elif action != "HOLD":
-            raw_lots = self.calculate_risk_parity_lot(
-                account_equity=account_equity,
-                current_price=current_price,
-                atr=atr_price,
-                risk_fraction=0.005,
-            )
-            effective_lots = raw_lots
+            raw_lots = volatility_capped_lot
+            effective_lots = volatility_capped_lot
             is_buffered = False
         else:
             raw_lots = 0.0

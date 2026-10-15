@@ -21,6 +21,7 @@ Governed by:
 from __future__ import annotations
 
 import importlib
+import json
 import logging
 import os
 import signal
@@ -136,6 +137,10 @@ class USFederationQuantRuntime:
         self.hwm = HighWaterMarkTracker(bot_id="us_federation_quant", logs_dir=str(LOG_DIR))
         self.previous_quotas: Dict[str, float] = {}
 
+        # Institutional US Equities Universe Filters (Task 4)
+        self.US_EQUITIES_BLACKLIST = ["BAC", "JNJ", "V", "BRK", "UNH", "PG", "XOM"]
+        self.US_EQUITIES_WHITELIST = ["TSLA", "NVDA", "AAPL", "MSFT", "GOOG", "AMZN", "META"]
+
     def print_constitutional_dashboard(
         self,
         account_info: Dict[str, Any],
@@ -244,10 +249,28 @@ class USFederationQuantRuntime:
         for pod in active_states:
             actual_symbol = self.mt5_mgr.resolve_symbol(pod.primary_asset)
             asset_clean = pod.primary_asset.upper()
+            clean_ticker = actual_symbol.upper().replace("M", "")
+
+            # Task 4.2: Blacklist illiquid / high-spread US Equities
+            if clean_ticker in self.US_EQUITIES_BLACKLIST:
+                continue
 
             # 0. Market Session & Trade Mode Gatekeeper (skip closed markets like US Equities outside NYSE)
             if not self.mt5_mgr.is_market_open(actual_symbol):
                 continue
+
+            # Task 4.1: Time filter - Cấm mở lệnh mới đối với tất cả US Equities trong 30 phút đầu phiên NY (09:30 - 10:00 EST / 13:30 - 14:00 UTC)
+            is_us_equity = clean_ticker in (self.US_EQUITIES_BLACKLIST + self.US_EQUITIES_WHITELIST)
+            if is_us_equity:
+                now_utc = datetime.now(timezone.utc)
+                u_hour, u_min = now_utc.hour, now_utc.minute
+                is_opening_bell = ((u_hour == 13 and u_min >= 30) or (u_hour == 14 and u_min < 30))
+                if is_opening_bell:
+                    logger.info(
+                        f"🛡️ [EQUITY TIME GATEKEEPER] {pod.state_id} ({clean_ticker}): "
+                        f"Blocked in first 30m of NYSE open ({u_hour:02d}:{u_min:02d} UTC) to avoid spread/gap risk."
+                    )
+                    continue
 
             # Cluster Risk Control: Max 2 active positions per currency cluster (e.g. GBP)
             if "GBP" in asset_clean:
@@ -296,6 +319,24 @@ class USFederationQuantRuntime:
                     if len(existing_pos) > 0:
                         # State pod already holds a live position on this asset
                         continue
+
+                    # Task 4.3: Trend & Momentum Confirmation Filter for whitelisted US Equities
+                    if is_us_equity:
+                        if abs(proposal.carver_forecast) < 10.0:
+                            logger.info(
+                                f"🛡️ [EQUITY CONVICTION GATEKEEPER] {pod.state_id} ({clean_ticker}): "
+                                f"Forecast {proposal.carver_forecast:+.2f} below minimum conviction (|F| >= 10.0)."
+                            )
+                            continue
+
+                        ema20 = market_df["close"].ewm(span=20).mean().iloc[-1]
+                        last_c = float(market_df["close"].iloc[-1])
+                        if proposal.action == "BUY" and last_c < ema20:
+                            logger.info(f"🛡️ [EQUITY TREND FILTER] {clean_ticker} BUY rejected: Price {last_c:.2f} below EMA20 {ema20:.2f}.")
+                            continue
+                        elif proposal.action == "SELL" and last_c > ema20:
+                            logger.info(f"🛡️ [EQUITY TREND FILTER] {clean_ticker} SELL rejected: Price {last_c:.2f} above EMA20 {ema20:.2f}.")
+                            continue
 
                     # Federal Index Exposure Cap: prevent multiple pods from stacking > 0.50L on US Indices
                     if any(idx in actual_symbol.upper() for idx in ["US30", "US500", "USTEC"]):
@@ -349,7 +390,8 @@ class USFederationQuantRuntime:
                     elif any(c in sym_clean for c in ["BTC", "ETH", "SOL"]):
                         cleared_lots = min(cleared_lots, 0.10)
                     elif any(m in sym_clean for m in ["XAU", "XAG", "XPT", "XPD", "XNG"]):
-                        cleared_lots = min(cleared_lots, 0.10)
+                        # Task 2: Strict 0.05 lot ceiling for Gold
+                        cleared_lots = min(cleared_lots, 0.05 if ("XAU" in sym_clean or "GOLD" in sym_clean) else 0.10)
                     else:
                         cleared_lots = min(cleared_lots, 0.15)
 
@@ -405,75 +447,192 @@ class USFederationQuantRuntime:
 
         return executed_trades
 
-    def enforce_trailing_stop_and_breakeven(self, min_profit_usd: float = 15.0) -> List[Dict[str, Any]]:
+    def _load_two_tier_state(self) -> Dict[str, Any]:
+        """Loads persistent Two-Tier Exit Engine state."""
+        state_file = LOG_DIR / "two_tier_exit_state.json"
+        if state_file.exists():
+            try:
+                with open(state_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                return {}
+        return {}
+
+    def _save_two_tier_state(self, state: Dict[str, Any]):
+        """Persists Two-Tier Exit Engine state for crash resilience & idempotency."""
+        state_file = LOG_DIR / "two_tier_exit_state.json"
+        try:
+            with open(state_file, "w", encoding="utf-8") as f:
+                json.dump(state, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Failed to persist two-tier exit state: {e}")
+
+    def enforce_xauusd_hard_stop_cap(self, max_loss_usd: float = 75.0) -> List[Dict[str, Any]]:
         """
-        Multi-Tier Dynamic Trailing Stop & Break-Even Engine:
-        - Tier 1 (Profit >= $15): Move SL to Break-Even (+0.05% buffer).
-        - Tier 2 (Profit >= $50): Lock in 30% of profit distance.
-        - Tier 3 (Profit >= $100): Lock in 50% of profit distance (e.g. XNGUSD locks > $85).
-        - Tier 4 (Profit >= $200): Lock in 70% of profit distance.
-        Guarantees winning positions never turn into losses while allowing trends to run.
+        Task 2: Hard Stop Cap for XAUUSD (Gold).
+        Continuously monitors open XAUUSD positions.
+        If floating loss reaches or breaches -$75.00 USD (including commission & swap),
+        triggers an immediate emergency Market Close to prevent fat-tail catastrophes.
         """
         positions = self.mt5_mgr.get_positions()
-        protected = []
+        closed_positions = []
+        for p in positions:
+            sym_clean = p["symbol"].upper()
+            if "XAU" in sym_clean or "GOLD" in sym_clean:
+                ticket = p["ticket"]
+                profit = p["profit"]
+                swap = p.get("swap", 0.0)
+                comm = p.get("commission", 0.0)
+                total_loss = profit + swap + comm
+
+                if total_loss <= -max_loss_usd:
+                    logger.critical(
+                        f"🚨 [XAUUSD HARD STOP CAP ACTIVATED] Ticket #{ticket} ({p['symbol']} {p['type']} {p['volume']}L): "
+                        f"Loss reached ${total_loss:.2f} USD (Threshold: -${max_loss_usd:.2f} USD). "
+                        f"Triggering Emergency Market Close to protect capital!"
+                    )
+                    res = self.mt5_mgr.close_position(ticket=ticket, comment="XAU HardCap 75")
+                    if res.get("success"):
+                        closed_positions.append(res)
+                        self.telemetry.broadcast_critical_alert(
+                            subject="XAUUSD HARD STOP CAP TRIGGERED",
+                            body=f"Closed Gold ticket #{ticket} at ${total_loss:.2f} USD to cap fat-tail loss."
+                        )
+        return closed_positions
+
+    def enforce_two_tier_exit_engine(self, min_partial_profit_usd: float = 25.0) -> Dict[str, List[Any]]:
+        """
+        Task 3: Two-Tier Exit Engine (Chốt lời từng phần & Trailing Runner).
+        1. Tier 1 (Partial TP - 50% Volume):
+           - Trigger: Position profit >= $25 USD (or 1.5R).
+           - Action: Partially close 50% of volume (minimum 0.01L closeable).
+           - Advance Stop Loss of remaining 50% to Entry Price + Spread Padding (Break-Even).
+           - Idempotent: Tracks state in two_tier_exit_state.json to prevent re-executing.
+        2. Tier 2 (Trend Runner - remaining 50% volume):
+           - Dynamic Trailing Stop locking in 30% of profit at $50, 50% at $100, 70% at $200.
+        """
+        positions = self.mt5_mgr.get_positions()
+        two_tier_state = self._load_two_tier_state()
+        state_modified = False
+
+        partial_closed = []
+        trailed_runners = []
+
+        active_tickets = {str(p["ticket"]) for p in positions}
+        for t in list(two_tier_state.keys()):
+            if t not in active_tickets:
+                del two_tier_state[t]
+                state_modified = True
+
         for p in positions:
             ticket = p["ticket"]
+            str_ticket = str(ticket)
             profit = p["profit"]
+            volume = p["volume"]
             sl = p["sl"]
             open_price = p["price_open"]
             curr_price = p.get("price_current", open_price)
             pos_type = p["type"]
             symbol = p["symbol"]
 
-            if profit >= min_profit_usd:
-                spec = self.mt5_mgr.get_symbol_spec(symbol)
-                digits = spec.get("digits", 2) if spec else 2
+            spec = self.mt5_mgr.get_symbol_spec(symbol)
+            digits = spec.get("digits", 2) if spec else 2
+            spread_padding = open_price * 0.0005
 
-                # Determine profit locking fraction
+            pos_state = two_tier_state.get(str_ticket, {})
+            tier1_done = pos_state.get("tier1_closed", False)
+
+            # --- TIER 1: PARTIAL TP (50% Volume) ---
+            if profit >= min_partial_profit_usd and not tier1_done:
+                half_vol = round(volume / 2.0, 2)
+                if volume <= 0.01 or half_vol < 0.01:
+                    logger.info(
+                        f"🎯 [TWO-TIER EXIT: MIN VOLUME] Ticket #{ticket} ({symbol} {volume}L): "
+                        f"Profit +${profit:.2f} USD. Volume too small to halve. Moving directly to Break-Even."
+                    )
+                    target_be_sl = round(open_price + spread_padding, digits) if pos_type == "BUY" else round(open_price - spread_padding, digits)
+                    self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_be_sl)
+                    two_tier_state[str_ticket] = {
+                        "tier1_closed": True,
+                        "closed_vol": 0.0,
+                        "remain_vol": volume,
+                        "time": datetime.now(timezone.utc).isoformat(),
+                    }
+                    state_modified = True
+                else:
+                    res = self.mt5_mgr.close_position(ticket=ticket, volume=half_vol, comment="Tier1 50% TP")
+                    if res.get("success"):
+                        target_be_sl = round(open_price + spread_padding, digits) if pos_type == "BUY" else round(open_price - spread_padding, digits)
+                        self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_be_sl)
+                        logger.info(
+                            f"🎯 [TWO-TIER EXIT: TIER 1 PARTIAL TP] Ticket #{ticket} ({symbol}): "
+                            f"Successfully closed 50% ({half_vol}L of {volume}L) at profit +${profit:.2f} USD! "
+                            f"SL of remaining {round(volume - half_vol, 2)}L moved to Break-Even ({target_be_sl})."
+                        )
+                        two_tier_state[str_ticket] = {
+                            "tier1_closed": True,
+                            "closed_vol": half_vol,
+                            "remain_vol": round(volume - half_vol, 2),
+                            "time": datetime.now(timezone.utc).isoformat(),
+                        }
+                        state_modified = True
+                        partial_closed.append(res)
+                        continue
+
+            # --- TIER 2: TREND RUNNER (DYNAMIC TRAILING FOR REMAINING VOLUME) ---
+            if profit >= 15.0:
                 if profit >= 200.0:
                     lock_ratio = 0.70
-                    tier_name = "TIER_4_LOCK_70PCT"
+                    tier_label = "TIER_2_RUNNER_70PCT"
                 elif profit >= 100.0:
                     lock_ratio = 0.50
-                    tier_name = "TIER_3_LOCK_50PCT"
+                    tier_label = "TIER_2_RUNNER_50PCT"
                 elif profit >= 50.0:
                     lock_ratio = 0.30
-                    tier_name = "TIER_2_LOCK_30PCT"
+                    tier_label = "TIER_2_RUNNER_30PCT"
                 else:
                     lock_ratio = 0.0
-                    tier_name = "TIER_1_BREAK_EVEN"
+                    tier_label = "TIER_1_BREAK_EVEN"
 
                 if pos_type == "BUY":
                     if lock_ratio > 0.0 and curr_price > open_price:
                         target_sl = round(open_price + (curr_price - open_price) * lock_ratio, digits)
                     else:
-                        target_sl = round(open_price * 1.0005, digits)
+                        target_sl = round(open_price + spread_padding, digits)
 
                     if target_sl > sl and target_sl < curr_price:
                         res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_sl)
                         if res.get("success"):
                             logger.info(
-                                f"🔒 [{tier_name}] Ticket #{ticket} ({symbol} BUY) SL trailed from {sl} -> {target_sl} "
+                                f"🔒 [{tier_label}] Ticket #{ticket} ({symbol} BUY) Runner SL trailed from {sl} -> {target_sl} "
                                 f"(Current: {curr_price}, Profit: ${profit:,.2f})"
                             )
-                            protected.append(res)
+                            trailed_runners.append(res)
 
                 elif pos_type == "SELL":
                     if lock_ratio > 0.0 and curr_price < open_price:
                         target_sl = round(open_price - (open_price - curr_price) * lock_ratio, digits)
                     else:
-                        target_sl = round(open_price * 0.9995, digits)
+                        target_sl = round(open_price - spread_padding, digits)
 
                     if (sl == 0.0 or target_sl < sl) and target_sl > curr_price:
                         res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_sl)
                         if res.get("success"):
                             logger.info(
-                                f"🔒 [{tier_name}] Ticket #{ticket} ({symbol} SELL) SL trailed from {sl} -> {target_sl} "
+                                f"🔒 [{tier_label}] Ticket #{ticket} ({symbol} SELL) Runner SL trailed from {sl} -> {target_sl} "
                                 f"(Current: {curr_price}, Profit: ${profit:,.2f})"
                             )
-                            protected.append(res)
+                            trailed_runners.append(res)
 
-        return protected
+        if state_modified:
+            self._save_two_tier_state(two_tier_state)
+
+        return {"partial_closed": partial_closed, "trailed_runners": trailed_runners}
+
+    def enforce_trailing_stop_and_breakeven(self, min_profit_usd: float = 15.0) -> List[Dict[str, Any]]:
+        """Backward-compatible wrapper routing to Two-Tier Exit Engine."""
+        res = self.enforce_two_tier_exit_engine(min_partial_profit_usd=25.0)
+        return res.get("trailed_runners", [])
 
     def reconcile_index_duplicate_derisking(self) -> List[Dict[str, Any]]:
         """
@@ -596,13 +755,16 @@ class USFederationQuantRuntime:
                     latency = self.heartbeat.measure_socket_latency()
                     active_states = len([s for s in self.hub.states_registry.states.values() if s.is_active])
 
-                    # 1. Enforce Mandatory Stop Loss Protection (Article 00 Safeguard)
+                    # 1. Enforce Hard Stop Cap on XAUUSD (Task 2)
+                    self.enforce_xauusd_hard_stop_cap(max_loss_usd=75.0)
+
+                    # 2. Enforce Mandatory Stop Loss Protection (Article 00 Safeguard)
                     self.mt5_mgr.enforce_mandatory_sl_protection(default_sl_pct=0.015)
 
-                    # 2. Enforce Multi-Tier Dynamic Trailing Stop on profitable positions
-                    self.enforce_trailing_stop_and_breakeven(min_profit_usd=15.0)
+                    # 3. Enforce Two-Tier Exit Engine (Partial TP & Dynamic Trailing Runner) (Task 3)
+                    self.enforce_two_tier_exit_engine(min_partial_profit_usd=25.0)
 
-                    # 3. Tactical Index Over-exposure De-risking on rebound
+                    # 4. Tactical Index Over-exposure De-risking on rebound
                     self.reconcile_index_duplicate_derisking()
 
 

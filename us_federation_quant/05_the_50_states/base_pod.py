@@ -158,7 +158,7 @@ class BaseStatePod(StatePod):
         contract_size: Optional[float] = None,
         buffer_fraction: float = 0.10,
         min_lot: float = 0.01,
-        max_lot: float = 5.0,
+        max_lot: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Robert Carver Block Value & Volatility Target Position Sizing:
@@ -167,7 +167,7 @@ class BaseStatePod(StatePod):
         3. Carver Trade Buffering (+/- 10%) against current_position_lot to eliminate churn.
         """
         clean_asset = self.primary_asset.upper().replace("M", "")
-        if max_lot == 5.0:
+        if max_lot is None:
             if any(fx in clean_asset for fx in ["EUR", "GBP", "USD", "JPY", "AUD", "CAD", "CHF", "NZD"]) and not any(i in clean_asset for i in ["US30", "US500", "USTEC", "BTC", "ETH", "XAU"]):
                 max_lot = 0.15
             elif "US30" in clean_asset or "US500" in clean_asset or "USTEC" in clean_asset:
@@ -175,7 +175,7 @@ class BaseStatePod(StatePod):
             elif any(c in clean_asset for c in ["BTC", "ETH", "SOL"]):
                 max_lot = 0.10
             elif any(m in clean_asset for m in ["XAU", "XAG", "XPT", "XPD", "XNG"]):
-                max_lot = 0.10
+                max_lot = 0.50
             else:
                 max_lot = 0.15
 
@@ -238,15 +238,17 @@ class BaseStatePod(StatePod):
         clean_asset = self.primary_asset.upper().replace("M", "")
         if "XAU" in clean_asset or "GOLD" in clean_asset:
             contract_size = 100.0
-            max_lot = 0.05 if account_equity <= 5000 else (0.15 if account_equity <= 25000 else 5.0)
+            max_lot = 0.05  # Strict ceiling for Gold
+            target_risk_usd = min(75.0, max(1.0, account_equity * risk_fraction))
         elif "US30" in clean_asset or "US500" in clean_asset or "USTEC" in clean_asset or "BTC" in clean_asset:
             contract_size = 1.0
-            max_lot = 0.10 if account_equity <= 5000 else (0.60 if account_equity <= 25000 else 5.0)
+            max_lot = 0.10 if account_equity <= 5000 else (0.50 if account_equity <= 25000 else 5.0)
+            target_risk_usd = max(1.0, account_equity * risk_fraction)
         else:  # FX Pairs
             contract_size = 100_000.0
             max_lot = 0.05 if account_equity <= 5000 else (0.15 if account_equity <= 25000 else 5.0)
+            target_risk_usd = max(1.0, account_equity * risk_fraction)
 
-        target_risk_usd = max(1.0, account_equity * risk_fraction)
         effective_atr = atr if (atr and atr > 0) else (current_price * 0.005)
         dollar_risk_per_lot = effective_atr * contract_size * 1.5
 
