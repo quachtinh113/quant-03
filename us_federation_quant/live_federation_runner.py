@@ -71,6 +71,10 @@ FederationHub = _hub_mod.FederationHub
 _titan_mod = importlib.import_module("us_federation_quant.04_federal_reserve.quad_titan_engine")
 QuadTitanEngine = _titan_mod.QuadTitanEngine
 
+_states_reg_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+ELITE_STATE_IDS = getattr(_states_reg_mod, "ELITE_STATE_IDS", [])
+ELIMINATED_STATE_IDS = getattr(_states_reg_mod, "ELIMINATED_STATE_IDS", [])
+
 try:
     from us_federation_quant.core.mt5_connection_manager import MT5ConnectionManager
 except ImportError:
@@ -136,6 +140,23 @@ class USFederationQuantRuntime:
         # Đỉnh vốn bền vững qua restart — nguồn duy nhất cho thang drawdown -3%/-5%/-7.5%.
         self.hwm = HighWaterMarkTracker(bot_id="us_federation_quant", logs_dir=str(LOG_DIR))
         self.previous_quotas: Dict[str, float] = {}
+
+        # -----------------------------------------------------------------------------
+        # ELITE PURIFIED PORTFOLIO: Kích hoạt 19 Tiểu Bang Tinh Hoa & Khóa 31 Mã Blacklist
+        # -----------------------------------------------------------------------------
+        self.elite_states = self.hub.states_registry.enable_elite_purified_whitelist_mode()
+        logger.info(
+            f"🛡️ [ELITE WHITELIST ACTIVE] Đã kích hoạt {len(self.elite_states)} Tiểu bang Tinh hoa. "
+            f"Toàn bộ 31 mã Blacklist (Crypto, Cổ phiếu rủi ro cao, Scalp thô M15) đã bị khóa cứng."
+        )
+
+        # Institutional Target & Circuit Breaker Controls ($100 USD/day ~ 1.0% NAV)
+        self.DAILY_PROFIT_TARGET_USD = 100.0
+        self.MAX_POD_DAILY_DRAWDOWN_PCT = 1.5   # Circuit breaker Level 1: pause pod if DD > 1.5%
+        self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT = 2.0 # Circuit breaker Level 2: halt session if account DD > 2.0%
+        self.session_start_equity: Optional[float] = None
+        self.session_day: Optional[str] = None
+        self.pod_session_pnl: Dict[str, float] = {}
 
         # Institutional US Equities Universe Filters (Task 4)
         self.US_EQUITIES_BLACKLIST = ["BAC", "JNJ", "V", "BRK", "UNH", "PG", "XOM"]
@@ -225,6 +246,29 @@ class USFederationQuantRuntime:
         if not active_states:
             return executed_trades
 
+        # Circuit Breaker Level 2: Account Intraday Drawdown Check ($100/day Protection)
+        now_dt = datetime.now(timezone.utc)
+        today_str = now_dt.strftime("%Y-%m-%d")
+        if self.session_day != today_str:
+            self.session_day = today_str
+            self.session_start_equity = account_equity
+            self.pod_session_pnl.clear()
+            logger.info(
+                f"🌅 [PHIÊN MỚI {today_str}] Benchmark Equity: ${account_equity:,.2f} USD | "
+                f"Mục tiêu lợi nhuận: +${self.DAILY_PROFIT_TARGET_USD:.2f} USD/ngày (~1.0% NAV) | "
+                f"Ngưỡng Circuit Breaker Level 2: -{self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT}%."
+            )
+
+        if self.session_start_equity and self.session_start_equity > 0:
+            intraday_pnl = account_equity - self.session_start_equity
+            intraday_dd_pct = max(0.0, -intraday_pnl / self.session_start_equity * 100.0)
+            if intraday_dd_pct >= self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT:
+                logger.warning(
+                    f"🛑 [CIRCUIT BREAKER CẤP ĐỘ 2 KÍCH HOẠT] Sụt giảm trong phiên chạm {intraday_dd_pct:.2f}% "
+                    f"(Ngưỡng: -{self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT}%). Tạm ngắt toàn bộ lệnh mở mới trong ngày để bảo toàn vốn!"
+                )
+                return executed_trades
+
         # 1. Allocate Carver cash volatility targets across active sovereign state pods
         active_ids = [pod.state_id for pod in active_states]
         n_bars = 40
@@ -247,6 +291,20 @@ class USFederationQuantRuntime:
         policy = carver_alloc.get("policy", "NEUTRAL")
 
         for pod in active_states:
+            # Strict Constitutional Firewall: Ensure eliminated states cannot trade
+            if pod.state_id in ELIMINATED_STATE_IDS:
+                continue
+
+            # Circuit Breaker Level 1: Pod Intraday Loss Check
+            pod_loss = self.pod_session_pnl.get(pod.state_id, 0.0)
+            max_pod_loss_usd = account_equity * (self.MAX_POD_DAILY_DRAWDOWN_PCT / 100.0)
+            if pod_loss <= -max_pod_loss_usd:
+                logger.warning(
+                    f"🛑 [CIRCUIT BREAKER CẤP ĐỘ 1] Tiểu bang {pod.state_id} ({pod.primary_asset}) "
+                    f"đã lỗ -${abs(pod_loss):.2f} USD (chạm ngưỡng -{self.MAX_POD_DAILY_DRAWDOWN_PCT}%). Tạm dừng 24h."
+                )
+                continue
+
             actual_symbol = self.mt5_mgr.resolve_symbol(pod.primary_asset)
             asset_clean = pod.primary_asset.upper()
             clean_ticker = actual_symbol.upper().replace("M", "")
