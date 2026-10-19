@@ -752,16 +752,26 @@ class USFederationQuantRuntime:
         self.print_constitutional_dashboard(account_info, initial_audit, active_states, latency, hwm_state)
 
         logger.info("🏛️ Entering Constitutional Governance Loop (Continuous Timeline Scan)...")
+        reconnect_fail_count = 0
 
         while _running:
             try:
                 now_utc = datetime.now(timezone.utc)
 
-                # MT5 Auto-Reconnect
+                # MT5 Auto-Reconnect with Fast Failover to Supervisor
                 if not self.mt5_mgr.ensure_connected():
-                    logger.warning("⏳ Reconnecting MT5 terminal...")
+                    reconnect_fail_count += 1
+                    logger.warning(f"⏳ Đang kết nối lại MT5 terminal... ({reconnect_fail_count}/6)")
+                    if reconnect_fail_count >= 6:
+                        logger.error(
+                            "🚨 [MT5 TERMINAL LOST] Mất kết nối sàn/terminal quá 30 giây! "
+                            "Tự động thoát để Watchdog tái kích hoạt MT5 GUI và Bot ngay lập tức..."
+                        )
+                        sys.exit(101)
                     time.sleep(5)
                     continue
+
+                reconnect_fail_count = 0
 
                 account_info = self.mt5_mgr.get_account_info()
                 if not account_info:
@@ -796,7 +806,7 @@ class USFederationQuantRuntime:
                             subject="NUCLEAR FOOTBALL ACTIVATED",
                             body=f"Federation liquidated to preserve capital! Equity: ${equity:,.2f}",
                         )
-                        break
+                        sys.exit(99)
 
                     # LỆNH 4: BlackRock Aladdin 50% Profit Sweep into Hamilton Vault
                     try:
