@@ -12,12 +12,18 @@ from datetime import datetime
 
 _logger = None
 
-def setup_logger(log_dir: str = "logs", log_level: str = "INFO") -> logging.Logger:
+def setup_logger(log_dir: str = None, log_level: str = "INFO") -> logging.Logger:
     global _logger
     if _logger is not None:
         return _logger
 
-    log_path = Path(log_dir)
+    if log_dir is None:
+        log_path = Path(__file__).resolve().parent.parent / "logs"
+    else:
+        log_path = Path(log_dir)
+        if not log_path.is_absolute():
+            log_path = Path(__file__).resolve().parent.parent / log_dir
+
     log_path.mkdir(parents=True, exist_ok=True)
     log_file = log_path / "us_federation_quant.log"
 

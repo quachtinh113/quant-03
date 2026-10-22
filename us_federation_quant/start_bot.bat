@@ -3,7 +3,7 @@ title US_Federation_Quant [Auto-Revival Watchdog]
 color 0A
 
 echo =======================================================
-echo     US_Federation_Quant — AUTO-REVIVAL WATCHDOG
+echo     US_Federation_Quant -- AUTO-REVIVAL WATCHDOG
 echo =======================================================
 echo.
 
@@ -22,7 +22,7 @@ set /a RESTART_COUNT+=1
 
 echo.
 echo =======================================================
-echo  [STEP 1/2] Kiểm tra & Hồi sinh MT5 GUI Process...
+echo  [STEP 1/2] Kiem tra va Hoi sinh MT5 GUI Process...
 echo =======================================================
 powershell -NoProfile -ExecutionPolicy Bypass -File "ensure_mt5_gui.ps1"
 if %ERRORLEVEL% NEQ 0 (
@@ -31,8 +31,8 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo =======================================================
-echo  [STEP 2/2] Kích hoạt US Federation Live Runner...
-echo  (Chu kỳ khởi chạy #%RESTART_COUNT% lúc %TIME%)
+echo  [STEP 2/2] Kich hoat US Federation Live Runner...
+echo  (Chu ky khoi chay #%RESTART_COUNT% luc %TIME%)
 echo =======================================================
 python live_federation_runner.py
 
@@ -42,22 +42,22 @@ set EXIT_CODE=%ERRORLEVEL%
 echo.
 echo =======================================================
 if %EXIT_CODE% EQU 99 (
-    echo  🚨 [BÁO ĐỘNG ĐỎ] Nuclear Football đã kích hoạt!
-    echo  Danh mục đã được thanh lý về 100%% Tiền mặt để bảo toàn vốn.
-    echo  Bot tạm dừng tự động để bạn kiểm tra tài khoản.
+    echo  [BAO DONG DO] Nuclear Football da kich hoat!
+    echo  Danh muc da duoc thanh ly ve 100%% Tien mat de bao toan von.
+    echo  Bot tam dung tu dong de ban kiem tra tai khoan.
     echo =======================================================
     pause > nul
     exit /b 99
 )
 
 if %EXIT_CODE% EQU 0 (
-    echo  [THÔNG BÁO] Bot vừa kết thúc một chu kỳ [exit code 0].
-    echo  🚀 [TỰ ĐỘNG KHÔI PHỤC] Sẽ tự kích hoạt lại sau %RESTART_DELAY% giây...
+    echo  [THONG BAO] Bot vua ket thuc mot chu ky [exit code 0].
+    echo  [TU DONG KHOI PHUC] Se tu kich hoat lai sau %RESTART_DELAY% giay...
 ) else (
-    echo  ⚠️ [CẢNH BÁO] Bot bị văng sàn / lỗi hệ thống [exit code %EXIT_CODE%].
-    echo  🚀 [TỰ ĐỘNG KHÔI PHỤC] Đang kích hoạt lại MT5 GUI và Bot sau %RESTART_DELAY% giây...
+    echo  [CANH BAO] Bot bi vang san / loi he thong [exit code %EXIT_CODE%].
+    echo  [TU DONG KHOI PHUC] Dang kich hoat lai MT5 GUI va Bot sau %RESTART_DELAY% giay...
 )
-echo  (Nhấn Ctrl+C bất cứ lúc nào nếu bạn muốn dừng bot hoàn toàn)
+echo  (Nhan Ctrl+C bat cu luc nao neu ban muon dung bot hoan toan)
 echo =======================================================
 
 :: Wait 5 seconds before immediate restart

@@ -568,3 +568,52 @@ class InstitutionalStatutoryRules:
         all_approved = all(c.is_compliant for c in critical_checks)
 
         return all_approved, final_lots, checks
+
+    @classmethod
+    def check_factor_limits(cls, new_symbol: str, open_positions: Any) -> bool:
+        """Pre-trade factor check delegating to top-level check_factor_limits."""
+        return check_factor_limits(new_symbol, open_positions)
+
+
+def check_factor_limits(new_symbol: str, open_positions: Any) -> bool:
+    """
+    Pre-Trade Risk Gatekeeper (Quant Core V9):
+    Prevents currency factor cluster risk (specifically JPY carry clusters and USD overexposure).
+
+    Logic:
+    - Parse open_positions to count current JPY and USD exposures.
+    - Return False (Reject) if new_symbol contains 'JPY' and current JPY exposure >= 1.
+    - Return False (Reject) if new_symbol contains 'USD' and current USD exposure >= 2.
+    - Otherwise, return True.
+    """
+    jpy_count = 0
+    usd_count = 0
+
+    positions_list = open_positions if isinstance(open_positions, (list, tuple)) else []
+    for pos in positions_list:
+        sym = pos.get("symbol", "") if isinstance(pos, dict) else getattr(pos, "symbol", "")
+        sym_u = str(sym).upper()
+        if "JPY" in sym_u:
+            jpy_count += 1
+        if "USD" in sym_u:
+            usd_count += 1
+
+    target_u = str(new_symbol).upper()
+
+    if "JPY" in target_u and jpy_count >= 1:
+        logger.warning(
+            f"🛡️ [PRE-TRADE RISK GATEKEEPER] Rejected proposal for {new_symbol}: "
+            f"JPY factor exposure limit reached (Active JPY positions: {jpy_count} >= 1). "
+            f"Cluster risk prevented."
+        )
+        return False
+
+    if "USD" in target_u and usd_count >= 2:
+        logger.warning(
+            f"🛡️ [PRE-TRADE RISK GATEKEEPER] Rejected proposal for {new_symbol}: "
+            f"USD factor exposure limit reached (Active USD positions: {usd_count} >= 2). "
+            f"Cluster risk prevented."
+        )
+        return False
+
+    return True
