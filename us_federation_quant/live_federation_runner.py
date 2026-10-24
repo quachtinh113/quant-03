@@ -344,6 +344,14 @@ class USFederationQuantRuntime:
                 f"Ngưỡng Circuit Breaker Level 2: -{self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT}%."
             )
 
+        # Logic 1 (Monday Curfew): Chặn toàn bộ việc mở vị thế mới trong 60 phút đầu mở phiên tuần mới (00:00 - 00:59 UTC)
+        if now_dt.weekday() == 0 and now_dt.hour == 0:
+            logger.info(
+                f"🛡️ [MONDAY OPEN CURFEW] Thứ Hai {now_dt.strftime('%H:%M')} UTC: "
+                f"Tạm ngắt mở vị thế mới trong 60 phút đầu tuần để né giãn spread và trượt giá."
+            )
+            return executed_trades
+
         if self.session_start_equity and self.session_start_equity > 0:
             intraday_pnl = account_equity - self.session_start_equity
             intraday_dd_pct = max(0.0, -intraday_pnl / self.session_start_equity * 100.0)
@@ -427,6 +435,16 @@ class USFederationQuantRuntime:
             if "GBP" in asset_clean:
                 gbp_positions = [p for p in self.mt5_mgr.get_positions() if "GBP" in p["symbol"].upper()]
                 if len(gbp_positions) >= 2:
+                    continue
+
+            # Logic 2 (US Index NY Session Gate): Chỉ cho phép mở lệnh chỉ số Mỹ từ 13:00 đến 21:00 UTC
+            if any(idx in actual_symbol.upper() for idx in ["USTEC", "US30", "US100"]):
+                if not (13 <= now_dt.hour <= 21):
+                    logger.info(
+                        f"🛡️ [INDEX SESSION GATE] {pod.state_id} ({actual_symbol}): "
+                        f"Bỏ qua tín hiệu ngoài phiên New York ({now_dt.hour:02d}:{now_dt.minute:02d} UTC). "
+                        f"Chỉ cho phép mở lệnh chỉ số từ 13:00 đến 21:00 UTC."
+                    )
                     continue
 
             market_df = self.mt5_mgr.get_rates(actual_symbol, pod.timeframe, count=50)
@@ -575,8 +593,9 @@ class USFederationQuantRuntime:
                     stops_level = getattr(sym_info, "trade_stops_level", 0) or 0
                     spread = getattr(sym_info, "spread", 0) or 0
                     min_stop_dist = (stops_level + spread + 5) * pt
-                    sl_dist = max(1.5 * atr_14, min_stop_dist)
-                    tp_dist = max(2.5 * atr_14, min_stop_dist * 1.5)
+                    min_point_floor = 150.0 * pt
+                    sl_dist = max(1.8 * atr_14, min_point_floor, min_stop_dist)
+                    tp_dist = max(2.5 * atr_14, sl_dist * 1.5)
                     sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
 
                     risk_adjusted_lots = self.calculate_risk_adjusted_lot(
@@ -1055,8 +1074,32 @@ class USFederationQuantRuntime:
                     except Exception as e:
                         logger.error(f"Trailing Stop Routine Error: {e}")
 
-
+                    # 6. Triển khai Time-Based Stagnation Exit (Thoát vị thế ngâm >= 4 giờ và lãi < $10.0 USD)
                     positions = self.mt5_mgr.get_positions()
+                    stagnant_closed = False
+                    for pos in positions:
+                        pos_time = pos.get("time")
+                        if isinstance(pos_time, datetime):
+                            pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
+                        elif isinstance(pos_time, (int, float)):
+                            pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
+                        else:
+                            continue
+                        pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
+                        pos_profit = float(pos.get("profit", 0.0))
+                        ticket = pos.get("ticket")
+                        symbol = pos.get("symbol")
+                        if pos_age_hours >= 4.0 and pos_profit < 10.0:
+                            logger.info(
+                                f"⏱️ [TIME-BASED STAGNATION EXIT] Ticket #{ticket} ({symbol}) "
+                                f"ngâm {pos_age_hours:.1f}h trong sideway (Lãi trôi nổi: ${pos_profit:+.2f} USD < $10.0 USD). "
+                                f"Đóng chủ động bảo toàn vốn."
+                            )
+                            self.mt5_mgr.close_position(ticket=ticket, comment="Stagnation Exit")
+                            stagnant_closed = True
+
+                    if stagnant_closed:
+                        positions = self.mt5_mgr.get_positions()
 
                     # In log Timeline Vào Lệnh đơn thay vì lặp lại bảng điều khiển 2-3-4-5 lần
                     self.log_timeline_status(account_info, titan_audit, active_states, latency, hwm_state, positions)

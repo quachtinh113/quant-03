@@ -15,7 +15,7 @@ logger = logging.getLogger("TrailingStopManager")
 
 
 class TrailingStopManager:
-    def __init__(self, atr_period: int = 14, atr_multiplier: float = 2.0, min_modification_points: int = 15):
+    def __init__(self, atr_period: int = 14, atr_multiplier: float = 2.0, min_modification_points: int = 25):
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
         self.min_modification_points = min_modification_points
