@@ -35,6 +35,16 @@ class StateTradeProposal:
     cash_vol_budget: float = 0.0          # Daily cash volatility allocated by the Fed
 
 
+INDEX_MAX_LOTS: Dict[str, float] = {
+    "USTEC": 0.15,
+    "USTECm": 0.15,
+    "US30": 0.10,
+    "US30m": 0.10,
+    "US500": 0.20,
+    "US500m": 0.20,
+}
+
+
 class BaseStatePod(StatePod):
     """
     Autonomous Strategy Pod with localized risk governance, Carver continuous
@@ -171,13 +181,19 @@ class BaseStatePod(StatePod):
             if any(fx in clean_asset for fx in ["EUR", "GBP", "USD", "JPY", "AUD", "CAD", "CHF", "NZD"]) and not any(i in clean_asset for i in ["US30", "US500", "USTEC", "BTC", "ETH", "XAU"]):
                 max_lot = 0.15
             elif "US30" in clean_asset or "US500" in clean_asset or "USTEC" in clean_asset:
-                max_lot = 0.50
+                max_lot = 0.15
             elif any(c in clean_asset for c in ["BTC", "ETH", "SOL"]):
                 max_lot = 0.10
             elif any(m in clean_asset for m in ["XAU", "XAG", "XPT", "XPD", "XNG"]):
                 max_lot = 0.50
             else:
                 max_lot = 0.15
+
+        # Check explicit INDEX_MAX_LOTS ceiling
+        for sym_key, cap_lot in INDEX_MAX_LOTS.items():
+            if sym_key in self.primary_asset or sym_key in clean_asset:
+                max_lot = min(max_lot if max_lot is not None else cap_lot, cap_lot)
+                break
 
         if contract_size is None:
             if "XAU" in clean_asset or "GOLD" in clean_asset:
@@ -212,6 +228,12 @@ class BaseStatePod(StatePod):
         if final_lots > 0 and final_lots < min_lot:
             final_lots = min_lot
 
+        # Strict hard cap enforcement against INDEX_MAX_LOTS
+        for sym_key, cap_lot in INDEX_MAX_LOTS.items():
+            if sym_key in self.primary_asset or sym_key in clean_asset:
+                final_lots = min(final_lots, cap_lot)
+                break
+
         return {
             "raw_lots": round(raw_target_lots, 2),
             "buffered_lots": final_lots,
@@ -242,12 +264,18 @@ class BaseStatePod(StatePod):
             target_risk_usd = min(75.0, max(1.0, account_equity * risk_fraction))
         elif "US30" in clean_asset or "US500" in clean_asset or "USTEC" in clean_asset or "BTC" in clean_asset:
             contract_size = 1.0
-            max_lot = 0.10 if account_equity <= 5000 else (0.50 if account_equity <= 25000 else 5.0)
+            max_lot = 0.10 if account_equity <= 5000 else (0.15 if account_equity <= 10000 else (0.50 if account_equity <= 25000 else 5.0))
             target_risk_usd = max(1.0, account_equity * risk_fraction)
         else:  # FX Pairs
             contract_size = 100_000.0
             max_lot = 0.05 if account_equity <= 5000 else (0.15 if account_equity <= 25000 else 5.0)
             target_risk_usd = max(1.0, account_equity * risk_fraction)
+
+        # Strict hard cap enforcement against INDEX_MAX_LOTS
+        for sym_key, cap_lot in INDEX_MAX_LOTS.items():
+            if sym_key in self.primary_asset or sym_key in clean_asset:
+                max_lot = min(max_lot, cap_lot)
+                break
 
         effective_atr = atr if (atr and atr > 0) else (current_price * 0.005)
         dollar_risk_per_lot = effective_atr * contract_size * 1.5
@@ -259,6 +287,13 @@ class BaseStatePod(StatePod):
 
         effective_lot = raw_lot * self.capital_multiplier
         final_lot = max(0.01, min(round(effective_lot, 2), max_lot))
+
+        # Strict hard cap enforcement against INDEX_MAX_LOTS
+        for sym_key, cap_lot in INDEX_MAX_LOTS.items():
+            if sym_key in self.primary_asset or sym_key in clean_asset:
+                final_lot = min(final_lot, cap_lot)
+                break
+
         return final_lot
 
     def generate_trade_proposal(

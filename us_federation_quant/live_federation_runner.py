@@ -71,6 +71,10 @@ FederationHub = _hub_mod.FederationHub
 _titan_mod = importlib.import_module("us_federation_quant.04_federal_reserve.quad_titan_engine")
 QuadTitanEngine = _titan_mod.QuadTitanEngine
 
+_states_reg_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+ELITE_STATE_IDS = getattr(_states_reg_mod, "ELITE_STATE_IDS", [])
+ELIMINATED_STATE_IDS = getattr(_states_reg_mod, "ELIMINATED_STATE_IDS", [])
+
 try:
     from us_federation_quant.core.mt5_connection_manager import MT5ConnectionManager
 except ImportError:
@@ -136,6 +140,23 @@ class USFederationQuantRuntime:
         # Đỉnh vốn bền vững qua restart — nguồn duy nhất cho thang drawdown -3%/-5%/-7.5%.
         self.hwm = HighWaterMarkTracker(bot_id="us_federation_quant", logs_dir=str(LOG_DIR))
         self.previous_quotas: Dict[str, float] = {}
+
+        # -----------------------------------------------------------------------------
+        # ELITE PURIFIED PORTFOLIO: Kích hoạt 19 Tiểu Bang Tinh Hoa & Khóa 31 Mã Blacklist
+        # -----------------------------------------------------------------------------
+        self.elite_states = self.hub.states_registry.enable_elite_purified_whitelist_mode()
+        logger.info(
+            f"🛡️ [ELITE WHITELIST ACTIVE] Đã kích hoạt {len(self.elite_states)} Tiểu bang Tinh hoa. "
+            f"Toàn bộ 31 mã Blacklist (Crypto, Cổ phiếu rủi ro cao, Scalp thô M15) đã bị khóa cứng."
+        )
+
+        # Institutional Target & Circuit Breaker Controls ($100 USD/day ~ 1.0% NAV)
+        self.DAILY_PROFIT_TARGET_USD = 100.0
+        self.MAX_POD_DAILY_DRAWDOWN_PCT = 1.5   # Circuit breaker Level 1: pause pod if DD > 1.5%
+        self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT = 2.0 # Circuit breaker Level 2: halt session if account DD > 2.0%
+        self.session_start_equity: Optional[float] = None
+        self.session_day: Optional[str] = None
+        self.pod_session_pnl: Dict[str, float] = {}
 
         # Institutional US Equities Universe Filters (Task 4)
         self.US_EQUITIES_BLACKLIST = ["BAC", "JNJ", "V", "BRK", "UNH", "PG", "XOM"]
@@ -214,6 +235,83 @@ class USFederationQuantRuntime:
         else:
             logger.info("  🔍 [TIMELINE SCAN] 50/50 Tiểu bang Sẵn sàng | Đang quét tín hiệu vào lệnh (XAUUSDm, US30, USDJPY, BTC...)")
 
+    def calculate_risk_adjusted_lot(self, symbol: str, sl_points: float, max_risk_usd: float = 35.0) -> float:
+        """
+        Quant Core V9: Volatility ATR Dollar Sizing.
+        Dynamically calculates lot size such that hitting Stop Loss risks exactly max_risk_usd.
+
+        Formula: raw_lot = max_risk_usd / (sl_points * tick_value_per_point)
+        Live MT5 Integration: Fetches trade_tick_value, trade_tick_size, point, volume_step via mt5.symbol_info().
+        Cap Logic: Hard caps lot size between 0.01 and 0.03 for ["USTEC", "US30", "US100", "HK50"].
+        Normalization: Rounds final lot size to broker volume_step and clamps within volume_min/volume_max.
+        """
+        import MetaTrader5 as mt5
+
+        # 1. Fetch live specifications from MT5 symbol_info
+        s_info = mt5.symbol_info(symbol)
+        if s_info is None and hasattr(self, "mt5_mgr"):
+            resolved = self.mt5_mgr.resolve_symbol(symbol)
+            s_info = mt5.symbol_info(resolved)
+        if s_info is None and not symbol.endswith("m"):
+            s_info = mt5.symbol_info(symbol + "m")
+        if s_info is None and symbol.endswith("m"):
+            s_info = mt5.symbol_info(symbol[:-1])
+
+        if s_info is not None:
+            trade_tick_value = float(getattr(s_info, "trade_tick_value", 0.0) or 0.0)
+            trade_tick_size = float(getattr(s_info, "trade_tick_size", 0.0) or 0.0)
+            point = float(getattr(s_info, "point", 0.0) or 0.0)
+            volume_min = float(getattr(s_info, "volume_min", 0.01) or 0.01)
+            volume_max = float(getattr(s_info, "volume_max", 100.0) or 100.0)
+            volume_step = float(getattr(s_info, "volume_step", 0.01) or 0.01)
+        else:
+            spec = self.mt5_mgr.get_symbol_spec(symbol) if hasattr(self, "mt5_mgr") else {}
+            point = float(spec.get("point", 0.0001) or 0.0001)
+            trade_tick_size = float(spec.get("tick_size", point) or point)
+            trade_tick_value = float(spec.get("tick_value", 1.0) or 1.0)
+            volume_min = float(spec.get("volume_min", 0.01) or 0.01)
+            volume_max = float(spec.get("volume_max", 100.0) or 100.0)
+            volume_step = float(spec.get("volume_step", 0.01) or 0.01)
+
+        # 2. Derive tick_value_per_point
+        # trade_tick_value is profit for 1 lot when price moves by trade_tick_size.
+        if trade_tick_size > 0 and point > 0:
+            tick_value_per_point = trade_tick_value * (point / trade_tick_size)
+        else:
+            tick_value_per_point = trade_tick_value
+
+        if tick_value_per_point <= 0:
+            tick_value_per_point = 1.0
+
+        # 3. Dynamic Lot Calculation
+        safe_sl_points = max(float(sl_points), 10.0)
+        dollar_risk_per_lot = safe_sl_points * tick_value_per_point
+        raw_lot = max_risk_usd / max(dollar_risk_per_lot, 1e-6)
+
+        # 4. Cap logic: Hard cap lot size between 0.01 and 0.03 for indices
+        sym_clean = symbol.upper().replace("M", "")
+        is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "HK50"])
+        if is_index:
+            raw_lot = float(np.clip(raw_lot, 0.01, 0.03))
+
+        # 5. Normalization: Round to broker volume_step and clamp within boundaries
+        if volume_step > 0:
+            steps = round(raw_lot / volume_step)
+            normalized_lot = steps * volume_step
+        else:
+            normalized_lot = raw_lot
+
+        # Clamp within broker allowed limits
+        normalized_lot = max(volume_min, min(normalized_lot, volume_max))
+        normalized_lot = round(normalized_lot, 2)
+
+        logger.info(
+            f"📐 [VOLATILITY ATR SIZING] {symbol}: sl_points={safe_sl_points:.1f}, "
+            f"trade_tick_value={trade_tick_value}, tick_val_per_point={tick_value_per_point:.5f}, "
+            f"max_risk=${max_risk_usd:.2f} -> raw={raw_lot:.4f}L, normalized={normalized_lot:.2f}L (Index Cap: {is_index})"
+        )
+        return normalized_lot
+
     def scan_and_route_state_proposals(self, account_equity: float) -> List[Dict[str, Any]]:
         """
         Scans all active 50 state pods for trade proposals, calculates Carver dynamic
@@ -224,6 +322,29 @@ class USFederationQuantRuntime:
         active_states = self.hub.states_registry.get_all_active_states()
         if not active_states:
             return executed_trades
+
+        # Circuit Breaker Level 2: Account Intraday Drawdown Check ($100/day Protection)
+        now_dt = datetime.now(timezone.utc)
+        today_str = now_dt.strftime("%Y-%m-%d")
+        if self.session_day != today_str:
+            self.session_day = today_str
+            self.session_start_equity = account_equity
+            self.pod_session_pnl.clear()
+            logger.info(
+                f"🌅 [PHIÊN MỚI {today_str}] Benchmark Equity: ${account_equity:,.2f} USD | "
+                f"Mục tiêu lợi nhuận: +${self.DAILY_PROFIT_TARGET_USD:.2f} USD/ngày (~1.0% NAV) | "
+                f"Ngưỡng Circuit Breaker Level 2: -{self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT}%."
+            )
+
+        if self.session_start_equity and self.session_start_equity > 0:
+            intraday_pnl = account_equity - self.session_start_equity
+            intraday_dd_pct = max(0.0, -intraday_pnl / self.session_start_equity * 100.0)
+            if intraday_dd_pct >= self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT:
+                logger.warning(
+                    f"🛑 [CIRCUIT BREAKER CẤP ĐỘ 2 KÍCH HOẠT] Sụt giảm trong phiên chạm {intraday_dd_pct:.2f}% "
+                    f"(Ngưỡng: -{self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT}%). Tạm ngắt toàn bộ lệnh mở mới trong ngày để bảo toàn vốn!"
+                )
+                return executed_trades
 
         # 1. Allocate Carver cash volatility targets across active sovereign state pods
         active_ids = [pod.state_id for pod in active_states]
@@ -247,6 +368,20 @@ class USFederationQuantRuntime:
         policy = carver_alloc.get("policy", "NEUTRAL")
 
         for pod in active_states:
+            # Strict Constitutional Firewall: Ensure eliminated states cannot trade
+            if pod.state_id in ELIMINATED_STATE_IDS:
+                continue
+
+            # Circuit Breaker Level 1: Pod Intraday Loss Check
+            pod_loss = self.pod_session_pnl.get(pod.state_id, 0.0)
+            max_pod_loss_usd = account_equity * (self.MAX_POD_DAILY_DRAWDOWN_PCT / 100.0)
+            if pod_loss <= -max_pod_loss_usd:
+                logger.warning(
+                    f"🛑 [CIRCUIT BREAKER CẤP ĐỘ 1] Tiểu bang {pod.state_id} ({pod.primary_asset}) "
+                    f"đã lỗ -${abs(pod_loss):.2f} USD (chạm ngưỡng -{self.MAX_POD_DAILY_DRAWDOWN_PCT}%). Tạm dừng 24h."
+                )
+                continue
+
             actual_symbol = self.mt5_mgr.resolve_symbol(pod.primary_asset)
             asset_clean = pod.primary_asset.upper()
             clean_ticker = actual_symbol.upper().replace("M", "")
@@ -255,7 +390,15 @@ class USFederationQuantRuntime:
             if clean_ticker in self.US_EQUITIES_BLACKLIST:
                 continue
 
-            # 0. Market Session & Trade Mode Gatekeeper (skip closed markets like US Equities outside NYSE)
+            # 0. Market Session & Holiday Gatekeeper (skip closed markets, holiday sessions, and weekend hours)
+            try:
+                import MetaTrader5 as mt5
+                sym_info = mt5.symbol_info(actual_symbol)
+                if sym_info is None or getattr(sym_info, "trade_mode", None) != mt5.SYMBOL_TRADE_MODE_FULL:
+                    continue
+            except Exception:
+                pass
+
             if not self.mt5_mgr.is_market_open(actual_symbol):
                 continue
 
@@ -374,28 +517,72 @@ class USFederationQuantRuntime:
                         logger.warning(f"⚖️ [SCOTUS VETO] Invalid cryptographic warrant for {pod.state_id}")
                         continue
 
-                    # 2. Fourth Estate: Central Risk Desk Pre-Flight Clearance
+                    # Cross-Pod Asset Deduplication Filter
+                    existing_positions = self.mt5_mgr.get_positions()
+                    duplicate_found = False
+                    for pos in existing_positions:
+                        pos_sym = pos.get("symbol", "").upper()
+                        pos_dir = pos.get("type", "")
+                        dir_str = "BUY" if pos_dir in ["BUY", 0] else "SELL"
+                        if pos_sym == actual_symbol.upper() and dir_str == proposal.action:
+                            logger.warning(
+                                f"[DEDUP_FILTER] Rejected signal for {actual_symbol}: "
+                                f"Existing open position #{pos.get('ticket')} in same direction ({dir_str})."
+                            )
+                            duplicate_found = True
+                            break
+                    if duplicate_found:
+                        continue
+
+                    # Pre-Trade Factor Risk Gatekeeper (Quant Core V9: JPY/USD cluster risk check)
+                    from us_federation_quant.institutional_governance_rules import check_factor_limits
+                    if not check_factor_limits(actual_symbol, existing_positions):
+                        logger.warning(
+                            f"🛡️ [PRE-TRADE RISK GATEKEEPER] Rejected {pod.state_id} proposal on {actual_symbol}: "
+                            f"Breaches currency factor limit (JPY max 1, USD max 2)."
+                        )
+                        continue
+
+                    # 2. Dynamic Volatility ATR Dollar Sizing (Quant Core V9: max_risk_usd=35.0)
                     current_price = float(market_df["close"].iloc[-1])
-                    cleared_lots = self.hub.central_risk_desk.verify_order_clearance(
-                        order_lots=proposal.target_lots,
-                        asset_notional=proposal.target_lots * current_price,
+                    tr = np.maximum(
+                        market_df["high"] - market_df["low"],
+                        np.maximum(
+                            abs(market_df["high"] - market_df["close"].shift(1)),
+                            abs(market_df["low"] - market_df["close"].shift(1))
+                        )
+                    )
+                    atr_14 = float(tr.rolling(14).mean().iloc[-1])
+                    if np.isnan(atr_14) or atr_14 <= 0:
+                        atr_14 = float(market_df["high"].iloc[-1] - market_df["low"].iloc[-1])
+                    if atr_14 <= 0:
+                        atr_14 = current_price * 0.005
+
+                    pt = getattr(sym_info, "point", 0.0001) or 0.0001
+                    sl_dist = 1.5 * atr_14
+                    tp_dist = 2.5 * atr_14
+                    sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
+
+                    risk_adjusted_lots = self.calculate_risk_adjusted_lot(
+                        symbol=actual_symbol,
+                        sl_points=sl_points,
+                        max_risk_usd=35.0,
                     )
 
-                    # Constitutional Firewall: Strict Asset Class Lot Capping
-                    sym_clean = actual_symbol.upper()
-                    if any(fx in sym_clean for fx in ["EUR", "GBP", "USD", "JPY", "AUD", "CAD", "CHF", "NZD"]) and not any(i in sym_clean for i in ["US30", "US500", "USTEC", "BTC", "ETH", "XAU", "XAG", "XPT", "XPD", "XNG"]):
-                        cleared_lots = min(cleared_lots, 0.15)
-                    elif "US30" in sym_clean or "US500" in sym_clean or "USTEC" in sym_clean:
-                        cleared_lots = min(cleared_lots, 0.50)
-                    elif any(c in sym_clean for c in ["BTC", "ETH", "SOL"]):
-                        cleared_lots = min(cleared_lots, 0.10)
-                    elif any(m in sym_clean for m in ["XAU", "XAG", "XPT", "XPD", "XNG"]):
-                        # Task 2: Strict 0.05 lot ceiling for Gold
-                        cleared_lots = min(cleared_lots, 0.05 if ("XAU" in sym_clean or "GOLD" in sym_clean) else 0.10)
-                    else:
-                        cleared_lots = min(cleared_lots, 0.15)
-
+                    # Central Risk Desk clearance & broker lot normalization
+                    cleared_lots = self.hub.central_risk_desk.verify_order_clearance(
+                        order_lots=risk_adjusted_lots,
+                        asset_notional=risk_adjusted_lots * current_price,
+                    )
                     cleared_lots = self.mt5_mgr.normalize_lot(actual_symbol, cleared_lots)
+
+                    digits = getattr(sym_info, "digits", 2) or 2
+                    if proposal.action == "BUY":
+                        target_sl = round(current_price - sl_dist, digits)
+                        target_tp = round(current_price + tp_dist, digits)
+                    else:
+                        target_sl = round(current_price + sl_dist, digits)
+                        target_tp = round(current_price - tp_dist, digits)
 
                     # 3. NautilusTrader Order State Machine Tracking
                     client_order_id = generate_client_order_id(pod.state_id, proposal.action)
@@ -405,6 +592,8 @@ class USFederationQuantRuntime:
                         order_type="MARKET",
                         direction=proposal.action,
                         volume=cleared_lots,
+                        sl=target_sl,
+                        tp=target_tp,
                         magic=magic_num,
                         warrant_id=warrant.warrant_id,
                     )
@@ -412,13 +601,15 @@ class USFederationQuantRuntime:
 
                     logger.info(
                         f"🚀 [PROPOSAL APPROVED] {pod.state_id} ({pod.state_name}): {proposal.action} {cleared_lots}L "
-                        f"on {actual_symbol} | Forecast: {proposal.carver_forecast:+.2f} | IDM: {idm:.2f} | Policy: {policy} | Warrant: {warrant.warrant_id}"
+                        f"on {actual_symbol} | SL: {target_sl} | TP: {target_tp} | Forecast: {proposal.carver_forecast:+.2f} | IDM: {idm:.2f} | Policy: {policy} | Warrant: {warrant.warrant_id}"
                     )
 
                     exec_res = self.mt5_mgr.open_market_order(
                         symbol=actual_symbol,
                         direction=proposal.action,
                         volume=cleared_lots,
+                        sl=target_sl,
+                        tp=target_tp,
                         magic=magic_num,
                         comment=f"{pod.state_id}:{client_order_id[:16]}"[:31],
                     )
@@ -438,9 +629,13 @@ class USFederationQuantRuntime:
                         )
                     else:
                         err = exec_res.get("error", "Execution failed")
+                        retcode = exec_res.get("retcode", -1)
                         order_state.transition_to(OrderState.REJECTED, reason=str(err))
                         warrant.revoke(reason=f"Broker execution failed: {err}")
-                        logger.warning(f"❌ [EXECUTION FAILED] {pod.state_id} order failed: {err} -> Warrant revoked.")
+                        if retcode == 10018:
+                            logger.info(f"ℹ️ [MARKET_CLOSED] {pod.state_id} ({actual_symbol}): Thị trường đóng cửa / nghỉ lễ (10018) -> Tạm bỏ qua an toàn.")
+                        else:
+                            logger.warning(f"❌ [EXECUTION FAILED] {pod.state_id} order failed: {err} -> Warrant revoked.")
 
             except Exception as e:
                 logger.warning(f"⚠️ Error processing proposal for {pod.state_id}: {e}")
@@ -497,6 +692,40 @@ class USFederationQuantRuntime:
                         self.telemetry.broadcast_critical_alert(
                             subject="XAUUSD HARD STOP CAP TRIGGERED",
                             body=f"Closed Gold ticket #{ticket} at ${total_loss:.2f} USD to cap fat-tail loss."
+                        )
+        return closed_positions
+
+    def enforce_index_hard_stop_cap(self, max_loss_usd: float = 60.0) -> List[Dict[str, Any]]:
+        """
+        Step 3: Hard Stop Circuit Breaker for US Indices (USTEC, US30, US500).
+        Continuously monitors open index positions.
+        If floating loss reaches or breaches -$60.00 USD (including commission & swap),
+        triggers an immediate emergency Market Close with [CIRCUIT_BREAKER] warning log.
+        """
+        positions = self.mt5_mgr.get_positions()
+        closed_positions = []
+        index_keys = ["USTEC", "US30", "US500", "NAS100", "DJ30", "SP500"]
+        for p in positions:
+            sym_clean = p["symbol"].upper()
+            if any(idx in sym_clean for idx in index_keys):
+                ticket = p["ticket"]
+                profit = p["profit"]
+                swap = p.get("swap", 0.0)
+                comm = p.get("commission", 0.0)
+                total_loss = profit + swap + comm
+
+                if total_loss <= -max_loss_usd:
+                    logger.warning(
+                        f"🚨 [CIRCUIT_BREAKER] Ticket #{ticket} ({p['symbol']} {p['type']} {p['volume']}L): "
+                        f"Loss reached ${total_loss:.2f} USD (Threshold: -${max_loss_usd:.2f} USD). "
+                        f"Triggering Emergency Market Close to protect capital!"
+                    )
+                    res = self.mt5_mgr.close_position(ticket=ticket, comment="Index HardCap 60")
+                    if res.get("success"):
+                        closed_positions.append(res)
+                        self.telemetry.broadcast_critical_alert(
+                            subject="INDEX HARD STOP CAP TRIGGERED",
+                            body=f"Closed Index ticket #{ticket} at ${total_loss:.2f} USD to cap fat-tail loss."
                         )
         return closed_positions
 
@@ -588,8 +817,11 @@ class USFederationQuantRuntime:
                     lock_ratio = 0.50
                     tier_label = "TIER_2_RUNNER_50PCT"
                 elif profit >= 50.0:
-                    lock_ratio = 0.30
+                    lock_ratio = max(0.30, 25.0 / profit)
                     tier_label = "TIER_2_RUNNER_30PCT"
+                elif profit >= 40.0:
+                    lock_ratio = 25.0 / profit  # Dynamically lock in at least $25.00 USD
+                    tier_label = "TIER_2_LOCK_PROFIT_25USD"
                 else:
                     lock_ratio = 0.0
                     tier_label = "TIER_1_BREAK_EVEN"
@@ -656,6 +888,38 @@ class USFederationQuantRuntime:
                         break
         return closed
 
+    def ensure_mt5_connected(self, max_retries: int = 10, delay: float = 15.0) -> bool:
+        """
+        Tự động khôi phục kết nối nếu server MT5 hoặc broker bảo trì.
+        Kiên nhẫn retry và bảo toàn trạng thái in-memory thay vì thoát tiến trình khi sàn bảo trì cuối tuần.
+        """
+        if self.mt5_mgr.ensure_connected():
+            return True
+
+        retries = 0
+        while retries < max_retries and _running:
+            retries += 1
+            logger.warning(f"⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần {retries}/{max_retries} sau {delay:.0f}s...")
+            try:
+                import MetaTrader5 as mt5
+                mt5.shutdown()
+            except Exception:
+                pass
+            time.sleep(delay)
+
+            try:
+                if self.mt5_mgr.connect():
+                    logger.info("✅ [RECONNECT] Khôi phục kết nối MT5 thành công.")
+                    return True
+            except Exception as e:
+                logger.warning(f"⚠️ [RECONNECT] Thử kết nối lại thất bại: {e}")
+
+        logger.critical(
+            f"🚨 [RECONNECT] Vượt quá {max_retries} lần thử kết nối. "
+            "Có thể sàn đang bảo trì cuối tuần/nghỉ lễ. Chờ 60s trước chu kỳ quét kế tiếp..."
+        )
+        time.sleep(60.0)
+        return False
 
     def run(self):
         logger.info("================================================================================")
@@ -694,15 +958,14 @@ class USFederationQuantRuntime:
         self.print_constitutional_dashboard(account_info, initial_audit, active_states, latency, hwm_state)
 
         logger.info("🏛️ Entering Constitutional Governance Loop (Continuous Timeline Scan)...")
+        reconnect_fail_count = 0
 
         while _running:
             try:
                 now_utc = datetime.now(timezone.utc)
 
-                # MT5 Auto-Reconnect
-                if not self.mt5_mgr.ensure_connected():
-                    logger.warning("⏳ Reconnecting MT5 terminal...")
-                    time.sleep(5)
+                # MT5 Auto-Reconnect Loop (Resilient against Broker Weekend Maintenance & IPC Disconnects)
+                if not self.ensure_mt5_connected(max_retries=10, delay=15.0):
                     continue
 
                 account_info = self.mt5_mgr.get_account_info()
@@ -738,7 +1001,7 @@ class USFederationQuantRuntime:
                             subject="NUCLEAR FOOTBALL ACTIVATED",
                             body=f"Federation liquidated to preserve capital! Equity: ${equity:,.2f}",
                         )
-                        break
+                        sys.exit(99)
 
                     # LỆNH 4: BlackRock Aladdin 50% Profit Sweep into Hamilton Vault
                     try:
@@ -757,6 +1020,9 @@ class USFederationQuantRuntime:
 
                     # 1. Enforce Hard Stop Cap on XAUUSD (Task 2)
                     self.enforce_xauusd_hard_stop_cap(max_loss_usd=75.0)
+
+                    # 1b. Enforce Hard Stop Cap on US Indices (Step 3: -$60 USD)
+                    self.enforce_index_hard_stop_cap(max_loss_usd=60.0)
 
                     # 2. Enforce Mandatory Stop Loss Protection (Article 00 Safeguard)
                     self.mt5_mgr.enforce_mandatory_sl_protection(default_sl_pct=0.015)

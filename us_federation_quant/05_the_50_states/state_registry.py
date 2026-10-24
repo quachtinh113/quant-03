@@ -37,14 +37,38 @@ class StatePod:
         return True
 
 
+# The 19 Elite Sovereign States passed by Supreme Court 36-Month Institutional Audit
+ELITE_STATE_IDS = [
+    "STATE_21", "STATE_24", "STATE_31", "STATE_25", "STATE_26",
+    "STATE_34", "STATE_32", "STATE_33", "STATE_03", "STATE_35",
+    "STATE_23", "STATE_29", "STATE_27", "STATE_30", "STATE_28",
+    "STATE_22", "STATE_17", "STATE_12", "STATE_16"
+]
+
+# The 31 High-Drawdown / Sub-optimal States Eliminated by Quantitative Audit
+ELIMINATED_STATE_IDS = [
+    "STATE_01", "STATE_02", "STATE_04", "STATE_05", "STATE_06",
+    "STATE_07", "STATE_08", "STATE_09", "STATE_10", "STATE_11",
+    "STATE_13", "STATE_14", "STATE_15", "STATE_18", "STATE_19",
+    "STATE_20", "STATE_36", "STATE_37", "STATE_38", "STATE_39",
+    "STATE_40", "STATE_41", "STATE_42", "STATE_43", "STATE_44",
+    "STATE_45", "STATE_46", "STATE_47", "STATE_48", "STATE_49",
+    "STATE_50"
+]
+
+
 class StateFederationRegistry:
     """
     Registry managing all 50 sovereign states of the federation.
+    Supports Elite Purified Whitelist mode for institutional execution.
     """
 
-    def __init__(self):
+    def __init__(self, elite_mode: bool = False):
         self.states: Dict[str, StatePod] = {}
+        self.is_elite_mode: bool = elite_mode
         self._initialize_50_states()
+        if elite_mode:
+            self.enable_elite_purified_whitelist_mode()
 
     def _initialize_50_states(self):
         """
@@ -155,6 +179,41 @@ class StateFederationRegistry:
 
     def get_all_active_states(self) -> List[StatePod]:
         return [s for s in self.states.values() if s.is_active]
+
+    def enable_elite_purified_whitelist_mode(self, elite_ids: Optional[List[str]] = None) -> List[str]:
+        """
+        Enforces the 19 Elite Sovereign States passed by Supreme Court 36-Month Audit.
+        Quarantines and disables the 31 high-drawdown / low-Sharpe assets (Crypto, Equities, Energy).
+        """
+        target_ids = set(elite_ids or ELITE_STATE_IDS)
+        active_loaded = []
+        for sid, pod in self.states.items():
+            if sid in target_ids:
+                pod.is_active = True
+                if hasattr(pod, "is_quarantined"):
+                    pod.is_quarantined = False
+                active_loaded.append(sid)
+            else:
+                pod.is_active = False
+                if hasattr(pod, "is_quarantined"):
+                    pod.is_quarantined = True
+                pod.local_drawdown = -0.99  # Invalidate un-whitelisted pods
+        self.is_elite_mode = True
+        return active_loaded
+
+    def disable_elite_mode(self):
+        """Restores all 50 states to un-quarantined status."""
+        for pod in self.states.values():
+            pod.is_active = True
+            if hasattr(pod, "is_quarantined"):
+                pod.is_quarantined = False
+            pod.local_drawdown = 0.0
+        self.is_elite_mode = False
+
+    def get_elite_states(self) -> List[StatePod]:
+        """Returns only the 19 Elite Whitelist State pods."""
+        elite_set = set(ELITE_STATE_IDS)
+        return [s for s in self.states.values() if s.state_id in elite_set]
 
     def quarantine_pod(self, state_id: str, reason: str = "ADMINISTRATIVE_QUARANTINE") -> bool:
         """Quarantines a state pod, blocking execution allocations."""

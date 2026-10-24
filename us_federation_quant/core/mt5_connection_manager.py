@@ -333,8 +333,8 @@ class MT5ConnectionManager:
             if not info:
                 return False
 
-            # Check if trading is explicitly disabled (trade_mode == 0)
-            if hasattr(info, "trade_mode") and info.trade_mode == mt5.SYMBOL_TRADE_MODE_DISABLED:
+            # Check if trading is enabled with FULL access (not disabled, close-only, or holiday closed)
+            if hasattr(info, "trade_mode") and info.trade_mode != mt5.SYMBOL_TRADE_MODE_FULL:
                 return False
 
             tick = mt5.symbol_info_tick(symbol) if MT5_AVAILABLE else None
@@ -563,7 +563,10 @@ class MT5ConnectionManager:
             if not result or result.retcode != mt5.TRADE_RETCODE_DONE:
                 err_msg = result.comment if result else str(mt5.last_error())
                 retcode = result.retcode if result else -1
-                logger.error(f"❌ Order Send Failed ({symbol} {direction} {lot}L, magic={magic}, cid={cid}): {err_msg} (retcode={retcode})")
+                if retcode == 10018:
+                    logger.info(f"ℹ️ [MARKET_CLOSED] Thị trường đang đóng cửa hoặc nghỉ lễ ({symbol}): {err_msg} (retcode=10018). Bỏ qua an toàn.")
+                else:
+                    logger.error(f"❌ Order Send Failed ({symbol} {direction} {lot}L, magic={magic}, cid={cid}): {err_msg} (retcode={retcode})")
                 self.reconciler.mark_rejected(cid, reason=f"{err_msg} (retcode={retcode})")
                 return {
                     "success": False,

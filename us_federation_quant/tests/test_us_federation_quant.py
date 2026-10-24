@@ -299,3 +299,26 @@ def test_quad_titan_engine_pillars():
     # Profit was $1,000 -> 50% = $500 swept. Initial reserve = $2,000 -> Total reserve = $2,500
     assert audit["blackrock_treasury"]["risk_free_reserve_usd"] == 2500.0
     assert audit["blackrock_treasury"]["cashflow_sweep_usd"] == 500.0
+
+
+def test_elite_purified_whitelist_mode():
+    """Test 14: Elite Purified Portfolio whitelist mode (19 active states, 31 quarantined)."""
+    registry = StateFederationRegistry(elite_mode=True)
+    active = registry.get_all_active_states()
+    assert len(active) == 19
+    summary = registry.get_federation_summary()
+    assert summary["active_states"] == 19
+    assert summary["quarantined_states"] == 31
+
+    # Verify that blacklisted high-drawdown states are disabled
+    assert registry.get_state("STATE_05").is_active is False # BTC
+    assert registry.get_state("STATE_06").is_active is False # ETH
+    assert registry.get_state("STATE_07").is_active is False # SOL
+    assert registry.get_state("STATE_04").is_active is False # UKOIL
+    assert registry.get_state("STATE_42").is_active is False # TSLA
+
+    # Verify elite Forex & Indices are active
+    assert registry.get_state("STATE_21").is_active is True # EURUSD
+    assert registry.get_state("STATE_22").is_active is True # GBPUSD
+    assert registry.get_state("STATE_26").is_active is True # USDCHF
+    assert registry.get_state("STATE_12").is_active is True # USTEC

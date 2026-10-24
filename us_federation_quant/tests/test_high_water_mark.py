@@ -231,3 +231,17 @@ def test_state_la_immutable(tracker):
     assert isinstance(st, HighWaterMarkState)
     with pytest.raises(Exception):
         st.high_water_mark_usd = 999.0  # type: ignore[misc]
+
+
+def test_weekly_re_anchoring_tu_dong_chuyen_tuan(tracker):
+    """Kiểm thử tính năng Weekly Re-anchoring khi sang tuần mới."""
+    # Tuần cũ (đạt đỉnh 10,000 ngày 2026-10-13)
+    tracker._hwm = 10_029.48
+    tracker._peak_at_utc = "2026-10-13T22:51:57.320541+00:00"
+
+    # Tuần mới (2026-10-19, balance còn 8,761.98)
+    st = tracker.update(current_equity=8_761.98, current_balance=8_761.98)
+    assert st.high_water_mark_usd == pytest.approx(8_761.98)
+    assert st.drawdown_fraction == pytest.approx(0.0)
+    assert st.drawdown_pct == pytest.approx(0.0)
+

@@ -165,7 +165,7 @@ class HighWaterMarkTracker:
         now = now_dt.isoformat()
 
         # Weekly Re-anchoring logic: prevent phantom peaks from older calendar weeks from distorting current week
-        if self._peak_at_utc and current_balance and current_balance >= 10_000.0:
+        if self._peak_at_utc and current_balance and current_balance > 0.0:
             try:
                 peak_dt = datetime.fromisoformat(self._peak_at_utc)
                 if (now_dt - peak_dt).total_seconds() > 4 * 86400:
