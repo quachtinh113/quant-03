@@ -120,3 +120,52 @@ def test_soft_derisking_protocol():
     # 3. verify_order_permission raises FederalCircuitBreakerActive due to 24h freeze
     with pytest.raises(FederalCircuitBreakerActive):
         kill_switch.verify_order_permission()
+
+
+def test_trailing_stop_manager_ratchet():
+    """Test TrailingStopManager ratchets Stop Loss according to H1 ATR Chandelier Exit."""
+    from us_federation_quant.execution_layer.trailing_stop_manager import TrailingStopManager
+
+    ts = TrailingStopManager(atr_period=14, atr_multiplier=2.0, min_modification_points=15)
+
+    # Mock copy_rates_from_pos for H1 ATR = 0.0050 (50 pips)
+    fake_rates = [
+        {"high": 1.1000 + i*0.001, "low": 1.0950 + i*0.001, "close": 1.0980 + i*0.001, "open": 1.0960}
+        for i in range(20)
+    ]
+
+    # Mock positions: 1 profitable BUY with old SL far behind
+    pos_buy = MagicMock()
+    pos_buy.ticket = 2001
+    pos_buy.symbol = "EURUSD"
+    pos_buy.type = 0  # ORDER_TYPE_BUY
+    pos_buy.profit = 150.0  # Profitable
+    pos_buy.sl = 1.08000
+    pos_buy.tp = 0.0
+
+    # Mock symbol info and tick
+    s_info = MagicMock()
+    s_info.point = 0.00001
+    s_info.digits = 5
+
+    tick = MagicMock()
+    tick.bid = 1.12000
+    tick.ask = 1.12002
+
+    with patch("MetaTrader5.copy_rates_from_pos", return_value=fake_rates), \
+         patch("MetaTrader5.positions_get", return_value=[pos_buy]), \
+         patch("MetaTrader5.symbol_info", return_value=s_info), \
+         patch("MetaTrader5.symbol_info_tick", return_value=tick), \
+         patch("MetaTrader5.order_send", return_value=MagicMock(retcode=10009)) as mock_send:
+
+        ts.update_trailing_stops()
+
+        # ATR should be ~0.0050. atr_mult = 2.0 -> buffer = 0.0100.
+        # bid = 1.12000. new_sl = 1.12000 - 0.01000 = 1.11000.
+        # old_sl = 1.08000. new_sl (1.11000) > old_sl (1.08000) by > 15 points.
+        assert mock_send.called
+        req = mock_send.call_args[0][0]
+        assert req["position"] == 2001
+        assert req["symbol"] == "EURUSD"
+        assert req["sl"] > 1.08000
+

@@ -90,6 +90,11 @@ try:
 except ImportError:
     from core.order_state_machine import generate_client_order_id, OrderState
 
+try:
+    from execution_layer.trailing_stop_manager import TrailingStopManager
+except ImportError:
+    from us_federation_quant.execution_layer.trailing_stop_manager import TrailingStopManager
+
 # Setup Logging
 LOG_DIR = _DIR / "logs"
 try:
@@ -161,6 +166,9 @@ class USFederationQuantRuntime:
         # Institutional US Equities Universe Filters (Task 4)
         self.US_EQUITIES_BLACKLIST = ["BAC", "JNJ", "V", "BRK", "UNH", "PG", "XOM"]
         self.US_EQUITIES_WHITELIST = ["TSLA", "NVDA", "AAPL", "MSFT", "GOOG", "AMZN", "META"]
+
+        # Trailing Stop Động (Chandelier Exit / ATR14 H1)
+        self.ts_manager = TrailingStopManager(atr_period=14, atr_multiplier=2.0, min_modification_points=15)
 
     def print_constitutional_dashboard(
         self,
@@ -544,7 +552,12 @@ class USFederationQuantRuntime:
                         continue
 
                     # 2. Dynamic Volatility ATR Dollar Sizing (Quant Core V9: max_risk_usd=35.0)
-                    current_price = float(market_df["close"].iloc[-1])
+                    tick = self.mt5_mgr.get_tick(actual_symbol) if hasattr(self, "mt5_mgr") else None
+                    if tick and tick.get("ask") and tick.get("bid"):
+                        current_price = float(tick["ask"] if proposal.action == "BUY" else tick["bid"])
+                    else:
+                        current_price = float(market_df["close"].iloc[-1])
+
                     tr = np.maximum(
                         market_df["high"] - market_df["low"],
                         np.maximum(
@@ -559,8 +572,11 @@ class USFederationQuantRuntime:
                         atr_14 = current_price * 0.005
 
                     pt = getattr(sym_info, "point", 0.0001) or 0.0001
-                    sl_dist = 1.5 * atr_14
-                    tp_dist = 2.5 * atr_14
+                    stops_level = getattr(sym_info, "trade_stops_level", 0) or 0
+                    spread = getattr(sym_info, "spread", 0) or 0
+                    min_stop_dist = (stops_level + spread + 5) * pt
+                    sl_dist = max(1.5 * atr_14, min_stop_dist)
+                    tp_dist = max(2.5 * atr_14, min_stop_dist * 1.5)
                     sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
 
                     risk_adjusted_lots = self.calculate_risk_adjusted_lot(
@@ -1032,6 +1048,12 @@ class USFederationQuantRuntime:
 
                     # 4. Tactical Index Over-exposure De-risking on rebound
                     self.reconcile_index_duplicate_derisking()
+
+                    # 5. Thực thi Trailing Stop động Chandelier Exit (ATR14 H1) cho các vị thế đang thả nổi
+                    try:
+                        self.ts_manager.update_trailing_stops()
+                    except Exception as e:
+                        logger.error(f"Trailing Stop Routine Error: {e}")
 
 
                     positions = self.mt5_mgr.get_positions()
