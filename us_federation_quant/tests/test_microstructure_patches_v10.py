@@ -192,32 +192,43 @@ def test_eurgbp_d1_ema200_trend_filter():
 
 
 def test_friday_eod_flat_rule():
-    """Verify Friday EOD Flat Rule closes all positions at or after 21:00 UTC on Friday."""
+    """Verify Friday EOD Flat Rule (>= 20:30 UTC / 23:30 Server Time) and Weekend Hold Sweeper (Skill 07)."""
     from us_federation_quant.live_federation_runner import USFederationQuantRuntime
 
-    # 1. Curfew timestamp checks
-    friday_before = datetime(2026, 10, 30, 20, 59, 0, tzinfo=timezone.utc)
-    friday_curfew = datetime(2026, 10, 30, 21, 0, 0, tzinfo=timezone.utc)
-    friday_late = datetime(2026, 10, 30, 23, 45, 0, tzinfo=timezone.utc)
+    # 1. Curfew & Flat window timestamp checks (Skill 07 Time Rule 23:30-23:45 Server Time = 20:30-20:45 UTC)
+    friday_1959 = datetime(2026, 10, 30, 19, 59, 0, tzinfo=timezone.utc)
+    friday_2005 = datetime(2026, 10, 30, 20, 5, 0, tzinfo=timezone.utc)
+    friday_2030 = datetime(2026, 10, 30, 20, 30, 0, tzinfo=timezone.utc)
+    friday_2100 = datetime(2026, 10, 30, 21, 0, 0, tzinfo=timezone.utc)
+    saturday_noon = datetime(2026, 10, 31, 12, 0, 0, tzinfo=timezone.utc)
     thursday_late = datetime(2026, 10, 29, 21, 30, 0, tzinfo=timezone.utc)
 
-    assert not (friday_before.weekday() == 4 and friday_before.hour >= 21)
-    assert (friday_curfew.weekday() == 4 and friday_curfew.hour >= 21)
-    assert (friday_late.weekday() == 4 and friday_late.hour >= 21)
-    assert not (thursday_late.weekday() == 4 and thursday_late.hour >= 21)
+    assert USFederationQuantRuntime.is_friday_or_weekend_curfew(friday_1959) is False
+    assert USFederationQuantRuntime.is_friday_or_weekend_curfew(friday_2005) is True
+    assert USFederationQuantRuntime.is_friday_or_weekend_curfew(saturday_noon) is True
+    assert USFederationQuantRuntime.is_friday_or_weekend_curfew(thursday_late) is False
+
+    assert USFederationQuantRuntime.is_friday_eod_flat_window(friday_2005) is False
+    assert USFederationQuantRuntime.is_friday_eod_flat_window(friday_2030) is True
+    assert USFederationQuantRuntime.is_friday_eod_flat_window(friday_2100) is True
+    assert USFederationQuantRuntime.is_friday_eod_flat_window(thursday_late) is False
 
     # 2. Liquidation execution test
     mock_runtime = MagicMock(spec=USFederationQuantRuntime)
     mock_runtime.enforce_friday_eod_flat = USFederationQuantRuntime.enforce_friday_eod_flat.__get__(mock_runtime)
+    mock_runtime.enforce_weekend_hold_sweeper = USFederationQuantRuntime.enforce_weekend_hold_sweeper.__get__(mock_runtime)
+    mock_runtime.check_symbol_liquidation_readiness = USFederationQuantRuntime.check_symbol_liquidation_readiness.__get__(mock_runtime)
+    mock_runtime.is_friday_eod_flat_window = USFederationQuantRuntime.is_friday_eod_flat_window
 
     mock_positions = [
-        {"ticket": 1001, "symbol": "EURUSDm", "profit": 15.0},
-        {"ticket": 1002, "symbol": "GBPCHFm", "profit": -8.5},
-        {"ticket": 1003, "symbol": "USTECm", "profit": 42.0},
+        {"ticket": 1001, "symbol": "EURUSDm", "profit": 15.0, "time": datetime(2026, 10, 30, 15, 0, tzinfo=timezone.utc)},
+        {"ticket": 1002, "symbol": "GBPCHFm", "profit": -8.5, "time": datetime(2026, 10, 30, 16, 0, tzinfo=timezone.utc)},
+        {"ticket": 1003, "symbol": "USTECm", "profit": 42.0, "time": datetime(2026, 10, 30, 19, 0, tzinfo=timezone.utc)},
     ]
 
     mock_runtime.mt5_mgr = MagicMock()
     mock_runtime.mt5_mgr.get_positions.return_value = mock_positions
+    mock_runtime.mt5_mgr.is_market_open.return_value = True
     mock_runtime.mt5_mgr.close_position.return_value = {"success": True}
 
     with patch("MetaTrader5.positions_get", return_value=mock_positions):
@@ -228,4 +239,104 @@ def test_friday_eod_flat_rule():
     mock_runtime.mt5_mgr.close_position.assert_any_call(ticket=1001, comment="Friday EOD Flat")
     mock_runtime.mt5_mgr.close_position.assert_any_call(ticket=1002, comment="Friday EOD Flat")
     mock_runtime.mt5_mgr.close_position.assert_any_call(ticket=1003, comment="Friday EOD Flat")
+
+    # 3. Weekend Hold Sweeper test: Monday reopen liquidates Friday positions immediately when ready
+    mock_runtime.mt5_mgr.close_position.reset_mock()
+    monday_reopen = datetime(2026, 11, 2, 0, 15, 0, tzinfo=timezone.utc)
+    with patch("MetaTrader5.symbol_info_tick", return_value=None):
+        swept_count = mock_runtime.enforce_weekend_hold_sweeper(monday_reopen)
+    assert swept_count == 3
+    mock_runtime.mt5_mgr.close_position.assert_any_call(ticket=1001, comment="Weekend Hold Flat")
+
+
+def test_us_dst_server_time_adaptation():
+    """Verify MT5 Server Time (23:30 Server Time) automatically adapts to Nov 1, 2026 US DST transition."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+
+    # Before Nov 1, 2026 (Summer EDT -> Server = UTC+3):
+    # 20:30 UTC = 23:30 Server Time -> Flat window TRUE
+    fri_edt_2030 = datetime(2026, 10, 30, 20, 30, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_us_dst(fri_edt_2030) is True
+    assert USFederationQuantRuntime.get_mt5_server_datetime(fri_edt_2030).hour == 23
+    assert USFederationQuantRuntime.is_friday_eod_flat_window(fri_edt_2030) is True
+
+    # After Nov 1, 2026 (Winter EST -> Server = UTC+2):
+    # 20:30 UTC = 22:30 Server Time -> Flat window FALSE (does not close 1.5h early!)
+    fri_est_2030 = datetime(2026, 11, 6, 20, 30, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_us_dst(fri_est_2030) is False
+    assert USFederationQuantRuntime.get_mt5_server_datetime(fri_est_2030).hour == 22
+    assert USFederationQuantRuntime.is_friday_eod_flat_window(fri_est_2030) is False
+
+    # 21:30 UTC on Nov 6, 2026 = 23:30 Server Time -> Flat window TRUE (29m before 21:59 UTC close)
+    fri_est_2130 = datetime(2026, 11, 6, 21, 30, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.get_mt5_server_datetime(fri_est_2130).hour == 23
+    assert USFederationQuantRuntime.is_friday_eod_flat_window(fri_est_2130) is True
+
+
+def test_per_symbol_tick_warmup_and_spread_guard():
+    """Verify Per-Symbol Tick Freshness (<=60s), 10m Open Warmup, and Spread Guard on Sunday/Monday Reopen."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+
+    mock_runtime = MagicMock(spec=USFederationQuantRuntime)
+    mock_runtime.check_symbol_liquidation_readiness = USFederationQuantRuntime.check_symbol_liquidation_readiness.__get__(mock_runtime)
+    mock_runtime.get_mt5_server_datetime = USFederationQuantRuntime.get_mt5_server_datetime
+    mock_runtime._save_sweeper_reopen_state = MagicMock()
+    mock_runtime._symbol_reopen_first_seen_ts = {}
+    mock_runtime.mt5_mgr = MagicMock()
+    mock_runtime.mt5_mgr.is_market_open.return_value = True
+    mock_runtime.mt5_mgr.resolve_symbol.side_effect = lambda s: s
+
+    # Sunday 22:05 UTC (FX just opened, USTEC & UK100 still closed with Friday tick)
+    sun_2205 = datetime(2026, 11, 1, 22, 5, 0, tzinfo=timezone.utc)
+    sun_2205_ts = sun_2205.timestamp()
+
+    fx_info = MagicMock(trade_mode=4, point=0.00001)
+    idx_info = MagicMock(trade_mode=4, point=0.01)
+
+    # Case 1: UK100 has stale Friday tick (age > 60s) -> Must be blocked (prevents 10018 error)
+    stale_uk100_tick = MagicMock(time=sun_2205_ts - 172800.0, bid=10750.0, ask=10752.0)
+    with patch("MetaTrader5.symbol_info", return_value=idx_info), \
+         patch("MetaTrader5.symbol_info_tick", return_value=stale_uk100_tick), \
+         patch("MetaTrader5.SYMBOL_TRADE_MODE_FULL", 4, create=True):
+        ready_uk, reason_uk = mock_runtime.check_symbol_liquidation_readiness("UK100", now_utc=sun_2205, open_warmup_sec=600.0)
+        assert ready_uk is False
+        assert "Stale tick" in reason_uk
+
+    # Case 1b (Edge Case #1): Tick timestamp includes +3h Broker Server Offset (making now_ts - tick.time = -10439s negative!)
+    # Friday 21:05 UTC (00:05 Saturday Server Time) vs Friday 20:58:59 UTC close tick (23:58:59 Server Time = +361s old in Server Time)
+    fri_2105_utc = datetime(2026, 10, 30, 21, 5, 0, tzinfo=timezone.utc)
+    fri_close_srv_epoch = datetime(2026, 10, 30, 23, 58, 59, tzinfo=timezone.utc).timestamp()
+    stale_srv_offset_tick = MagicMock(time=fri_close_srv_epoch, bid=1.1030, ask=1.1032)
+    with patch("MetaTrader5.symbol_info", return_value=fx_info), \
+         patch("MetaTrader5.symbol_info_tick", return_value=stale_srv_offset_tick), \
+         patch("MetaTrader5.SYMBOL_TRADE_MODE_FULL", 4, create=True):
+        ready_neg, reason_neg = mock_runtime.check_symbol_liquidation_readiness("EURUSD", now_utc=fri_2105_utc, open_warmup_sec=600.0)
+        assert ready_neg is False, "Negative tick_age from +3h Broker Server Time offset must NOT bypass stale tick check!"
+        assert "Stale tick" in reason_neg
+
+    # Case 2: GBPCHF at 22:05 UTC (t=0s post-open) -> Blocked by 10m (600s) Warmup Buffer
+    fresh_gbpchf_wide = MagicMock(time=sun_2205_ts - 5.0, bid=1.10300, ask=1.10450)  # 150 pts spread
+    with patch("MetaTrader5.symbol_info", return_value=fx_info), \
+         patch("MetaTrader5.symbol_info_tick", return_value=fresh_gbpchf_wide), \
+         patch("MetaTrader5.SYMBOL_TRADE_MODE_FULL", 4, create=True):
+        ready_t0, reason_t0 = mock_runtime.check_symbol_liquidation_readiness("GBPCHF", now_utc=sun_2205, open_warmup_sec=600.0)
+        assert ready_t0 is False
+        assert "Warmup Buffer" in reason_t0
+
+        # Case 3: GBPCHF at 22:16 UTC (t=660s post-open, warmup passed) but spread still 150 pts (> 65 pts cap) -> Blocked by Spread Guard
+        sun_2216 = sun_2205 + timedelta(minutes=11)
+        fresh_gbpchf_wide.time = sun_2216.timestamp() - 2.0
+        ready_wide, reason_wide = mock_runtime.check_symbol_liquidation_readiness("GBPCHF", now_utc=sun_2216, open_warmup_sec=600.0)
+        assert ready_wide is False
+        assert "Spread Guard" in reason_wide
+
+        # Case 4: GBPCHF at 22:17 UTC with normalized spread (25 pts <= 65 pts cap) -> Ready to liquidate!
+        sun_2217 = sun_2205 + timedelta(minutes=12)
+        fresh_gbpchf_tight = MagicMock(time=sun_2217.timestamp() - 1.0, bid=1.10300, ask=1.10325)  # 25 pts spread
+        with patch("MetaTrader5.symbol_info_tick", return_value=fresh_gbpchf_tight):
+            ready_ok, reason_ok = mock_runtime.check_symbol_liquidation_readiness("GBPCHF", now_utc=sun_2217, open_warmup_sec=600.0)
+            assert ready_ok is True
+            assert "Ready" in reason_ok
+
+
 
