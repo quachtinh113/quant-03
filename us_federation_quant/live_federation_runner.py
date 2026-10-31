@@ -134,6 +134,9 @@ signal.signal(signal.SIGTERM, handle_shutdown)
 class USFederationQuantRuntime:
     """Master Institutional Runtime coordinating Federation Hub, Quad-Titan Engine, and MT5."""
 
+    # Microstructure Patches: Toxic Hours Blacklist ({0, 6, 18, 23} UTC)
+    TOXIC_HOURS: set = {0, 6, 18, 23}
+
     def __init__(self, initial_capital_usd: float = 10_000.0):
         self.hub = FederationHub(secret_key="FEDERATION_SUPREME_SEAL")
         self.quad_titans = QuadTitanEngine(initial_capital_usd=initial_capital_usd)
@@ -169,6 +172,7 @@ class USFederationQuantRuntime:
 
         # Trailing Stop Động (Chandelier Exit / ATR14 H1)
         self.ts_manager = TrailingStopManager(atr_period=14, atr_multiplier=2.0, min_modification_points=15)
+        self.TOXIC_HOURS = self.__class__.TOXIC_HOURS
 
     def print_constitutional_dashboard(
         self,
@@ -352,6 +356,22 @@ class USFederationQuantRuntime:
             )
             return executed_trades
 
+        # Logic 1b (Friday EOD Curfew): Chặn toàn bộ việc mở vị thế mới sau 21:00 UTC Thứ Sáu
+        if now_dt.weekday() == 4 and now_dt.hour >= 21:
+            logger.info(
+                f"🛡️ [FRIDAY EOD CURFEW] Thứ Sáu {now_dt.strftime('%H:%M')} UTC >= 21:00 UTC: "
+                f"Tạm ngắt mở vị thế mới để bảo toàn 100% tiền mặt trước kỳ nghỉ cuối tuần (Time Rule 23:45)."
+            )
+            return executed_trades
+
+        # Logic 1c (Toxic Hours Blacklist): Chặn mở vị thế mới tại {0, 6, 18, 23} UTC
+        if self.is_toxic_hour(now_dt.hour):
+            logger.info(
+                f"🛡️ [TOXIC HOURS ACTIVE] Khung giờ {now_dt.hour:02d}:00 UTC nằm trong TOXIC_HOURS {self.TOXIC_HOURS}. "
+                f"Từ chối mở vị thế mới để tránh trượt giá và suy giảm thanh khoản (vẫn duy trì Trailing Stop)."
+            )
+            return executed_trades
+
         if self.session_start_equity and self.session_start_equity > 0:
             intraday_pnl = account_equity - self.session_start_equity
             intraday_dd_pct = max(0.0, -intraday_pnl / self.session_start_equity * 100.0)
@@ -507,6 +527,12 @@ class USFederationQuantRuntime:
                             logger.info(f"🛡️ [EQUITY TREND FILTER] {clean_ticker} SELL rejected: Price {last_c:.2f} above EMA20 {ema20:.2f}.")
                             continue
 
+                    # Task 1: Khóa xu hướng D1 EMA200 cho EURGBP (State 31)
+                    if pod.state_id == "STATE_31" or "EURGBP" in actual_symbol.upper():
+                        current_h1_price = float(market_df["close"].iloc[-1])
+                        if not self.check_eurgbp_d1_ema200_filter(actual_symbol, current_h1_price, proposal.action):
+                            continue
+
                     # Federal Index Exposure Cap: prevent multiple pods from stacking > 0.50L on US Indices
                     if any(idx in actual_symbol.upper() for idx in ["US30", "US500", "USTEC"]):
                         existing_idx_same_dir = [
@@ -618,6 +644,15 @@ class USFederationQuantRuntime:
                     else:
                         target_sl = round(current_price + sl_dist, digits)
                         target_tp = round(current_price - tp_dist, digits)
+
+                    # Pre-Trade Factor Gatekeeper: Ma trận chặn khung giờ tử thần (Toxic Hours Blacklist) ngay trước OrderSend
+                    exec_hour_utc = datetime.now(timezone.utc).hour
+                    if self.is_toxic_hour(exec_hour_utc):
+                        logger.warning(
+                            f"🛑 [TOXIC HOURS GATEKEEPER] Từ chối OrderSend {proposal.action} {cleared_lots}L {actual_symbol} "
+                            f"tại {exec_hour_utc:02d}:00 UTC (Tập giờ tử thần {self.TOXIC_HOURS}). Vẫn duy trì Trailing Stop."
+                        )
+                        continue
 
                     # 3. NautilusTrader Order State Machine Tracking
                     client_order_id = generate_client_order_id(pod.state_id, proposal.action)
@@ -956,6 +991,111 @@ class USFederationQuantRuntime:
         time.sleep(60.0)
         return False
 
+    @classmethod
+    def is_toxic_hour(cls, hour_utc: Optional[int] = None) -> bool:
+        """
+        Ma trận chặn khung giờ tử thần (Toxic Hours Blacklist).
+        Tập TOXIC_HOURS = {0, 6, 18, 23} UTC là thời điểm chuyển giao phiên hoặc suy giảm
+        thanh khoản nghiêm trọng, gây rò rỉ Alpha do whipsaw và giãn spread.
+        """
+        if hour_utc is None:
+            hour_utc = datetime.now(timezone.utc).hour
+        return hour_utc in cls.TOXIC_HOURS
+
+    def check_eurgbp_d1_ema200_filter(
+        self,
+        symbol: str,
+        current_h1_price: float,
+        action: str,
+    ) -> bool:
+        """
+        Khóa xu hướng D1 EMA200 cho EURGBP (State 31 Corridor Reversion).
+        Trích xuất 200 nến D1 bằng mt5.copy_rates_from_pos("EURGBP", mt5.TIMEFRAME_D1, 0, 200).
+        Ép cờ allow_buy = False nếu giá H1 hiện tại nằm dưới EMA200, triệt tiêu bắt đáy ngược sóng.
+        Returns:
+            bool: True nếu được phép giao dịch, False nếu bị từ chối do ngược xu hướng D1.
+        """
+        if "EURGBP" not in symbol.upper():
+            return True
+
+        try:
+            import MetaTrader5 as mt5
+            actual_sym = self.mt5_mgr.resolve_symbol(symbol)
+            rates_d1 = mt5.copy_rates_from_pos(actual_sym, mt5.TIMEFRAME_D1, 0, 200)
+            if rates_d1 is None or len(rates_d1) < 200:
+                rates_d1 = mt5.copy_rates_from_pos("EURGBP", mt5.TIMEFRAME_D1, 0, 200)
+
+            if rates_d1 is None or len(rates_d1) < 200:
+                df_d1 = self.mt5_mgr.get_rates(actual_sym, "D1", count=200)
+                if df_d1 is not None and len(df_d1) >= 200:
+                    rates_d1 = df_d1
+                else:
+                    logger.warning(f"⚠️ [D1 EMA200 FILTER] Không trích xuất đủ 200 nến D1 cho {symbol}, giữ nguyên lệnh.")
+                    return True
+
+            if isinstance(rates_d1, pd.DataFrame):
+                df_d1 = rates_d1
+            else:
+                df_d1 = pd.DataFrame(rates_d1)
+
+            ema200 = df_d1["close"].ewm(span=200, adjust=False).mean().iloc[-1]
+            allow_buy = current_h1_price >= ema200
+
+            if action.upper() == "BUY" and not allow_buy:
+                logger.info(
+                    f"🛡️ [STATE_31 D1 EMA200 GATEKEEPER] {symbol} BUY bị từ chối: "
+                    f"Giá H1 hiện tại ({current_h1_price:.5f}) nằm dưới D1 EMA200 ({ema200:.5f}) "
+                    f"-> allow_buy={allow_buy}. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng."
+                )
+                return False
+
+            return True
+        except Exception as e:
+            logger.warning(f"⚠️ Exception in check_eurgbp_d1_ema200_filter for {symbol}: {e}")
+            return True
+
+    def enforce_friday_eod_flat(self) -> int:
+        """
+        Emergency Circuit Breaker: Friday EOD Flat Rule (Bảo toàn 100% tỷ trọng tiền mặt cuối tuần).
+        Khi time.weekday() == 4 và time.hour >= 21 UTC, tự động quét mt5.positions_get()
+        và bắn các lệnh thị trường đối ứng để dọn sạch danh mục (Time Rule 23:45).
+        Returns:
+            int: Số lượng vị thế đã thanh lý thành công.
+        """
+        closed_count = 0
+        try:
+            import MetaTrader5 as mt5
+            positions = mt5.positions_get()
+            if not positions:
+                mgr_positions = self.mt5_mgr.get_positions()
+                if not mgr_positions:
+                    return 0
+                positions = mgr_positions
+
+            logger.warning(
+                f"🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 21:00 UTC (Time Rule 23:45). "
+                f"Phát hiện {len(positions)} vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+            )
+            for pos in positions:
+                ticket = getattr(pos, "ticket", None) if hasattr(pos, "ticket") else (pos.get("ticket") if isinstance(pos, dict) else None)
+                symbol = getattr(pos, "symbol", "") if hasattr(pos, "symbol") else (pos.get("symbol", "") if isinstance(pos, dict) else "")
+                profit = getattr(pos, "profit", 0.0) if hasattr(pos, "profit") else (pos.get("profit", 0.0) if isinstance(pos, dict) else 0.0)
+
+                if ticket is None:
+                    continue
+
+                logger.info(
+                    f"🧹 [FRIDAY LIQUIDATION] Đóng vị thế Ticket #{ticket} ({symbol}) | Floating PnL: ${profit:+.2f} USD."
+                )
+                res = self.mt5_mgr.close_position(ticket=ticket, comment="Friday EOD Flat")
+                if res.get("success"):
+                    closed_count += 1
+                else:
+                    logger.error(f"❌ Lỗi thanh lý Thứ Sáu Ticket #{ticket}: {res.get('error')}")
+        except Exception as e:
+            logger.error(f"⚠️ Exception in enforce_friday_eod_flat: {e}")
+        return closed_count
+
     def run(self):
         logger.info("================================================================================")
         logger.info("🦅 KÍCH HOẠT HỢP CHỦNG QUỐC HOA KỲ QUANT (TAM QUYỀN PHÂN LẬP & 50 TIỂU BANG)...")
@@ -1037,6 +1177,10 @@ class USFederationQuantRuntime:
                             body=f"Federation liquidated to preserve capital! Equity: ${equity:,.2f}",
                         )
                         sys.exit(99)
+
+                    # Emergency Circuit Breaker: Friday EOD Flat Rule (Bảo toàn 100% tiền mặt cuối tuần)
+                    if now_utc.weekday() == 4 and now_utc.hour >= 21:
+                        self.enforce_friday_eod_flat()
 
                     # LỆNH 4: BlackRock Aladdin 50% Profit Sweep into Hamilton Vault
                     try:

@@ -111,3 +111,121 @@ def test_stop_loss_floor_calculation():
     raw_sl_wide = 1.8 * atr_wide  # 0.00540 (540 points > 150 points)
     sl_dist_wide = max(raw_sl_wide, min_point_floor, min_stop_dist)
     assert sl_dist_wide == 0.00540
+
+
+def test_toxic_hours_blacklist():
+    """Verify Toxic Hours Blacklist {0, 6, 18, 23} UTC blocks new entries while allowing Trailing SL."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+
+    toxic_hours = {0, 6, 18, 23}
+    assert USFederationQuantRuntime.TOXIC_HOURS == toxic_hours
+
+    # Test all 24 hours
+    for h in range(24):
+        is_toxic = USFederationQuantRuntime.is_toxic_hour(h)
+        if h in toxic_hours:
+            assert is_toxic is True, f"Hour {h} should be toxic"
+        else:
+            assert is_toxic is False, f"Hour {h} should NOT be toxic"
+
+    # Pre-trade order gatekeeper simulation
+    mock_runtime = MagicMock(spec=USFederationQuantRuntime)
+    mock_runtime.is_toxic_hour = USFederationQuantRuntime.is_toxic_hour
+    mock_runtime.TOXIC_HOURS = toxic_hours
+
+    # At 06:00 UTC (Tokyo/London transition) -> order must be rejected
+    exec_hour_toxic = 6
+    assert mock_runtime.is_toxic_hour(exec_hour_toxic) is True
+
+    # At 14:00 UTC (US session liquid core) -> order allowed
+    exec_hour_clean = 14
+    assert mock_runtime.is_toxic_hour(exec_hour_clean) is False
+
+
+def test_eurgbp_d1_ema200_trend_filter():
+    """Verify EURGBP State 31 Mean-Reversion blocks BUY when price is below D1 EMA200."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+
+    # Construct synthetic 200-bar D1 dataset where EMA200 is around 0.85497
+    dates = pd.date_range("2026-01-01", periods=200, freq="D")
+    closes = np.full(200, 0.85497)
+    df_d1 = pd.DataFrame({"close": closes}, index=dates)
+
+    mock_runtime = MagicMock(spec=USFederationQuantRuntime)
+    mock_runtime.check_eurgbp_d1_ema200_filter = USFederationQuantRuntime.check_eurgbp_d1_ema200_filter.__get__(mock_runtime)
+    mock_runtime.mt5_mgr = MagicMock()
+    mock_runtime.mt5_mgr.resolve_symbol.return_value = "EURGBPm"
+    mock_runtime.mt5_mgr.get_rates.return_value = df_d1
+
+    with patch("MetaTrader5.copy_rates_from_pos", return_value=None):
+        # Scenario 1: Price 0.83332 < EMA200 0.85497 -> BUY rejected (allow_buy = False)
+        allow_buy_counter = mock_runtime.check_eurgbp_d1_ema200_filter(
+            symbol="EURGBPm",
+            current_h1_price=0.83332,
+            action="BUY",
+        )
+        assert allow_buy_counter is False, "EURGBP BUY below D1 EMA200 must be rejected!"
+
+        # Scenario 2: Price 0.86000 > EMA200 0.85497 -> BUY approved (allow_buy = True)
+        allow_buy_trend = mock_runtime.check_eurgbp_d1_ema200_filter(
+            symbol="EURGBPm",
+            current_h1_price=0.86000,
+            action="BUY",
+        )
+        assert allow_buy_trend is True, "EURGBP BUY above D1 EMA200 must be approved!"
+
+        # Scenario 3: Price 0.83332 < EMA200 0.85497 -> SELL approved (trend-aligned)
+        allow_sell_trend = mock_runtime.check_eurgbp_d1_ema200_filter(
+            symbol="EURGBPm",
+            current_h1_price=0.83332,
+            action="SELL",
+        )
+        assert allow_sell_trend is True, "EURGBP SELL in downtrend must be approved!"
+
+        # Scenario 4: Other symbol (e.g. GBPCHFm) -> not affected
+        allow_other = mock_runtime.check_eurgbp_d1_ema200_filter(
+            symbol="GBPCHFm",
+            current_h1_price=1.1200,
+            action="BUY",
+        )
+        assert allow_other is True, "Non-EURGBP symbols must bypass this filter!"
+
+
+def test_friday_eod_flat_rule():
+    """Verify Friday EOD Flat Rule closes all positions at or after 21:00 UTC on Friday."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+
+    # 1. Curfew timestamp checks
+    friday_before = datetime(2026, 10, 30, 20, 59, 0, tzinfo=timezone.utc)
+    friday_curfew = datetime(2026, 10, 30, 21, 0, 0, tzinfo=timezone.utc)
+    friday_late = datetime(2026, 10, 30, 23, 45, 0, tzinfo=timezone.utc)
+    thursday_late = datetime(2026, 10, 29, 21, 30, 0, tzinfo=timezone.utc)
+
+    assert not (friday_before.weekday() == 4 and friday_before.hour >= 21)
+    assert (friday_curfew.weekday() == 4 and friday_curfew.hour >= 21)
+    assert (friday_late.weekday() == 4 and friday_late.hour >= 21)
+    assert not (thursday_late.weekday() == 4 and thursday_late.hour >= 21)
+
+    # 2. Liquidation execution test
+    mock_runtime = MagicMock(spec=USFederationQuantRuntime)
+    mock_runtime.enforce_friday_eod_flat = USFederationQuantRuntime.enforce_friday_eod_flat.__get__(mock_runtime)
+
+    mock_positions = [
+        {"ticket": 1001, "symbol": "EURUSDm", "profit": 15.0},
+        {"ticket": 1002, "symbol": "GBPCHFm", "profit": -8.5},
+        {"ticket": 1003, "symbol": "USTECm", "profit": 42.0},
+    ]
+
+    mock_runtime.mt5_mgr = MagicMock()
+    mock_runtime.mt5_mgr.get_positions.return_value = mock_positions
+    mock_runtime.mt5_mgr.close_position.return_value = {"success": True}
+
+    with patch("MetaTrader5.positions_get", return_value=mock_positions):
+        closed_count = mock_runtime.enforce_friday_eod_flat()
+
+    assert closed_count == 3
+    assert mock_runtime.mt5_mgr.close_position.call_count == 3
+    mock_runtime.mt5_mgr.close_position.assert_any_call(ticket=1001, comment="Friday EOD Flat")
+    mock_runtime.mt5_mgr.close_position.assert_any_call(ticket=1002, comment="Friday EOD Flat")
+    mock_runtime.mt5_mgr.close_position.assert_any_call(ticket=1003, comment="Friday EOD Flat")
+
