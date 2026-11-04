@@ -219,6 +219,7 @@ def test_friday_eod_flat_rule():
     mock_runtime.enforce_weekend_hold_sweeper = USFederationQuantRuntime.enforce_weekend_hold_sweeper.__get__(mock_runtime)
     mock_runtime.check_symbol_liquidation_readiness = USFederationQuantRuntime.check_symbol_liquidation_readiness.__get__(mock_runtime)
     mock_runtime.is_friday_eod_flat_window = USFederationQuantRuntime.is_friday_eod_flat_window
+    mock_runtime.get_last_weekly_open_utc = USFederationQuantRuntime.get_last_weekly_open_utc
 
     mock_positions = [
         {"ticket": 1001, "symbol": "EURUSDm", "profit": 15.0, "time": datetime(2026, 10, 30, 15, 0, tzinfo=timezone.utc)},
@@ -339,4 +340,49 @@ def test_per_symbol_tick_warmup_and_spread_guard():
             assert "Ready" in reason_ok
 
 
+def test_p0_sunday_open_no_self_liquidation_loop():
+    """Regression (Audit 05/11/2026): lệnh mới mở tối Chủ Nhật sau giờ mở phiên KHÔNG được bị gắn cờ Weekend Hold.
+    Sự cố 01/11/2026 22:09-22:45 UTC: 82 lệnh mở rồi bị 'Weekend Hold Flat' sau ~10s (-$158.72)."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime as R
 
+    sun_2210 = datetime(2026, 11, 1, 22, 10, tzinfo=timezone.utc)
+    mon_0015 = datetime(2026, 11, 2, 0, 15, tzinfo=timezone.utc)
+    sat_noon = datetime(2026, 11, 7, 12, 0, tzinfo=timezone.utc)
+    assert R.get_last_weekly_open_utc(sun_2210) == datetime(2026, 11, 1, 22, 0, tzinfo=timezone.utc)
+    assert R.get_last_weekly_open_utc(mon_0015) == datetime(2026, 11, 1, 22, 0, tzinfo=timezone.utc)
+    assert R.get_last_weekly_open_utc(sat_noon) == datetime(2026, 11, 1, 22, 0, tzinfo=timezone.utc)
+    # Mùa hè (EDT): Chủ Nhật 25/10/2026 mở lúc 21:00 UTC
+    assert R.get_last_weekly_open_utc(datetime(2026, 10, 27, 9, 0, tzinfo=timezone.utc)) == datetime(2026, 10, 25, 21, 0, tzinfo=timezone.utc)
+
+    # Entry curfew kéo dài 60 phút sau giờ mở phiên tuần
+    assert R.is_friday_or_weekend_curfew(sun_2210) is True
+    assert R.is_friday_or_weekend_curfew(datetime(2026, 11, 1, 23, 5, tzinfo=timezone.utc)) is False
+
+    rt = MagicMock(spec=R)
+    rt.enforce_weekend_hold_sweeper = R.enforce_weekend_hold_sweeper.__get__(rt)
+    rt.check_symbol_liquidation_readiness = R.check_symbol_liquidation_readiness.__get__(rt)
+    rt.is_friday_eod_flat_window = R.is_friday_eod_flat_window
+    rt.get_last_weekly_open_utc = R.get_last_weekly_open_utc
+    rt.mt5_mgr = MagicMock()
+    rt.mt5_mgr.is_market_open.return_value = True
+    rt.mt5_mgr.close_position.return_value = {"success": True}
+    rt.mt5_mgr.get_positions.return_value = [
+        {"ticket": 2001, "symbol": "EURUSD", "profit": -1.36, "time": datetime(2026, 11, 1, 22, 9, 33, tzinfo=timezone.utc)},
+        {"ticket": 2002, "symbol": "USDJPY", "profit": -1.98, "time": datetime(2026, 11, 1, 23, 30, tzinfo=timezone.utc)},
+        {"ticket": 2003, "symbol": "EURGBP", "profit": -14.8, "time": datetime(2026, 10, 30, 12, 48, tzinfo=timezone.utc)},
+    ]
+    with patch("MetaTrader5.symbol_info_tick", return_value=None):
+        n1 = rt.enforce_weekend_hold_sweeper(sun_2210 + __import__("datetime").timedelta(minutes=1))
+        n2 = rt.enforce_weekend_hold_sweeper(mon_0015)
+    closed = [c.kwargs["ticket"] for c in rt.mt5_mgr.close_position.call_args_list]
+    assert 2001 not in closed and 2002 not in closed, closed
+    assert closed.count(2003) >= 1
+    assert n1 + n2 == len(closed)
+
+
+def test_p0_sweeper_default_warmup_applies_with_explicit_now():
+    """Regression: vòng lặp live truyền now_utc -> warmup phải vẫn là 600s (trước đây = 0s)."""
+    import inspect
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime as R
+    sig = inspect.signature(R.enforce_weekend_hold_sweeper)
+    assert sig.parameters["open_warmup_sec"].default == 600.0
