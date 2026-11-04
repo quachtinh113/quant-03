@@ -1136,9 +1136,30 @@ class USFederationQuantRuntime:
         sunday_open_utc_hour = 21 if cls.is_us_dst(dt_utc) else 22
         if utc_wd == 5:
             return True
-        if utc_wd == 6 and dt_utc.hour < sunday_open_utc_hour:
+        # P0 FIX (Audit 05/11/2026): Chặn mở lệnh mới thêm 60 phút sau giờ mở phiên tuần mới (Chủ Nhật 21:00/22:00 UTC)
+        # để né vùng giãn spread cực đại. Curfew cũ (Thứ Hai 00:00 UTC) lệch 2h so với giờ mở phiên thực tế.
+        if utc_wd == 6 and dt_utc.hour < sunday_open_utc_hour + 1:
             return True
         return False
+
+    @classmethod
+    def get_last_weekly_open_utc(cls, dt_utc: Optional[datetime] = None) -> datetime:
+        """
+        Trả về mốc mở phiên tuần gần nhất (<= dt_utc): Chủ Nhật 21:00 UTC (US DST/EDT) hoặc 22:00 UTC (EST).
+        Chỉ vị thế mở TRƯỚC mốc này mới được coi là "kẹt qua tuần" (Weekend Hold).
+        """
+        from datetime import timedelta
+        if dt_utc is None:
+            dt_utc = datetime.now(timezone.utc)
+        if dt_utc.tzinfo is None:
+            dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+        days_since_sunday = (dt_utc.weekday() + 1) % 7
+        sunday = (dt_utc - timedelta(days=days_since_sunday)).replace(hour=0, minute=0, second=0, microsecond=0)
+        candidate = sunday.replace(hour=21 if cls.is_us_dst(sunday + timedelta(hours=12)) else 22)
+        if candidate > dt_utc:
+            prev_sunday = sunday - timedelta(days=7)
+            candidate = prev_sunday.replace(hour=21 if cls.is_us_dst(prev_sunday + timedelta(hours=12)) else 22)
+        return candidate
 
     @classmethod
     def is_friday_eod_flat_window(cls, dt_utc: Optional[datetime] = None) -> bool:
@@ -1321,7 +1342,7 @@ class USFederationQuantRuntime:
     def enforce_weekend_hold_sweeper(
         self,
         now_utc: Optional[datetime] = None,
-        open_warmup_sec: float = 0.0,
+        open_warmup_sec: float = 600.0,
     ) -> int:
         """
         Skill 07 Anti-Weekend-Hold & 12h Max-Hold Sweeper (Microstructure V2):
@@ -1335,9 +1356,8 @@ class USFederationQuantRuntime:
         """
         if now_utc is None:
             now_utc = datetime.now(timezone.utc)
-            # Khi chạy live thực tế vào sáng Thứ Hai/Chủ Nhật mở phiên, mặc định bật đệm trễ 10 phút (600s)
-            if open_warmup_sec == 0.0:
-                open_warmup_sec = 600.0
+        # P0 FIX (Audit 05/11/2026): Vòng lặp chính luôn truyền now_utc nên trước đây warmup = 0s
+        # (log: "Gate: Ready (post-open=0s)"). Nay warmup 600s là mặc định cho mọi lời gọi.
 
         if self.is_friday_eod_flat_window(now_utc):
             positions = self.mt5_mgr.get_positions()
@@ -1358,8 +1378,11 @@ class USFederationQuantRuntime:
         if not positions:
             return 0
 
-        now_iso_year, now_iso_week, _ = now_utc.isocalendar()
-        is_weekend = now_utc.weekday() in (5, 6)
+        # P0 FIX (Audit 05/11/2026): `is_weekend = now.weekday() in (5, 6)` từng gắn cờ MỌI vị thế (kể cả lệnh vừa mở)
+        # là Weekend Hold suốt tối Chủ Nhật UTC -> vòng lặp mở/đóng 82 lệnh (-$158.72) lúc 22:09-22:45 UTC 01/11/2026.
+        # ISO-week cũng sai: lệnh mở tối Chủ Nhật bị coi là "tuần trước" lúc 00:00 UTC Thứ Hai.
+        # Nay chỉ vị thế mở TRƯỚC mốc mở phiên tuần gần nhất mới là Weekend Hold.
+        last_weekly_open_utc = self.get_last_weekly_open_utc(now_utc)
 
         for pos in positions:
             ticket = pos.get("ticket")
@@ -1373,14 +1396,11 @@ class USFederationQuantRuntime:
             else:
                 pos_time_utc = now_utc
 
-            pos_iso_year, pos_iso_week, _ = pos_time_utc.isocalendar()
             pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
-            is_prior_week_hold = (pos_iso_year, pos_iso_week) < (now_iso_year, now_iso_week)
-            is_friday_late_hold = pos_time_utc.weekday() == 4 and now_utc.weekday() != 4
+            is_weekend_hold = pos_time_utc < last_weekly_open_utc
             is_over_12h_hold = pos_age_hours >= 12.0
 
-            if is_weekend or is_prior_week_hold or is_friday_late_hold or is_over_12h_hold:
-                is_weekend_hold = is_weekend or is_prior_week_hold or is_friday_late_hold
+            if is_weekend_hold or is_over_12h_hold:
                 effective_warmup = open_warmup_sec if is_weekend_hold else 0.0
                 ready, readiness_reason = self.check_symbol_liquidation_readiness(
                     symbol=symbol,
