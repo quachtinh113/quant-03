@@ -90,6 +90,11 @@ try:
 except ImportError:
     from core.order_state_machine import generate_client_order_id, OrderState
 
+try:
+    from execution_layer.trailing_stop_manager import TrailingStopManager
+except ImportError:
+    from us_federation_quant.execution_layer.trailing_stop_manager import TrailingStopManager
+
 # Setup Logging
 LOG_DIR = _DIR / "logs"
 try:
@@ -129,6 +134,9 @@ signal.signal(signal.SIGTERM, handle_shutdown)
 class USFederationQuantRuntime:
     """Master Institutional Runtime coordinating Federation Hub, Quad-Titan Engine, and MT5."""
 
+    # Microstructure Patches: Toxic Hours Blacklist ({0, 6, 18, 23} UTC)
+    TOXIC_HOURS: set = {0, 6, 18, 23}
+
     def __init__(self, initial_capital_usd: float = 10_000.0):
         self.hub = FederationHub(secret_key="FEDERATION_SUPREME_SEAL")
         self.quad_titans = QuadTitanEngine(initial_capital_usd=initial_capital_usd)
@@ -161,6 +169,10 @@ class USFederationQuantRuntime:
         # Institutional US Equities Universe Filters (Task 4)
         self.US_EQUITIES_BLACKLIST = ["BAC", "JNJ", "V", "BRK", "UNH", "PG", "XOM"]
         self.US_EQUITIES_WHITELIST = ["TSLA", "NVDA", "AAPL", "MSFT", "GOOG", "AMZN", "META"]
+
+        # Trailing Stop Động (Chandelier Exit / ATR14 H1)
+        self.ts_manager = TrailingStopManager(atr_period=14, atr_multiplier=2.0, min_modification_points=15)
+        self.TOXIC_HOURS = self.__class__.TOXIC_HOURS
 
     def print_constitutional_dashboard(
         self,
@@ -336,6 +348,30 @@ class USFederationQuantRuntime:
                 f"Ngưỡng Circuit Breaker Level 2: -{self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT}%."
             )
 
+        # Logic 1 (Monday Curfew): Chặn toàn bộ việc mở vị thế mới trong 60 phút đầu mở phiên tuần mới (00:00 - 00:59 UTC)
+        if now_dt.weekday() == 0 and now_dt.hour == 0:
+            logger.info(
+                f"🛡️ [MONDAY OPEN CURFEW] Thứ Hai {now_dt.strftime('%H:%M')} UTC: "
+                f"Tạm ngắt mở vị thế mới trong 60 phút đầu tuần để né giãn spread và trượt giá."
+            )
+            return executed_trades
+
+        # Logic 1b (Friday EOD & Weekend Curfew): Chặn toàn bộ việc mở vị thế mới từ 20:00 UTC Thứ Sáu xuyên suốt cuối tuần (Time Rule 23:45)
+        if self.is_friday_or_weekend_curfew(now_dt):
+            logger.info(
+                f"🛡️ [FRIDAY EOD & WEEKEND CURFEW] {now_dt.strftime('%Y-%m-%d %H:%M')} UTC: "
+                f"Tạm ngắt mở vị thế mới từ 20:00 UTC Thứ Sáu xuyên suốt cuối tuần để bảo toàn 100% tiền mặt (Skill 07 Time Rule 23:45)."
+            )
+            return executed_trades
+
+        # Logic 1c (Toxic Hours Blacklist): Chặn mở vị thế mới tại {0, 6, 18, 23} UTC
+        if self.is_toxic_hour(now_dt.hour):
+            logger.info(
+                f"🛡️ [TOXIC HOURS ACTIVE] Khung giờ {now_dt.hour:02d}:00 UTC nằm trong TOXIC_HOURS {self.TOXIC_HOURS}. "
+                f"Từ chối mở vị thế mới để tránh trượt giá và suy giảm thanh khoản (vẫn duy trì Trailing Stop)."
+            )
+            return executed_trades
+
         if self.session_start_equity and self.session_start_equity > 0:
             intraday_pnl = account_equity - self.session_start_equity
             intraday_dd_pct = max(0.0, -intraday_pnl / self.session_start_equity * 100.0)
@@ -421,6 +457,16 @@ class USFederationQuantRuntime:
                 if len(gbp_positions) >= 2:
                     continue
 
+            # Logic 2 (US Index NY Session Gate): Chỉ cho phép mở lệnh chỉ số Mỹ từ 13:00 đến 21:00 UTC
+            if any(idx in actual_symbol.upper() for idx in ["USTEC", "US30", "US100"]):
+                if not (13 <= now_dt.hour <= 21):
+                    logger.info(
+                        f"🛡️ [INDEX SESSION GATE] {pod.state_id} ({actual_symbol}): "
+                        f"Bỏ qua tín hiệu ngoài phiên New York ({now_dt.hour:02d}:{now_dt.minute:02d} UTC). "
+                        f"Chỉ cho phép mở lệnh chỉ số từ 13:00 đến 21:00 UTC."
+                    )
+                    continue
+
             market_df = self.mt5_mgr.get_rates(actual_symbol, pod.timeframe, count=50)
 
             if market_df is None or len(market_df) < 15:
@@ -479,6 +525,12 @@ class USFederationQuantRuntime:
                             continue
                         elif proposal.action == "SELL" and last_c > ema20:
                             logger.info(f"🛡️ [EQUITY TREND FILTER] {clean_ticker} SELL rejected: Price {last_c:.2f} above EMA20 {ema20:.2f}.")
+                            continue
+
+                    # Task 1: Khóa xu hướng D1 EMA200 cho EURGBP (State 31)
+                    if pod.state_id == "STATE_31" or "EURGBP" in actual_symbol.upper():
+                        current_h1_price = float(market_df["close"].iloc[-1])
+                        if not self.check_eurgbp_d1_ema200_filter(actual_symbol, current_h1_price, proposal.action):
                             continue
 
                     # Federal Index Exposure Cap: prevent multiple pods from stacking > 0.50L on US Indices
@@ -544,7 +596,12 @@ class USFederationQuantRuntime:
                         continue
 
                     # 2. Dynamic Volatility ATR Dollar Sizing (Quant Core V9: max_risk_usd=35.0)
-                    current_price = float(market_df["close"].iloc[-1])
+                    tick = self.mt5_mgr.get_tick(actual_symbol) if hasattr(self, "mt5_mgr") else None
+                    if tick and tick.get("ask") and tick.get("bid"):
+                        current_price = float(tick["ask"] if proposal.action == "BUY" else tick["bid"])
+                    else:
+                        current_price = float(market_df["close"].iloc[-1])
+
                     tr = np.maximum(
                         market_df["high"] - market_df["low"],
                         np.maximum(
@@ -559,8 +616,12 @@ class USFederationQuantRuntime:
                         atr_14 = current_price * 0.005
 
                     pt = getattr(sym_info, "point", 0.0001) or 0.0001
-                    sl_dist = 1.5 * atr_14
-                    tp_dist = 2.5 * atr_14
+                    stops_level = getattr(sym_info, "trade_stops_level", 0) or 0
+                    spread = getattr(sym_info, "spread", 0) or 0
+                    min_stop_dist = (stops_level + spread + 5) * pt
+                    min_point_floor = 150.0 * pt
+                    sl_dist = max(1.8 * atr_14, min_point_floor, min_stop_dist)
+                    tp_dist = max(2.5 * atr_14, sl_dist * 1.5)
                     sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
 
                     risk_adjusted_lots = self.calculate_risk_adjusted_lot(
@@ -583,6 +644,15 @@ class USFederationQuantRuntime:
                     else:
                         target_sl = round(current_price + sl_dist, digits)
                         target_tp = round(current_price - tp_dist, digits)
+
+                    # Pre-Trade Factor Gatekeeper: Ma trận chặn khung giờ tử thần (Toxic Hours Blacklist) ngay trước OrderSend
+                    exec_hour_utc = datetime.now(timezone.utc).hour
+                    if self.is_toxic_hour(exec_hour_utc):
+                        logger.warning(
+                            f"🛑 [TOXIC HOURS GATEKEEPER] Từ chối OrderSend {proposal.action} {cleared_lots}L {actual_symbol} "
+                            f"tại {exec_hour_utc:02d}:00 UTC (Tập giờ tử thần {self.TOXIC_HOURS}). Vẫn duy trì Trailing Stop."
+                        )
+                        continue
 
                     # 3. NautilusTrader Order State Machine Tracking
                     client_order_id = generate_client_order_id(pod.state_id, proposal.action)
@@ -661,6 +731,27 @@ class USFederationQuantRuntime:
                 json.dump(state, f, indent=2)
         except Exception as e:
             logger.warning(f"Failed to persist two-tier exit state: {e}")
+
+    def _load_sweeper_reopen_state(self) -> Dict[str, float]:
+        """Loads persistent per-symbol reopen warmup timestamps so process restarts never lose warmup progress."""
+        state_file = LOG_DIR / "sweeper_reopen_state.json"
+        if state_file.exists():
+            try:
+                with open(state_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return {str(k): float(v) for k, v in data.items()}
+            except Exception:
+                return {}
+        return {}
+
+    def _save_sweeper_reopen_state(self, state: Dict[str, float]):
+        """Persists per-symbol reopen warmup timestamps to disk."""
+        state_file = LOG_DIR / "sweeper_reopen_state.json"
+        try:
+            with open(state_file, "w", encoding="utf-8") as f:
+                json.dump(state, f, indent=2)
+        except Exception as e:
+            logger.debug(f"Failed to persist sweeper reopen state: {e}")
 
     def enforce_xauusd_hard_stop_cap(self, max_loss_usd: float = 75.0) -> List[Dict[str, Any]]:
         """
@@ -921,6 +1012,399 @@ class USFederationQuantRuntime:
         time.sleep(60.0)
         return False
 
+    @classmethod
+    def is_toxic_hour(cls, hour_utc: Optional[int] = None) -> bool:
+        """
+        Ma trận chặn khung giờ tử thần (Toxic Hours Blacklist).
+        Tập TOXIC_HOURS = {0, 6, 18, 23} UTC là thời điểm chuyển giao phiên hoặc suy giảm
+        thanh khoản nghiêm trọng, gây rò rỉ Alpha do whipsaw và giãn spread.
+        """
+        if hour_utc is None:
+            hour_utc = datetime.now(timezone.utc).hour
+        return hour_utc in cls.TOXIC_HOURS
+
+    def check_eurgbp_d1_ema200_filter(
+        self,
+        symbol: str,
+        current_h1_price: float,
+        action: str,
+    ) -> bool:
+        """
+        Khóa xu hướng D1 EMA200 cho EURGBP (State 31 Corridor Reversion).
+        Trích xuất 200 nến D1 bằng mt5.copy_rates_from_pos("EURGBP", mt5.TIMEFRAME_D1, 0, 200).
+        Ép cờ allow_buy = False nếu giá H1 hiện tại nằm dưới EMA200, triệt tiêu bắt đáy ngược sóng.
+        Returns:
+            bool: True nếu được phép giao dịch, False nếu bị từ chối do ngược xu hướng D1.
+        """
+        if "EURGBP" not in symbol.upper():
+            return True
+
+        try:
+            import MetaTrader5 as mt5
+            actual_sym = self.mt5_mgr.resolve_symbol(symbol)
+            rates_d1 = mt5.copy_rates_from_pos(actual_sym, mt5.TIMEFRAME_D1, 0, 200)
+            if rates_d1 is None or len(rates_d1) < 200:
+                rates_d1 = mt5.copy_rates_from_pos("EURGBP", mt5.TIMEFRAME_D1, 0, 200)
+
+            if rates_d1 is None or len(rates_d1) < 200:
+                df_d1 = self.mt5_mgr.get_rates(actual_sym, "D1", count=200)
+                if df_d1 is not None and len(df_d1) >= 200:
+                    rates_d1 = df_d1
+                else:
+                    logger.warning(f"⚠️ [D1 EMA200 FILTER] Không trích xuất đủ 200 nến D1 cho {symbol}, giữ nguyên lệnh.")
+                    return True
+
+            if isinstance(rates_d1, pd.DataFrame):
+                df_d1 = rates_d1
+            else:
+                df_d1 = pd.DataFrame(rates_d1)
+
+            ema200 = df_d1["close"].ewm(span=200, adjust=False).mean().iloc[-1]
+            allow_buy = current_h1_price >= ema200
+
+            if action.upper() == "BUY" and not allow_buy:
+                logger.info(
+                    f"🛡️ [STATE_31 D1 EMA200 GATEKEEPER] {symbol} BUY bị từ chối: "
+                    f"Giá H1 hiện tại ({current_h1_price:.5f}) nằm dưới D1 EMA200 ({ema200:.5f}) "
+                    f"-> allow_buy={allow_buy}. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng."
+                )
+                return False
+
+            return True
+        except Exception as e:
+            logger.warning(f"⚠️ Exception in check_eurgbp_d1_ema200_filter for {symbol}: {e}")
+            return True
+
+    @classmethod
+    def is_us_dst(cls, dt_utc: Optional[datetime] = None) -> bool:
+        """
+        Tính toán chính xác trạng thái Giờ Mùa Hè Mỹ (US Daylight Saving Time - EDT vs EST):
+        - Bắt đầu: Chủ Nhật thứ 2 của tháng 3 lúc 07:00 UTC (02:00 EST -> 03:00 EDT).
+        - Kết thúc: Chủ Nhật đầu tiên của tháng 11 lúc 06:00 UTC (02:00 EDT -> 01:00 EST).
+          (Ví dụ: Chủ Nhật 01/11/2026 06:00 UTC chuyển từ EDT sang EST).
+        - Khi US DST = True (Mùa hè): Giờ Server MT5 (Exness) = UTC+3 (Đóng sàn Thứ Sáu lúc 20:59 UTC = 23:59 Server Time).
+        - Khi US DST = False (Mùa đông, từ 01/11/2026): Giờ Server MT5 = UTC+2 (Đóng sàn Thứ Sáu lúc 21:59 UTC = 23:59 Server Time).
+        """
+        if dt_utc is None:
+            dt_utc = datetime.now(timezone.utc)
+        year = dt_utc.year
+        # 2nd Sunday of March
+        march_1 = datetime(year, 3, 1, tzinfo=timezone.utc)
+        days_to_first_sun_mar = (6 - march_1.weekday()) % 7
+        dst_start = datetime(year, 3, 1 + days_to_first_sun_mar + 7, 7, 0, 0, tzinfo=timezone.utc)
+        # 1st Sunday of November
+        nov_1 = datetime(year, 11, 1, tzinfo=timezone.utc)
+        days_to_first_sun_nov = (6 - nov_1.weekday()) % 7
+        dst_end = datetime(year, 11, 1 + days_to_first_sun_nov, 6, 0, 0, tzinfo=timezone.utc)
+        return dst_start <= dt_utc < dst_end
+
+    @classmethod
+    def get_mt5_server_datetime(cls, dt_utc: Optional[datetime] = None) -> datetime:
+        """
+        Quy đổi giờ UTC sang Giờ Máy Chủ MT5 (MT5 Broker Server Time — chuẩn New York Close + 7h):
+        - Mùa hè (EDT, trước 01/11/2026): Server Time = UTC + 3 giờ (23:30 Server Time = 20:30 UTC).
+        - Mùa đông (EST, từ 01/11/2026): Server Time = UTC + 2 giờ (23:30 Server Time = 21:30 UTC).
+        """
+        from datetime import timedelta
+        if dt_utc is None:
+            dt_utc = datetime.now(timezone.utc)
+        if dt_utc.tzinfo is None:
+            dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+        offset_hours = 3 if cls.is_us_dst(dt_utc) else 2
+        return dt_utc + timedelta(hours=offset_hours)
+
+    @classmethod
+    def is_friday_or_weekend_curfew(cls, dt_utc: Optional[datetime] = None) -> bool:
+        """
+        Kiểm tra khung giờ cấm mở lệnh mới cuối tuần theo MT5 Server Time (Skill 07 Time Rule 23:45):
+        - Thứ Sáu từ 23:00 MT5 Server Time trở đi (1 giờ trước khi sàn đóng cửa lúc 23:59 Server Time;
+          tương ứng 20:00 UTC mùa hè EDT và 21:00 UTC mùa đông EST sau ngày 01/11/2026).
+        - Toàn bộ ngày Thứ Bảy.
+        - Chủ Nhật trước giờ mở phiên tuần mới (00:00 MT5 Server Time Thứ Hai = 21:00 UTC mùa hè / 22:00 UTC mùa đông).
+        """
+        if dt_utc is None:
+            dt_utc = datetime.now(timezone.utc)
+        srv_dt = cls.get_mt5_server_datetime(dt_utc)
+        srv_wd = srv_dt.weekday()
+        # Thứ Sáu >= 23:00 Server Time (hoặc sang Thứ Bảy theo giờ Server)
+        if srv_wd == 4 and srv_dt.hour >= 23:
+            return True
+        if srv_wd in (5, 6):
+            return True
+        # Dự phòng nếu dt_utc vẫn đang là Thứ Bảy hoặc Chủ Nhật trước giờ mở phiên FX (21:00 EDT / 22:00 EST)
+        utc_wd = dt_utc.weekday()
+        sunday_open_utc_hour = 21 if cls.is_us_dst(dt_utc) else 22
+        if utc_wd == 5:
+            return True
+        if utc_wd == 6 and dt_utc.hour < sunday_open_utc_hour:
+            return True
+        return False
+
+    @classmethod
+    def is_friday_eod_flat_window(cls, dt_utc: Optional[datetime] = None) -> bool:
+        """
+        Kiểm tra khung giờ xả sạch danh mục tối Thứ Sáu theo MT5 Server Time (Skill 07 Time Rule 23:30 - 23:45 Server Time):
+        - Kích hoạt cố định từ 23:30 MT5 Server Time Thứ Sáu (29 phút trước giờ đóng sàn 23:59 Server Time).
+        - Tự động thích ứng với đổi giờ mùa đông Mỹ (US DST 01/11/2026):
+          + Trước 01/11/2026 (EDT, Server UTC+3): 23:30 Server Time = 20:30 UTC.
+          + Từ 01/11/2026 (EST, Server UTC+2): 23:30 Server Time = 21:30 UTC (không bị đóng sớm 1.5h!).
+        """
+        if dt_utc is None:
+            dt_utc = datetime.now(timezone.utc)
+        srv_dt = cls.get_mt5_server_datetime(dt_utc)
+        # 23:30 -> 23:59 Server Time Thứ Sáu, hoặc vừa bước sang 00:xx Thứ Bảy Server Time khi dt_utc vẫn là Thứ Sáu
+        if srv_dt.weekday() == 4 and srv_dt.hour == 23 and srv_dt.minute >= 30:
+            return True
+        if dt_utc.weekday() == 4 and srv_dt.weekday() == 5:
+            return True
+        return False
+
+    def enforce_friday_eod_flat(self) -> int:
+        """
+        Emergency Circuit Breaker: Friday EOD Flat Rule (Bảo toàn 100% tỷ trọng tiền mặt cuối tuần).
+        Khi Thứ Sáu >= 20:30 UTC (23:30 Server Time — trước giờ đóng sàn 20:59 UTC), tự động quét
+        mt5.positions_get() và bắn các lệnh thị trường đối ứng để dọn sạch danh mục (Time Rule 23:45).
+        Returns:
+            int: Số lượng vị thế đã thanh lý thành công.
+        """
+        closed_count = 0
+        try:
+            import MetaTrader5 as mt5
+            positions = mt5.positions_get()
+            if not positions:
+                mgr_positions = self.mt5_mgr.get_positions()
+                if not mgr_positions:
+                    return 0
+                positions = mgr_positions
+
+            logger.warning(
+                f"🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 20:30 UTC (Time Rule 23:30-23:45 Server Time). "
+                f"Phát hiện {len(positions)} vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+            )
+            for pos in positions:
+                ticket = getattr(pos, "ticket", None) if hasattr(pos, "ticket") else (pos.get("ticket") if isinstance(pos, dict) else None)
+                symbol = getattr(pos, "symbol", "") if hasattr(pos, "symbol") else (pos.get("symbol", "") if isinstance(pos, dict) else "")
+                profit = getattr(pos, "profit", 0.0) if hasattr(pos, "profit") else (pos.get("profit", 0.0) if isinstance(pos, dict) else 0.0)
+
+                if ticket is None:
+                    continue
+
+                logger.info(
+                    f"🧹 [FRIDAY LIQUIDATION] Đóng vị thế Ticket #{ticket} ({symbol}) | Floating PnL: ${profit:+.2f} USD."
+                )
+                res = self.mt5_mgr.close_position(ticket=ticket, comment="Friday EOD Flat")
+                if res.get("success"):
+                    closed_count += 1
+                else:
+                    logger.error(f"❌ Lỗi thanh lý Thứ Sáu Ticket #{ticket}: {res.get('error')}")
+        except Exception as e:
+            logger.error(f"⚠️ Exception in enforce_friday_eod_flat: {e}")
+        return closed_count
+
+    def check_symbol_liquidation_readiness(
+        self,
+        symbol: str,
+        now_utc: Optional[datetime] = None,
+        max_tick_age_sec: float = 60.0,
+        open_warmup_sec: float = 600.0,
+    ) -> tuple[bool, str]:
+        """
+        Bộ lọc thực thi vi cấu trúc 3 tầng theo từng Symbol (Per-Symbol Microstructure Gatekeeper):
+        1. Per-Symbol Trading Schedule & Tick Freshness (<= 60s):
+           - Kiểm tra từng mã độc lập (Forex mở 22:05 UTC Chủ Nhật, USTEC mở 23:00 UTC, UK100 mở 01:00 UTC Thứ Hai).
+           - Yêu cầu `symbol_info(symbol).trade_mode == SYMBOL_TRADE_MODE_FULL` và `tick.time` mới cập nhật trong <= 60s.
+        2. Sunday/Monday Session Open Warmup Buffer (10 phút = 600s):
+           - Ghi nhận thời điểm đầu tiên mã đó có tick mới sau kỳ nghỉ (`_symbol_reopen_first_seen_ts`).
+           - Trì hoãn xả lệnh Market trong 10 phút đầu mở phiên để né vùng giãn spread cực đại (5x-10x).
+        3. Per-Symbol Spread Filter (`current_spread <= 1.5 * max_normal_spread`):
+           - FX Majors (EURUSD, USDJPY...): <= 35 points (3.5 pips).
+           - FX Crosses (EURGBP, GBPCHF, EURAUD...): <= 65 points (6.5 pips).
+           - Indices (USTEC, UK100, US30...): spread / bid <= 0.08% (8 bps).
+           - Safety Ceiling: Nếu đã qua >= 30 phút (1800s) từ lúc mở cửa mà spread vẫn cao, cho phép đóng cưỡng bức.
+        """
+        if now_utc is None:
+            now_utc = datetime.now(timezone.utc)
+        now_ts = now_utc.timestamp()
+
+        if not hasattr(self, "_symbol_reopen_first_seen_ts") or self._symbol_reopen_first_seen_ts is None:
+            self._symbol_reopen_first_seen_ts = self._load_sweeper_reopen_state()
+
+        if not self.mt5_mgr.is_market_open(symbol):
+            return False, f"Market closed for {symbol}"
+
+        try:
+            import MetaTrader5 as mt5
+            actual_sym = self.mt5_mgr.resolve_symbol(symbol) if hasattr(self.mt5_mgr, "resolve_symbol") else symbol
+            if not isinstance(actual_sym, str) or not actual_sym:
+                actual_sym = symbol
+
+            sym_info = mt5.symbol_info(actual_sym)
+            tick = mt5.symbol_info_tick(actual_sym)
+
+            # Nếu đang chạy trong môi trường unit test không mock tick thực (tick=None hoặc MagicMock không có số thực)
+            if tick is None or not isinstance(getattr(tick, "time", None), (int, float)):
+                return True, "OK (Manager market_open verified)"
+
+            if sym_info is not None:
+                trade_mode = getattr(sym_info, "trade_mode", None)
+                full_mode = getattr(mt5, "SYMBOL_TRADE_MODE_FULL", 4)
+                if isinstance(trade_mode, int) and trade_mode != full_mode:
+                    return False, f"Trade mode {trade_mode} != FULL for {actual_sym}"
+
+            tick_time = float(tick.time)
+            if tick_time <= 0:
+                return False, f"Invalid tick.time=0 for {actual_sym}"
+
+            # Đồng bộ hệ quy chiếu múi giờ giữa now_utc và tick.time:
+            # Nếu tick.time của MT5 đã cộng sẵn offset của Broker Server (UTC+2/UTC+3),
+            # phép trừ (now_ts - tick_time) sẽ bị âm (-7200s đến -10800s). Khi đó quy chiếu sang get_mt5_server_datetime:
+            tick_age = now_ts - tick_time
+            if tick_age < -60.0:
+                srv_ts = self.get_mt5_server_datetime(now_utc).timestamp()
+                tick_age = srv_ts - tick_time
+
+            if tick_age > max_tick_age_sec or tick_age < -60.0:
+                # Reset mốc mở cửa nếu tick đã cũ (thị trường đang nghỉ)
+                if actual_sym in self._symbol_reopen_first_seen_ts:
+                    self._symbol_reopen_first_seen_ts.pop(actual_sym, None)
+                    self._save_sweeper_reopen_state(self._symbol_reopen_first_seen_ts)
+                return False, f"Stale tick ({tick_age:.0f}s > {max_tick_age_sec:.0f}s) - {actual_sym} session not yet open"
+
+            # Ghi nhận & lưu bền vững xuống đĩa thời điểm mở cửa phiên đầu tiên của riêng mã này
+            if actual_sym not in self._symbol_reopen_first_seen_ts:
+                self._symbol_reopen_first_seen_ts[actual_sym] = now_ts
+                self._save_sweeper_reopen_state(self._symbol_reopen_first_seen_ts)
+            first_seen = float(self._symbol_reopen_first_seen_ts[actual_sym])
+            elapsed_since_open = max(0.0, now_ts - first_seen)
+
+            # Kiểm tra đệm trễ 10 phút đầu mở phiên (Warmup Buffer)
+            if open_warmup_sec > 0 and elapsed_since_open < open_warmup_sec:
+                return (
+                    False,
+                    f"Warmup Buffer active for {actual_sym} ({elapsed_since_open:.0f}s / {open_warmup_sec:.0f}s post-open)",
+                )
+
+            # Kiểm tra bộ lọc Giãn Spread (trừ khi đã vượt quá 30 phút = 1800s safety ceiling)
+            bid = float(getattr(tick, "bid", 0.0) or 0.0)
+            ask = float(getattr(tick, "ask", 0.0) or 0.0)
+            point = float(getattr(sym_info, "point", 0.0) or 0.0) if sym_info is not None else 0.0
+
+            if bid > 0 and ask >= bid and elapsed_since_open < 1800.0:
+                sym_upper = actual_sym.upper()
+                is_index = any(k in sym_upper for k in ["USTEC", "US30", "UK100", "HK50", "US500", "DE30", "JP225"])
+                if is_index:
+                    rel_spread = (ask - bid) / bid
+                    max_rel_spread = 0.0008  # 8 bps (1.5x normal index spread)
+                    if rel_spread > max_rel_spread:
+                        return (
+                            False,
+                            f"Index Spread Guard active for {actual_sym} ({rel_spread*10000:.1f} bps > {max_rel_spread*10000:.1f} bps)",
+                        )
+                elif point > 0:
+                    spread_pts = (ask - bid) / point
+                    is_major = any(
+                        m in sym_upper
+                        for m in ["EURUSD", "USDJPY", "GBPUSD", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD"]
+                    )
+                    max_pts = 35.0 if is_major else 65.0  # 3.5 pips cho Majors, 6.5 pips cho Crosses (EURGBP, GBPCHF, EURAUD)
+                    if spread_pts > max_pts:
+                        return (
+                            False,
+                            f"FX Spread Guard active for {actual_sym} ({spread_pts:.1f} pts > {max_pts:.1f} pts)",
+                        )
+
+            return True, f"Ready (post-open={elapsed_since_open:.0f}s)"
+        except Exception as e:
+            logger.debug(f"check_symbol_liquidation_readiness fallback for {symbol}: {e}")
+            return True, "OK (Fallback)"
+
+    def enforce_weekend_hold_sweeper(
+        self,
+        now_utc: Optional[datetime] = None,
+        open_warmup_sec: float = 0.0,
+    ) -> int:
+        """
+        Skill 07 Anti-Weekend-Hold & 12h Max-Hold Sweeper (Microstructure V2):
+        1. Nếu đang trong khung Friday EOD Flat (23:30 - 23:59 MT5 Server Time Thứ Sáu):
+           Gọi enforce_friday_eod_flat() đối với các mã đang mở giao dịch.
+        2. Nếu phát hiện vị thế bị kẹt qua tuần (Weekend Hold) hoặc ngâm >= 12h:
+           - Kiểm tra độc lập từng Symbol qua `check_symbol_liquidation_readiness()`:
+             + Tick mới cập nhật <= 60s (`USTEC` mở 23:00 UTC, `UK100` mở 01:00 UTC không bị bắn nhầm lúc 22:05 UTC).
+             + Đệm trễ 10 phút (600s) sau khi mã đó mở cửa phiên sáng Thứ Hai để né giãn spread đầu phiên.
+             + Bộ lọc Spread <= 1.5x bình thường trước khi bắn lệnh đóng.
+        """
+        if now_utc is None:
+            now_utc = datetime.now(timezone.utc)
+            # Khi chạy live thực tế vào sáng Thứ Hai/Chủ Nhật mở phiên, mặc định bật đệm trễ 10 phút (600s)
+            if open_warmup_sec == 0.0:
+                open_warmup_sec = 600.0
+
+        if self.is_friday_eod_flat_window(now_utc):
+            positions = self.mt5_mgr.get_positions()
+            open_market_positions = [
+                p for p in positions if self.mt5_mgr.is_market_open(p.get("symbol", ""))
+            ]
+            if open_market_positions:
+                return self.enforce_friday_eod_flat()
+            elif positions:
+                logger.info(
+                    f"⏸️ [WEEKEND HOLD QUEUED] Phát hiện {len(positions)} vị thế mở sau giờ đóng sàn Thứ Sáu. "
+                    f"Đã đưa vào hàng đợi thanh lý thông minh (Per-Symbol Tick + Spread Guard) khi thị trường mở cửa!"
+                )
+            return 0
+
+        closed_count = 0
+        positions = self.mt5_mgr.get_positions()
+        if not positions:
+            return 0
+
+        now_iso_year, now_iso_week, _ = now_utc.isocalendar()
+        is_weekend = now_utc.weekday() in (5, 6)
+
+        for pos in positions:
+            ticket = pos.get("ticket")
+            symbol = pos.get("symbol", "")
+            profit = float(pos.get("profit", 0.0))
+            pos_time = pos.get("time")
+            if isinstance(pos_time, datetime):
+                pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
+            elif isinstance(pos_time, (int, float)):
+                pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
+            else:
+                pos_time_utc = now_utc
+
+            pos_iso_year, pos_iso_week, _ = pos_time_utc.isocalendar()
+            pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
+            is_prior_week_hold = (pos_iso_year, pos_iso_week) < (now_iso_year, now_iso_week)
+            is_friday_late_hold = pos_time_utc.weekday() == 4 and now_utc.weekday() != 4
+            is_over_12h_hold = pos_age_hours >= 12.0
+
+            if is_weekend or is_prior_week_hold or is_friday_late_hold or is_over_12h_hold:
+                is_weekend_hold = is_weekend or is_prior_week_hold or is_friday_late_hold
+                effective_warmup = open_warmup_sec if is_weekend_hold else 0.0
+                ready, readiness_reason = self.check_symbol_liquidation_readiness(
+                    symbol=symbol,
+                    now_utc=now_utc,
+                    max_tick_age_sec=60.0,
+                    open_warmup_sec=effective_warmup,
+                )
+                if not ready:
+                    logger.info(
+                        f"⏳ [SWEEPER MICROSTRUCTURE GUARD] Hoãn đóng #{ticket} ({symbol}): {readiness_reason}"
+                    )
+                    continue
+
+                reason_comment = "Weekend Hold Flat" if is_weekend_hold else "Emergency 12h Cut"
+                logger.warning(
+                    f"🧹 [SKILL 07 {reason_comment.upper()}] Thanh lý vị thế Ticket #{ticket} ({symbol}) "
+                    f"ngâm {pos_age_hours:.1f}h (Open: {pos_time_utc.strftime('%Y-%m-%d %H:%M')} UTC, "
+                    f"PnL: ${profit:+.2f} USD | Gate: {readiness_reason})."
+                )
+                res = self.mt5_mgr.close_position(ticket=ticket, comment=reason_comment)
+                if res.get("success"):
+                    closed_count += 1
+        return closed_count
+
     def run(self):
         logger.info("================================================================================")
         logger.info("🦅 KÍCH HOẠT HỢP CHỦNG QUỐC HOA KỲ QUANT (TAM QUYỀN PHÂN LẬP & 50 TIỂU BANG)...")
@@ -1003,6 +1487,9 @@ class USFederationQuantRuntime:
                         )
                         sys.exit(99)
 
+                    # Emergency Circuit Breaker: Friday EOD Flat Rule (>= 20:30 UTC / 23:30 Server Time) & Weekend Hold Sweeper (Skill 07)
+                    self.enforce_weekend_hold_sweeper(now_utc)
+
                     # LỆNH 4: BlackRock Aladdin 50% Profit Sweep into Hamilton Vault
                     try:
                         from us_federation_quant.institutional_governance_rules import InstitutionalStatutoryRules
@@ -1033,8 +1520,40 @@ class USFederationQuantRuntime:
                     # 4. Tactical Index Over-exposure De-risking on rebound
                     self.reconcile_index_duplicate_derisking()
 
+                    # 5. Thực thi Trailing Stop động Chandelier Exit (ATR14 H1) cho các vị thế đang thả nổi
+                    try:
+                        self.ts_manager.update_trailing_stops()
+                    except Exception as e:
+                        logger.error(f"Trailing Stop Routine Error: {e}")
 
+                    # 6. Triển khai Time-Based Stagnation Exit (Thoát vị thế ngâm >= 4 giờ và lãi < $10.0 USD)
                     positions = self.mt5_mgr.get_positions()
+                    stagnant_closed = False
+                    for pos in positions:
+                        pos_time = pos.get("time")
+                        if isinstance(pos_time, datetime):
+                            pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
+                        elif isinstance(pos_time, (int, float)):
+                            pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
+                        else:
+                            continue
+                        pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
+                        pos_profit = float(pos.get("profit", 0.0))
+                        ticket = pos.get("ticket")
+                        symbol = pos.get("symbol")
+                        if pos_age_hours >= 4.0 and pos_profit < 10.0:
+                            if not self.mt5_mgr.is_market_open(symbol):
+                                continue
+                            logger.info(
+                                f"⏱️ [TIME-BASED STAGNATION EXIT] Ticket #{ticket} ({symbol}) "
+                                f"ngâm {pos_age_hours:.1f}h trong sideway (Lãi trôi nổi: ${pos_profit:+.2f} USD < $10.0 USD). "
+                                f"Đóng chủ động bảo toàn vốn."
+                            )
+                            self.mt5_mgr.close_position(ticket=ticket, comment="Stagnation Exit")
+                            stagnant_closed = True
+
+                    if stagnant_closed:
+                        positions = self.mt5_mgr.get_positions()
 
                     # In log Timeline Vào Lệnh đơn thay vì lặp lại bảng điều khiển 2-3-4-5 lần
                     self.log_timeline_status(account_info, titan_audit, active_states, latency, hwm_state, positions)

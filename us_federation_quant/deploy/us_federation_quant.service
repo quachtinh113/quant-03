@@ -1,0 +1,30 @@
+[Unit]
+Description=US Federation Quant Institutional Trading Daemon
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=quant
+Group=quant
+WorkingDirectory=/home/quant/Quant_03/us_federation_quant
+EnvironmentFile=/home/quant/Quant_03/us_federation_quant/.env
+ExecStart=/home/quant/Quant_03/venv/bin/python3 live_federation_runner.py
+
+# Auto-Revival & Resilience
+Restart=always
+RestartSec=10s
+RestartPreventExitStatus=99
+
+# Performance & Process Limits
+LimitNOFILE=65536
+KillMode=process
+TimeoutStopSec=30s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=us_federation_quant
+
+[Install]
+WantedBy=multi-user.target

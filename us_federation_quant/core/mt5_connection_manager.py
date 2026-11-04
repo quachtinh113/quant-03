@@ -341,9 +341,20 @@ class MT5ConnectionManager:
             if not tick or tick.time == 0:
                 return False
 
-            now_ts = datetime.now(timezone.utc).timestamp()
-            tick_age = now_ts - tick.time
-            if tick_age > max_tick_age_seconds:
+            now_dt = datetime.now(timezone.utc)
+            now_ts = now_dt.timestamp()
+            tick_age = now_ts - float(tick.time)
+            # Điểm mù múi giờ: Nếu tick.time có cộng sẵn offset của MT5 Server (UTC+2/UTC+3),
+            # now_ts - tick.time sẽ bị âm (-7200s đến -10800s). Quy chiếu về cùng hệ MT5 Server Time:
+            if tick_age < -60.0:
+                year = now_dt.year
+                mar_1 = datetime(year, 3, 1, tzinfo=timezone.utc)
+                dst_start = datetime(year, 3, 1 + (6 - mar_1.weekday()) % 7 + 7, 7, 0, 0, tzinfo=timezone.utc)
+                nov_1 = datetime(year, 11, 1, tzinfo=timezone.utc)
+                dst_end = datetime(year, 11, 1 + (6 - nov_1.weekday()) % 7, 6, 0, 0, tzinfo=timezone.utc)
+                srv_offset_sec = 3 * 3600.0 if (dst_start <= now_dt < dst_end) else 2 * 3600.0
+                tick_age = (now_ts + srv_offset_sec) - float(tick.time)
+            if tick_age > max_tick_age_seconds or tick_age < -60.0:
                 return False
 
             return True
