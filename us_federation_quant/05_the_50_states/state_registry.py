@@ -37,23 +37,24 @@ class StatePod:
         return True
 
 
-# The 19 Elite Sovereign States passed by Supreme Court 36-Month Institutional Audit
+# The 18 Elite Sovereign States passed by Supreme Court 36-Month Institutional Audit
+# (STATE_17 HK50 eliminated due to 26% WR, session 10044 closed errors, and pure noise PnL)
 ELITE_STATE_IDS = [
     "STATE_21", "STATE_24", "STATE_31", "STATE_25", "STATE_26",
     "STATE_34", "STATE_32", "STATE_33", "STATE_03", "STATE_35",
     "STATE_23", "STATE_29", "STATE_27", "STATE_30", "STATE_28",
-    "STATE_22", "STATE_17", "STATE_12", "STATE_16"
+    "STATE_22", "STATE_12", "STATE_16"
 ]
 
-# The 31 High-Drawdown / Sub-optimal States Eliminated by Quantitative Audit
+# The 32 High-Drawdown / Sub-optimal States Eliminated by Quantitative Audit
 ELIMINATED_STATE_IDS = [
     "STATE_01", "STATE_02", "STATE_04", "STATE_05", "STATE_06",
     "STATE_07", "STATE_08", "STATE_09", "STATE_10", "STATE_11",
-    "STATE_13", "STATE_14", "STATE_15", "STATE_18", "STATE_19",
-    "STATE_20", "STATE_36", "STATE_37", "STATE_38", "STATE_39",
-    "STATE_40", "STATE_41", "STATE_42", "STATE_43", "STATE_44",
-    "STATE_45", "STATE_46", "STATE_47", "STATE_48", "STATE_49",
-    "STATE_50"
+    "STATE_13", "STATE_14", "STATE_15", "STATE_17", "STATE_18",
+    "STATE_19", "STATE_20", "STATE_36", "STATE_37", "STATE_38",
+    "STATE_39", "STATE_40", "STATE_41", "STATE_42", "STATE_43",
+    "STATE_44", "STATE_45", "STATE_46", "STATE_47", "STATE_48",
+    "STATE_49", "STATE_50"
 ]
 
 

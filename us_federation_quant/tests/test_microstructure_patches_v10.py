@@ -386,3 +386,119 @@ def test_p0_sweeper_default_warmup_applies_with_explicit_now():
     from us_federation_quant.live_federation_runner import USFederationQuantRuntime as R
     sig = inspect.signature(R.enforce_weekend_hold_sweeper)
     assert sig.parameters["open_warmup_sec"].default == 600.0
+
+def test_gbpchf_uk100_risk_cap_15usd():
+    """Verify that GBPCHF and UK100 lots are capped at max_risk_usd=15.0 instead of 35.0."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+
+    mock_info = MagicMock()
+    mock_info.trade_tick_value = 1.0
+    mock_info.trade_tick_size = 0.0001
+    mock_info.point = 0.0001
+    mock_info.volume_min = 0.01
+    mock_info.volume_max = 100.0
+    mock_info.volume_step = 0.01
+
+    with patch("MetaTrader5.symbol_info", return_value=mock_info):
+        # sl_points = 200. Normal pair (EURUSD) with max_risk 35: raw = 35 / (200*1) = 0.175 -> 0.18L
+        lot_eur = runtime.calculate_risk_adjusted_lot("EURUSD", sl_points=200.0, max_risk_usd=35.0)
+        assert lot_eur == 0.18
+
+        # GBPCHF: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.08L
+        lot_gbp = runtime.calculate_risk_adjusted_lot("GBPCHF", sl_points=200.0, max_risk_usd=35.0)
+        assert lot_gbp == 0.08
+
+        # UK100: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.08L
+        lot_uk = runtime.calculate_risk_adjusted_lot("UK100", sl_points=200.0, max_risk_usd=35.0)
+        assert lot_uk == 0.08
+
+
+def test_enforce_gbpchf_uk100_hard_stop_cap():
+    """Verify enforce_gbpchf_uk100_hard_stop_cap triggers emergency close at -$15.00 loss."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+    runtime.mt5_mgr = MagicMock()
+    runtime.mt5_mgr.close_position.return_value = {"success": True}
+
+    mock_positions = [
+        {"ticket": 5001, "symbol": "GBPCHFm", "type": "BUY", "volume": 0.14, "profit": -16.50, "swap": 0.0, "commission": 0.0},
+        {"ticket": 5002, "symbol": "UK100m", "type": "SELL", "volume": 0.60, "profit": -15.10, "swap": 0.0, "commission": 0.0},
+        {"ticket": 5003, "symbol": "GBPCHFm", "type": "BUY", "volume": 0.14, "profit": -8.00, "swap": 0.0, "commission": 0.0},
+        {"ticket": 5004, "symbol": "EURUSDm", "type": "BUY", "volume": 0.12, "profit": -20.00, "swap": 0.0, "commission": 0.0},
+    ]
+    runtime.mt5_mgr.get_positions.return_value = mock_positions
+
+    closed = runtime.enforce_gbpchf_uk100_hard_stop_cap(max_loss_usd=15.0)
+    assert len(closed) == 2
+    runtime.mt5_mgr.close_position.assert_any_call(ticket=5001, comment="HardCap 15")
+    runtime.mt5_mgr.close_position.assert_any_call(ticket=5002, comment="HardCap 15")
+
+def test_hk50_elimination_and_session_gate():
+    """Verify HK50 (STATE_17) is eliminated and session gate properly identifies market breaks."""
+    import importlib
+    reg_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+    ELITE_STATE_IDS = reg_mod.ELITE_STATE_IDS
+    ELIMINATED_STATE_IDS = reg_mod.ELIMINATED_STATE_IDS
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+
+    # 1. State Pod Registry: STATE_17 must NOT be in elite states and MUST be in eliminated states
+    assert "STATE_17" not in ELITE_STATE_IDS
+    assert "STATE_17" in ELIMINATED_STATE_IDS
+
+    # 2. Session Gate Tests
+    # Lunch break: 04:30 UTC (Wednesday) -> Market closed (retcode=10044 prevented)
+    wed_lunch = datetime(2026, 11, 4, 4, 30, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_lunch) is False
+
+    # Morning session: 02:00 UTC -> Open
+    wed_morning = datetime(2026, 11, 4, 2, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_morning) is True
+
+    # Afternoon session: 06:00 UTC -> Open
+    wed_afternoon = datetime(2026, 11, 4, 6, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_afternoon) is True
+
+    # After-hours session: 14:00 UTC -> Open
+    wed_night = datetime(2026, 11, 4, 14, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_night) is True
+
+    # Weekend: Saturday noon -> Closed
+    sat_noon = datetime(2026, 11, 7, 12, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(sat_noon) is False
+
+
+def test_staged_friday_eod_flat_and_entry_lock():
+    """Verify Staged Friday EOD Flat and Friday Entry Lock strictly prevents weekend hold."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+
+    # 1. Friday 20:16 UTC in Winter (Nov 6, 2026): Server is UTC+2 (22:16 Server Time)
+    fri_2016 = datetime(2026, 11, 6, 20, 16, 0, tzinfo=timezone.utc)
+    # Indices must be in early flat window (starting 20:15 UTC before index market close)
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="UK100m") is True
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="USTECm") is True
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="US30m") is True
+    # Forex is NOT yet in flat window (in winter, waits until 21:30 UTC = 23:30 Server Time)
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="EURUSDm") is False
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="GBPCHFm") is False
+
+    # 2. Friday 21:35 UTC in Winter (23:35 Server Time): Both Indices and Forex in flat window
+    fri_2135 = datetime(2026, 11, 6, 21, 35, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(fri_2135, symbol="UK100m") is True
+    assert runtime.is_friday_eod_flat_window(fri_2135, symbol="EURUSDm") is True
+
+    # 3. Friday 20:35 UTC in Summer (Oct 30, 2026, Server is UTC+3 -> 23:35 Server Time): Forex in flat window
+    fri_summer_2035 = datetime(2026, 10, 30, 20, 35, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(fri_summer_2035, symbol="EURUSDm") is True
+
+    # 4. Friday 17:30 UTC (Before entry lock): Normal trading
+    fri_1730 = datetime(2026, 11, 6, 17, 30, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(fri_1730, symbol="UK100m") is False
+    assert runtime.is_friday_eod_flat_window(fri_1730, symbol="EURUSDm") is False
+
+    # 5. Weekend (Saturday / Sunday): Curfew is active, but is_friday_eod_flat_window is False (Sweeper handles weekend-held orders with warmup)
+    sat_1000 = datetime(2026, 11, 7, 10, 0, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(sat_1000, symbol="UK100m") is False
+    assert runtime.is_friday_eod_flat_window(sat_1000, symbol="EURUSDm") is False
+    assert runtime.is_friday_or_weekend_curfew(sat_1000) is True

@@ -28,19 +28,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-WORKSPACE_ROOT = Path("c:/Word_Quant/05_Quant")
-ALL_BOT_DIR = WORKSPACE_ROOT / "05_ALL_Bot"
-REPORT_ARCHIVE_DIR = ALL_BOT_DIR / "logs" / "daily_audit_reports"
+SCRIPT_DIR = Path(__file__).resolve().parent
+SKILL_ROOT = SCRIPT_DIR.parents[1]
+QUANT_ROOT = Path(r"C:\Quant_03\us_federation_quant")
+WORKSPACE_ROOT = QUANT_ROOT if QUANT_ROOT.exists() else SCRIPT_DIR.parents[3]
+ALL_BOT_DIR = WORKSPACE_ROOT.parent / "05_ALL_Bot"
+REPORT_ARCHIVE_DIR = WORKSPACE_ROOT / "logs" / "daily_audit_reports"
 UNIVERSAL_AUDIT_SCRIPT = (
-    WORKSPACE_ROOT
-    / ".agents"
-    / "skills"
+    SKILL_ROOT
     / "institutional-quant-audit"
     / "scripts"
     / "audit_any_bot.py"
 )
 
 CANDIDATE_BOT_ENTRYPOINTS: List[Tuple[str, Path]] = [
+    ("us_federation_quant", QUANT_ROOT / "live_federation_runner.py"),
     ("All_Fleet_Bot", ALL_BOT_DIR / "All_Fleet_Bot" / "run_unified_bot.py"),
     ("Work_Quant", ALL_BOT_DIR / "Work_Quant" / "pipeline_live.py"),
     ("WuWei Core", ALL_BOT_DIR / "WuWei Core" / "live_trade.py"),
@@ -61,7 +63,7 @@ def discover_latest_bot_entrypoint(target_bot_dir: Optional[Path] = None) -> Tup
     """Find the most recently updated bot runner script in `--bot-dir` or across `05_ALL_Bot`."""
     if target_bot_dir and target_bot_dir.exists():
         target_bot_dir = target_bot_dir.resolve()
-        for pat in ("run_unified_bot.py", "pipeline_live.py", "live_trade.py", "*orchestrator*.py", "main.py", "run*.py"):
+        for pat in ("live_federation_runner.py", "run_unified_bot.py", "pipeline_live.py", "live_trade.py", "*orchestrator*.py", "main.py", "run*.py"):
             matches = sorted(target_bot_dir.glob(pat), key=lambda p: p.stat().st_mtime, reverse=True)
             if matches:
                 return target_bot_dir.name, matches[0].resolve()
@@ -74,6 +76,30 @@ def discover_latest_bot_entrypoint(target_bot_dir: Optional[Path] = None) -> Tup
         raise FileNotFoundError("No bot entrypoint script found in 05_ALL_Bot.")
     existing.sort(key=lambda x: x[2], reverse=True)
     return existing[0][0], existing[0][1]
+
+
+
+def terminate_stale_bot_processes(target_script_name: str) -> List[int]:
+    """Terminates existing bot processes running target_script_name to prevent duplicate zombie processes."""
+    import psutil
+    terminated_pids = []
+    current_pid = os.getpid()
+    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        try:
+            if proc.pid == current_pid:
+                continue
+            cmdline = proc.info.get("cmdline") or []
+            cmd_str = " ".join(cmdline)
+            if target_script_name in cmd_str and ("python" in proc.name().lower() or "python" in cmd_str.lower()):
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3.0)
+                except psutil.TimeoutExpired:
+                    proc.kill()
+                terminated_pids.append(proc.pid)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return terminated_pids
 
 
 def check_and_launch_latest_bot_process(
@@ -89,7 +115,10 @@ def check_and_launch_latest_bot_process(
     nrg = audit_payload.get("counterfactual_no_regression_gate", {})
 
     tiers = audit_payload.get("1_status_tiers", [])
-    is_halted = any("TIER_3_HALTED" in str(t.get("detail", "")) for t in tiers)
+    is_halted = any(
+        t.get("tier", "").startswith("🔴") and ("TIER_3_HALTED" in str(t.get("rule", "")) or "TIER_3_HALTED" in str(t.get("detail", "")))
+        for t in tiers
+    )
     if is_halted:
         return {
             "relaunch_status": "BLOCKED_BY_TIER_3_HALT",
@@ -115,6 +144,11 @@ def check_and_launch_latest_bot_process(
             "no_regression_gate": nrg.get("verdict", "PASS"),
             "potential_daily_pnl_usd": rec.get("clean_no_bad_loss_avg_daily_pnl_usd", 0.0),
         }
+
+    # Automatically terminate any stale running bot process before launching new PID
+    stale_pids = terminate_stale_bot_processes(entrypoint_path.name)
+    if stale_pids:
+        print(f"🔄 [PROCESS CLEANUP] Đã đóng các tiến trình cũ tồn dư: {stale_pids}")
 
     creation_flags = 0
     if os.name == "nt":
