@@ -40,3 +40,16 @@ Khôi phục khi cần: `git show HEAD:us_federation_quant/<đường-dẫn-cũ>
 
 Mỗi khối trong file tầng có tiêu đề `# ==== <đường-dẫn-cũ> ====` để truy nguyên nguồn gốc. Các tên `logger__<module>` và
 `<Tên>__pod` là kết quả của việc đổi tên khi trùng tên cấp module lúc gộp.
+
+## Nợ kỹ thuật cần mở ADR (sau khi chia xong 6 tầng)
+Các mục dưới đây là hành vi được GIỮ NGUYÊN trong lúc tái cấu trúc; mỗi mục cần chủ hệ thống quyết định riêng (đổi hành vi giao dịch).
+
+1. **`manual_emergency_shutdown` / `update_equity` chạm ngưỡng -12% không đóng lệnh.** Tên là "emergency liquidation" nhưng mã chỉ
+   chạy soft de-risking: dời SL về entry±15 point cho lệnh đang LÃI, giữ nguyên lệnh LỖ, đóng băng tín hiệu mới 24 giờ.
+   (golden: `tests/test_golden_emergency_derisking.py`.)
+2. **Trần lỗ cứng chồng chéo:** `forex_portfolio` ($15) không loại NAS100/DJ30/SP500 nên đè lên trần chỉ số ($60); GBPCHF/UK100
+   bị hai trần $15 phủ lên nhau; `.replace("M","")` xóa mọi chữ M trong tên mã. (golden: `tests/test_golden_l5_hard_caps.py`.)
+3. **Two-tier exit:** vị thế 0.01L vừa dời SL về hòa vốn vừa rơi xuống khóa lãi $15 trong cùng một lượt; đóng partial thất bại vẫn
+   rơi xuống khóa lãi và không ghi state. (golden: `tests/test_golden_l4_exits.py`.)
+4. **Chưa có chốt SL/TP bắt buộc ở L5** (`submit_order_intent`); `fleet_guard` được khởi tạo nhưng không ai gọi.
+5. **`scan_and_route_state_proposals` (~480 dòng) chưa có golden**; test hiện có của nó fail từ baseline.

@@ -119,12 +119,12 @@ FederationHub = _hub_mod.FederationHub
 _titan_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 QuadTitanEngine = _titan_mod.QuadTitanEngine
 
-from us_federation_quant.contracts import RiskCheck  # noqa: E402
+from us_federation_quant.contracts import CloseDirective, OrderIntent, RiskCheck  # noqa: E402
 from us_federation_quant.layers import l1_data as _l1  # noqa: E402
 from us_federation_quant.layers.l1_data import market_view as _market_view  # noqa: E402
 from us_federation_quant.layers import l4_risk as _l4_time  # noqa: E402
 from us_federation_quant.layers.l4_risk import evaluate_risk  # noqa: E402
-from us_federation_quant.layers.l5_execution import ExecutionOutcome, execute_directives  # noqa: E402
+from us_federation_quant.layers.l5_execution import ExecutionOutcome, execute_directives, submit_order_intent  # noqa: E402
 
 _states_reg_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 ELITE_STATE_IDS = getattr(_states_reg_mod, "ELITE_STATE_IDS", [])
@@ -892,63 +892,24 @@ class USFederationQuantRuntime:
                         )
                         continue
 
-                    # 3. NautilusTrader Order State Machine Tracking
-                    client_order_id = generate_client_order_id(pod.state_id, proposal.action)
-                    order_state = self.mt5_mgr.state_machine.create_order(
-                        client_order_id=client_order_id,
-                        symbol=actual_symbol,
-                        order_type="MARKET",
-                        direction=proposal.action,
-                        volume=cleared_lots,
-                        sl=target_sl,
-                        tp=target_tp,
-                        magic=magic_num,
-                        warrant_id=warrant.warrant_id,
-                    )
-                    order_state.transition_to(OrderState.SUBMITTED, reason="Submitted to MT5 bridge")
-
-                    logger.info(
-                        f"🚀 [PROPOSAL APPROVED] {pod.state_id} ({pod.state_name}): {proposal.action} {cleared_lots}L "
-                        f"on {actual_symbol} | SL: {target_sl} | TP: {target_tp} | Forecast: {proposal.carver_forecast:+.2f} | IDM: {idm:.2f} | Policy: {policy} | Warrant: {warrant.warrant_id}"
-                    )
-
-                    exec_res = self.mt5_mgr.open_market_order(
-                        symbol=actual_symbol,
-                        direction=proposal.action,
-                        volume=cleared_lots,
-                        sl=target_sl,
-                        tp=target_tp,
-                        magic=magic_num,
-                        comment=f"{pod.state_id}:{client_order_id[:16]}"[:31],
-                    )
-
-                    if exec_res.get("success"):
-                        ticket = exec_res.get("ticket")
-                        fill_price = exec_res.get("price", current_price)
-                        order_state.transition_to(
-                            OrderState.FILLED,
-                            fill_volume=cleared_lots,
-                            fill_price=fill_price,
-                            broker_order_id=ticket,
-                        )
-                        executed_trades.append(exec_res)
-                        logger.info(
-                            f"✅ [EXECUTION SUCCESS] {pod.state_id} #{ticket} {proposal.action} {cleared_lots}L @ {fill_price}"
-                        )
-                    else:
-                        err = exec_res.get("error", "Execution failed")
-                        retcode = exec_res.get("retcode", -1)
-                        order_state.transition_to(OrderState.REJECTED, reason=str(err))
-                        warrant.revoke(reason=f"Broker execution failed: {err}")
-                        if retcode == 10018:
-                            logger.info(f"ℹ️ [MARKET_CLOSED] {pod.state_id} ({actual_symbol}): Thị trường đóng cửa / nghỉ lễ (10018) -> Tạm bỏ qua an toàn.")
-                        else:
-                            logger.warning(f"❌ [EXECUTION FAILED] {pod.state_id} order failed: {err} -> Warrant revoked.")
+                    self._submit_proposal_order(pod, proposal, actual_symbol, cleared_lots, target_sl, target_tp,
+                                                magic_num, warrant, idm, policy, current_price, executed_trades)
 
             except Exception as e:
                 logger.warning(f"⚠️ Error processing proposal for {pod.state_id}: {e}")
 
         return executed_trades
+
+    def _submit_proposal_order(self, pod, proposal, actual_symbol, cleared_lots, target_sl, target_tp,
+                               magic_num, warrant, idm, policy, current_price, executed_trades) -> None:
+        """Đuôi đường vào lệnh: dựng OrderIntent và giao cho L5 (layers/l5_execution.submit_order_intent)."""
+        intent = OrderIntent(
+            state_id=pod.state_id, state_name=pod.state_name, action=proposal.action, symbol=actual_symbol,
+            volume=cleared_lots, sl=target_sl, tp=target_tp, magic=magic_num, current_price=current_price,
+            forecast=proposal.carver_forecast, idm=idm, policy=policy, warrant=warrant)
+        exec_res = submit_order_intent(self, intent)
+        if exec_res is not None:
+            executed_trades.append(exec_res)
 
     def _load_two_tier_state(self) -> Dict[str, Any]:
         """Loads persistent Two-Tier Exit Engine state."""
@@ -1446,6 +1407,19 @@ class USFederationQuantRuntime:
             return self.enforce_friday_eod_flat(now_utc)
         return len(execute_directives(self, res.directives).get("closed"))
 
+    def enforce_stagnation_exit(self, positions, now_utc) -> bool:
+        """Selective Stagnation Exit: cắt lệnh ngâm >= 8h đang âm nhẹ (-$6..$0); miễn nhiễm lệnh có lãi hoặc đã khóa lãi.
+        Trả về True nếu đã gửi ít nhất một lệnh đóng (caller làm mới danh sách vị thế).
+        (L4: quyết định ở layers/l4_risk; thực thi ở layers/l5_execution.)"""
+        active_tickets = {p["ticket"] for p in positions}
+        self._profit_ladder_locked_tickets = getattr(self, "_profit_ladder_locked_tickets", set()).intersection(active_tickets)
+        self._tier2_locked_tickets = self._tier2_locked_tickets.intersection(active_tickets)
+        res = evaluate_risk(
+            RiskCheck.STAGNATION_EXIT, positions=positions, market=_market_view(self), now_utc=now_utc,
+            state={"ladder_locked": self._profit_ladder_locked_tickets, "tier2_locked": self._tier2_locked_tickets})
+        execute_directives(self, res.directives)
+        return any(isinstance(d, CloseDirective) for d in res.directives)
+
     def run(self):
         logger.info("================================================================================")
         logger.info("🦅 KÍCH HOẠT HỢP CHỦNG QUỐC HOA KỲ QUANT (TAM QUYỀN PHÂN LẬP & 50 TIỂU BANG)...")
@@ -1543,42 +1517,7 @@ class USFederationQuantRuntime:
 
                 # 7. TASK 2: Smart Selective Stagnation Exit (8.0h Window & Absolute Profit Immunity)
                 positions = self.mt5_mgr.get_positions()
-                active_tickets = {p["ticket"] for p in positions}
-                self._profit_ladder_locked_tickets = getattr(self, "_profit_ladder_locked_tickets", set()).intersection(active_tickets)
-                self._tier2_locked_tickets = self._tier2_locked_tickets.intersection(active_tickets)
-                stagnant_closed = False
-                for pos in positions:
-                    pos_time = pos.get("time")
-                    if isinstance(pos_time, datetime):
-                        pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
-                    elif isinstance(pos_time, (int, float)):
-                        pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
-                    else:
-                        continue
-                    pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
-                    pos_profit = float(pos.get("profit", 0.0)) + float(pos.get("swap", 0.0))
-                    ticket = pos.get("ticket")
-                    symbol = pos.get("symbol")
-
-                    # QUY TẮC BẤT KHẢ XÂM PHẠM 1: PROFIT IMMUNITY
-                    # Tuyệt đối không bao giờ dùng Stagnation Exit cắt lệnh đang có lãi dương (> $0.00)
-                    # hoặc đã kích hoạt từ Tầng 1 của Bậc thang Khóa Lãi trở lên
-                    if pos_profit > 0.0 or ticket in self._profit_ladder_locked_tickets or ticket in self._tier2_locked_tickets:
-                        continue
-
-                    # QUY TẮC SELECTIVE DECAY CUT: Chỉ cắt khi ngâm >= 8.0h và đang âm nhẹ trong vùng -$6.00 <= PnL <= $0.00
-                    if pos_age_hours >= 8.0 and (-6.0 <= pos_profit <= 0.0):
-                        if not self.mt5_mgr.is_market_open(symbol):
-                            continue
-                        logger.info(
-                            f"⏱️ [SELECTIVE STAGNATION CUT] Ticket #{ticket} ({symbol}) "
-                            f"ngâm {pos_age_hours:.1f}h trong sideway tắt thanh khoản (PnL: ${pos_profit:+.2f} USD). "
-                            f"Đóng giải phóng ký quỹ sau 8 tiếng."
-                        )
-                        self.mt5_mgr.close_position(ticket=ticket, comment="Stagnation 8h Cut")
-                        stagnant_closed = True
-
-                if stagnant_closed:
+                if self.enforce_stagnation_exit(positions, now_utc):
                     positions = self.mt5_mgr.get_positions()
 
                 # =========================================================================
@@ -1599,6 +1538,7 @@ class USFederationQuantRuntime:
                         self.hub.central_risk_desk.kill_switch.manual_emergency_shutdown(
                             reason=f"Drawdown ladder exceeded -12.0% federal boundary (Drawdown: {drawdown * 100:.2f}%)",
                             broker_connector=self.mt5_mgr,
+                            executor=lambda dirs: execute_directives(self, dirs).captured,
                         )
                         self.telemetry.broadcast_critical_alert(
                             subject="NUCLEAR FOOTBALL ACTIVATED",

@@ -809,6 +809,104 @@ _HARD_CAPS = {
 }
 
 
+def _stagnation_one(pos: dict, market: MarketView, now_utc: datetime, ladder_locked, tier2_locked) -> List[Directive]:
+    pos_time = pos.get("time")
+    if isinstance(pos_time, datetime):
+        pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
+    elif isinstance(pos_time, (int, float)):
+        pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
+    else:
+        return []
+    pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
+    pos_profit = float(pos.get("profit", 0.0)) + float(pos.get("swap", 0.0))
+    ticket = pos.get("ticket")
+    symbol = pos.get("symbol")
+
+    # PROFIT IMMUNITY: không bao giờ cắt lệnh đang có lãi (> $0) hoặc đã khóa lãi từ Tầng 1 ladder trở lên
+    if pos_profit > 0.0 or ticket in ladder_locked or ticket in tier2_locked:
+        return []
+
+    # SELECTIVE DECAY CUT: ngâm >= 8.0h và PnL trong vùng -$6.00 <= PnL <= $0.00
+    if pos_age_hours >= 8.0 and (-6.0 <= pos_profit <= 0.0):
+        if not market.is_market_open(symbol):
+            return []
+        return [CloseDirective(
+            ticket=ticket, comment="Stagnation 8h Cut",
+            pre_log=LogLine("info",
+                f"⏱️ [SELECTIVE STAGNATION CUT] Ticket #{ticket} ({symbol}) "
+                f"ngâm {pos_age_hours:.1f}h trong sideway tắt thanh khoản (PnL: ${pos_profit:+.2f} USD). "
+                f"Đóng giải phóng ký quỹ sau 8 tiếng."))]
+    return []
+
+
+def evaluate_stagnation_exit(positions: Sequence[dict], market: MarketView, now_utc: datetime,
+                             ladder_locked, tier2_locked) -> RiskEvaluationResult:
+    out: List[Directive] = []
+    for pos in positions:
+        try:
+            out.extend(_stagnation_one(pos, market, now_utc, ladder_locked, tier2_locked))
+        except Exception as exc:
+            out.append(RaiseDirective(error=exc))
+            break
+    return RiskEvaluationResult(directives=tuple(out))
+
+
+def evaluate_soft_derisking(active_positions, spec_lookup, can_modify):
+    """Soft de-risking THUẦN: trả về (plan, directives). spec_lookup(symbol) -> (point, digits).
+    Lệnh lãi -> ModifyDirective(sl=entry±15 point, capture=<chỉ số plan>) + log; lệnh lỗ -> chỉ log. Không đóng lệnh."""
+    plan: List[Dict[str, Any]] = []
+    directives: List[Directive] = []
+    for p in active_positions:
+        ticket = int(p.get("ticket", 0) if isinstance(p, dict) else getattr(p, "ticket", 0))
+        symbol = str(p.get("symbol", "") if isinstance(p, dict) else getattr(p, "symbol", ""))
+        profit = float(p.get("profit", 0.0) if isinstance(p, dict) else getattr(p, "profit", 0.0))
+        raw_type = p.get("type", "") if isinstance(p, dict) else getattr(p, "type", "")
+        price_open = float(p.get("price_open", p.get("open_price", 0.0)) if isinstance(p, dict) else getattr(p, "price_open", 0.0))
+
+        symbol_point, digits = spec_lookup(symbol)
+        is_buy = str(raw_type).upper() in ["BUY", "0"] or raw_type == 0
+
+        if profit > 0:
+            buffer_offset = 15.0 * symbol_point
+            new_sl = round(price_open + buffer_offset if is_buy else price_open - buffer_offset, digits)
+            if can_modify:
+                directives.append(ModifyDirective(ticket=ticket, sl=new_sl, send_tp=False, capture=str(len(plan))))
+            directives.append(LogDirective(pre_log=LogLine("info",
+                f"🛡️ [SOFT DE-RISKING] Profitable Position #{ticket} ({symbol}, PnL: +${profit:.2f} USD): "
+                f"Locked in Break-Even + 15pt buffer. Target SL updated to {new_sl} (Open: {price_open}).")))
+            plan.append({
+                "ticket": ticket,
+                "symbol": symbol,
+                "action": "LOCK_IN_BREAKEVEN_BUFFER",
+                "new_sl": new_sl,
+                "profit": profit,
+                "result": None,
+            })
+        else:
+            directives.append(LogDirective(pre_log=LogLine("info",
+                f"🛡️ [SOFT DE-RISKING] Floating Loss Position #{ticket} ({symbol}, PnL: -${abs(profit):.2f} USD): "
+                f"Retained original protective SL to await technical pullback. Market close avoided.")))
+            plan.append({
+                "ticket": ticket,
+                "symbol": symbol,
+                "action": "RETAIN_ORIGINAL_SL",
+                "profit": profit,
+            })
+    return plan, tuple(directives)
+
+
+def _legacy_inline_execute(directives, broker_connector):
+    """Bộ thực thi nội tuyến KẾ THỪA cho apply_soft_derisking khi caller không truyền executor (L5).
+    Luồng live đi qua L5 (runner truyền executor); hàm này chỉ giữ tương thích cho lời gọi/test trực tiếp."""
+    captured: Dict[str, Any] = {}
+    for d in directives:
+        if isinstance(d, ModifyDirective):
+            captured[d.capture] = broker_connector.modify_position_sltp(ticket=d.ticket, sl=d.sl)
+        elif isinstance(d, LogDirective):
+            getattr(logger, d.pre_log.level)(d.pre_log.message)
+    return captured
+
+
 def evaluate_risk(
     check: RiskCheck,
     *,
@@ -842,6 +940,10 @@ def evaluate_risk(
     if check is RiskCheck.LIQUIDATION_READINESS:
         return evaluate_liquidation_readiness(
             symbol, market, now_utc, params.get("max_tick_age_sec", 60.0), params.get("open_warmup_sec", 600.0))
+    if check is RiskCheck.STAGNATION_EXIT:
+        st = state or {}
+        return evaluate_stagnation_exit(
+            positions, market, now_utc, st.get("ladder_locked", ()), st.get("tier2_locked", ()))
     raise ValueError(f"RiskCheck không được hỗ trợ: {check}")
 
 
@@ -1048,7 +1150,8 @@ class FederalMasterKillSwitch:
     def update_equity(
         self,
         current_equity: float,
-        broker_connector: Optional[Any] = None
+        broker_connector: Optional[Any] = None,
+        executor: Optional[Any] = None,
     ) -> KillSwitchDirective:
         """
         Updates live portfolio equity, calculates drawdown from peak,
@@ -1085,7 +1188,7 @@ class FederalMasterKillSwitch:
             )
             # Trigger emergency broker liquidation if connector provided
             if broker_connector is not None:
-                self._execute_emergency_liquidation(broker_connector)
+                self._execute_emergency_liquidation(broker_connector, executor)
             return directive
 
         # 2. Level 2: Orange Alert
@@ -1132,7 +1235,8 @@ class FederalMasterKillSwitch:
     def manual_emergency_shutdown(
         self,
         reason: str,
-        broker_connector: Optional[Any] = None
+        broker_connector: Optional[Any] = None,
+        executor: Optional[Any] = None,
     ) -> KillSwitchDirective:
         """
         Manual trigger of the Federal Master Kill-Switch by the Chief Risk Officer.
@@ -1149,7 +1253,7 @@ class FederalMasterKillSwitch:
             reason=f"MANUAL CRO OVERRIDE: {reason}"
         )
         if broker_connector is not None:
-            self._execute_emergency_liquidation(broker_connector)
+            self._execute_emergency_liquidation(broker_connector, executor)
         return directive
 
     def unlock_federation(self, unfreeze_token: str) -> bool:
@@ -1193,14 +1297,15 @@ class FederalMasterKillSwitch:
         self,
         active_positions: List[Dict[str, Any]],
         broker_connector: Optional[Any] = None,
+        executor: Optional[Any] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Quant Core V9: Soft De-risking Protocol.
-        Replaces catastrophic 'Fleet Close' market dump with an intelligent capital preservation protocol:
-        1. Triggers system freeze flag for new signals for 24 hours.
-        2. Iterates through active positions WITHOUT market closing them.
-        3. For positions in profit (PnL > 0): Modifies SL to Entry Price ± (15 * symbol_point) to lock in break-even plus buffer.
-        4. For positions in loss (PnL < 0): Does nothing (retains original hard SL to allow technical pullback).
+        Quant Core V9: Soft De-risking Protocol (KHÔNG đóng lệnh).
+        1. Đóng băng tín hiệu mới 24 giờ.
+        2. Lệnh đang lãi (PnL > 0): dời SL về Entry ± (15 * symbol_point).
+        3. Lệnh đang lỗ: giữ nguyên SL gốc.
+        Quyết định do evaluate_soft_derisking (thuần) sinh ra; `executor(directives) -> {capture: kết quả}` (L5) thực thi.
+        Không truyền executor: dùng bộ thực thi nội tuyến kế thừa qua broker_connector (tương thích lời gọi cũ).
         """
         self.freeze_until = time.time() + 86400.0  # 24 hours freeze
         self.is_locked = True
@@ -1209,15 +1314,7 @@ class FederalMasterKillSwitch:
             f"Market dump (Fleet Close) ABORTED. Processing {len(active_positions)} active positions via Soft De-risking..."
         )
 
-        modified_positions = []
-        for p in active_positions:
-            ticket = int(p.get("ticket", 0) if isinstance(p, dict) else getattr(p, "ticket", 0))
-            symbol = str(p.get("symbol", "") if isinstance(p, dict) else getattr(p, "symbol", ""))
-            profit = float(p.get("profit", 0.0) if isinstance(p, dict) else getattr(p, "profit", 0.0))
-            raw_type = p.get("type", "") if isinstance(p, dict) else getattr(p, "type", "")
-            price_open = float(p.get("price_open", p.get("open_price", 0.0)) if isinstance(p, dict) else getattr(p, "price_open", 0.0))
-
-            # Resolve symbol specs
+        def _spec_lookup(symbol: str):
             symbol_point = 0.0001
             digits = 2
             if broker_connector and hasattr(broker_connector, "get_symbol_spec"):
@@ -1233,52 +1330,28 @@ class FederalMasterKillSwitch:
                         digits = getattr(s_info, "digits", 2) or 2
                 except Exception:
                     pass
+            return symbol_point, digits
 
-            is_buy = str(raw_type).upper() in ["BUY", "0"] or raw_type == 0
+        can_modify = bool(broker_connector and hasattr(broker_connector, "modify_position_sltp"))
+        plan, directives = evaluate_soft_derisking(active_positions, _spec_lookup, can_modify)
+        if executor is not None:
+            captured = executor(directives)
+        else:
+            captured = _legacy_inline_execute(directives, broker_connector)
+        for idx, item in enumerate(plan):
+            if "result" in item:
+                item["result"] = captured.get(str(idx))
+        return plan
 
-            if profit > 0:
-                # Modifies Stop Loss to Entry Price ± (15 * symbol_point)
-                buffer_offset = 15.0 * symbol_point
-                new_sl = round(price_open + buffer_offset if is_buy else price_open - buffer_offset, digits)
 
-                mod_res = None
-                if broker_connector and hasattr(broker_connector, "modify_position_sltp"):
-                    mod_res = broker_connector.modify_position_sltp(ticket=ticket, sl=new_sl)
-
-                logger.info(
-                    f"🛡️ [SOFT DE-RISKING] Profitable Position #{ticket} ({symbol}, PnL: +${profit:.2f} USD): "
-                    f"Locked in Break-Even + 15pt buffer. Target SL updated to {new_sl} (Open: {price_open})."
-                )
-                modified_positions.append({
-                    "ticket": ticket,
-                    "symbol": symbol,
-                    "action": "LOCK_IN_BREAKEVEN_BUFFER",
-                    "new_sl": new_sl,
-                    "profit": profit,
-                    "result": mod_res,
-                })
-            else:
-                logger.info(
-                    f"🛡️ [SOFT DE-RISKING] Floating Loss Position #{ticket} ({symbol}, PnL: -${abs(profit):.2f} USD): "
-                    f"Retained original protective SL to await technical pullback. Market close avoided."
-                )
-                modified_positions.append({
-                    "ticket": ticket,
-                    "symbol": symbol,
-                    "action": "RETAIN_ORIGINAL_SL",
-                    "profit": profit,
-                })
-
-        return modified_positions
-
-    def _execute_emergency_liquidation(self, broker_connector: Any) -> None:
+    def _execute_emergency_liquidation(self, broker_connector: Any, executor: Optional[Any] = None) -> None:
         """Executes Soft De-risking protocol instead of panic market liquidation."""
         positions = []
         if hasattr(broker_connector, "get_positions"):
             positions = broker_connector.get_positions()
         elif hasattr(broker_connector, "positions"):
             positions = list(broker_connector.positions.values())
-        self.apply_soft_derisking(positions, broker_connector)
+        self.apply_soft_derisking(positions, broker_connector, executor)
 
 
 # ====================================================================================================

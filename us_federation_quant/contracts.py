@@ -23,6 +23,8 @@ class RiskCheck(str, Enum):
     FRIDAY_EOD_FLAT = "friday_eod_flat"
     WEEKEND_SWEEPER = "weekend_sweeper"
     LIQUIDATION_READINESS = "liquidation_readiness"
+    STAGNATION_EXIT = "stagnation_exit"
+    EMERGENCY_SHUTDOWN = "emergency_shutdown"
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,7 @@ class Directive:
     on_success: Tuple["Directive", ...] = ()
     on_failure: Tuple["Directive", ...] = ()
     collect: Optional[str] = None
+    capture: Optional[str] = None   # lưu kết quả thô của lời gọi MT5 (bất kể thành công) vào outcome.captured[capture]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -92,6 +95,24 @@ class ReopenPersistDirective(Directive):
 class RaiseDirective(Directive):
     """Tái hiện ngoại lệ của bản cũ ĐÚNG lúc nó xảy ra (sau các chỉ thị trước đó)."""
     error: BaseException
+
+
+@dataclass(frozen=True, kw_only=True)
+class OrderIntent:
+    """Lệnh vào đã được sizing + risk duyệt, sẵn sàng để L5 gửi (sl/tp là giá tuyệt đối)."""
+    state_id: str
+    state_name: str
+    action: str                 # "BUY" | "SELL"
+    symbol: str
+    volume: float
+    sl: float
+    tp: float
+    magic: int
+    current_price: float
+    forecast: float             # carver_forecast (chỉ để log)
+    idm: float
+    policy: Any
+    warrant: Any                # cần .warrant_id và .revoke(reason=...)
 
 
 @dataclass(frozen=True)

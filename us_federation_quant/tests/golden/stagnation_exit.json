@@ -1,0 +1,166 @@
+{
+ "age_below_8h": {
+  "close_calls": [],
+  "flag": false,
+  "ladder_after": [],
+  "market_checked": [],
+  "tier2_after": []
+ },
+ "age_exactly_8h": {
+  "close_calls": [
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 7
+   }
+  ],
+  "flag": true,
+  "ladder_after": [],
+  "market_checked": [
+   "EURUSDm"
+  ],
+  "tier2_after": []
+ },
+ "basic_cut": {
+  "close_calls": [
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 1
+   }
+  ],
+  "flag": true,
+  "ladder_after": [],
+  "market_checked": [
+   "EURUSDm"
+  ],
+  "tier2_after": []
+ },
+ "close_fails_still_flags": {
+  "close_calls": [
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 20
+   },
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 21
+   }
+  ],
+  "flag": true,
+  "ladder_after": [],
+  "market_checked": [
+   "EURUSDm",
+   "EURUSDm"
+  ],
+  "tier2_after": []
+ },
+ "empty": {
+  "close_calls": [],
+  "flag": false,
+  "ladder_after": [],
+  "market_checked": [],
+  "tier2_after": []
+ },
+ "ladder_locked_skip": {
+  "close_calls": [],
+  "flag": false,
+  "ladder_after": [
+   4
+  ],
+  "market_checked": [],
+  "tier2_after": []
+ },
+ "market_closed": {
+  "close_calls": [
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 14
+   }
+  ],
+  "flag": true,
+  "ladder_after": [],
+  "market_checked": [
+   "XAUUSDm",
+   "EURUSDm"
+  ],
+  "tier2_after": []
+ },
+ "pnl_boundaries": {
+  "close_calls": [
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 8
+   },
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 10
+   }
+  ],
+  "flag": true,
+  "ladder_after": [],
+  "market_checked": [
+   "EURUSDm",
+   "EURUSDm"
+  ],
+  "tier2_after": []
+ },
+ "profit_immunity": {
+  "close_calls": [],
+  "flag": false,
+  "ladder_after": [],
+  "market_checked": [],
+  "tier2_after": []
+ },
+ "prune_stale_locks": {
+  "close_calls": [],
+  "flag": false,
+  "ladder_after": [
+   22
+  ],
+  "market_checked": [],
+  "tier2_after": [
+   22
+  ]
+ },
+ "swap_counts": {
+  "close_calls": [
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 12
+   }
+  ],
+  "flag": true,
+  "ladder_after": [],
+  "market_checked": [
+   "EURUSDm"
+  ],
+  "tier2_after": []
+ },
+ "tier2_locked_skip": {
+  "close_calls": [],
+  "flag": false,
+  "ladder_after": [],
+  "market_checked": [],
+  "tier2_after": [
+   5
+  ]
+ },
+ "time_formats": {
+  "close_calls": [
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 15
+   },
+   {
+    "comment": "Stagnation 8h Cut",
+    "ticket": 16
+   }
+  ],
+  "flag": true,
+  "ladder_after": [],
+  "market_checked": [
+   "EURUSDm",
+   "EURUSDm"
+  ],
+  "tier2_after": []
+ }
+}

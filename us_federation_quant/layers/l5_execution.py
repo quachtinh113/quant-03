@@ -41,6 +41,7 @@ class ExecutionOutcome:
     """Kết quả gom được khi thực thi (truyền vào từ ngoài để còn nguyên khi có ngoại lệ giữa chừng)."""
     buckets: Dict[str, List[Any]] = field(default_factory=dict)
     two_tier_modified: bool = False
+    captured: Dict[str, Any] = field(default_factory=dict)
 
     def get(self, name: str) -> List[Any]:
         return self.buckets.get(name, [])
@@ -97,6 +98,9 @@ def _run(rt: Any, d: Directive, out: ExecutionOutcome, two_tier_state: Optional[
         raise d.error
     elif not isinstance(d, LogDirective):
         raise TypeError(f"Directive không hỗ trợ: {type(d).__name__}")
+
+    if d.capture is not None and res is not None:
+        out.captured[d.capture] = res
 
     if res is not None and _has_flow(d):
         if res.get("success"):
@@ -2571,3 +2575,67 @@ class ExecutiveOrderRouter:
             magic_number=magic_number
         )
 
+
+# ====================================================================================================
+# GỬI LỆNH VÀO (từ live_federation_runner._submit_proposal_order) — state machine -> MT5 -> FILLED/REJECTED
+# ====================================================================================================
+
+def submit_order_intent(rt, intent):
+    """Đường vào lệnh: tạo order trong state machine, gửi open_market_order, ghi FILLED hoặc REJECTED (+ revoke warrant).
+
+    Trả về dict kết quả khi thành công, None khi broker từ chối. Ngoại lệ lan ra cho caller (như bản cũ):
+    sau SUBMITTED mà open_market_order nổ thì lệnh ở lại SUBMITTED và warrant KHÔNG bị revoke.
+    Chưa thêm chốt chặn SL/TP bắt buộc ở đây (đó là thay đổi hành vi, cần ADR riêng).
+    """
+    client_order_id = generate_client_order_id(intent.state_id, intent.action)
+    order_state = rt.mt5_mgr.state_machine.create_order(
+        client_order_id=client_order_id,
+        symbol=intent.symbol,
+        order_type="MARKET",
+        direction=intent.action,
+        volume=intent.volume,
+        sl=intent.sl,
+        tp=intent.tp,
+        magic=intent.magic,
+        warrant_id=intent.warrant.warrant_id,
+    )
+    order_state.transition_to(OrderState.SUBMITTED, reason="Submitted to MT5 bridge")
+
+    logger.info(
+        f"🚀 [PROPOSAL APPROVED] {intent.state_id} ({intent.state_name}): {intent.action} {intent.volume}L "
+        f"on {intent.symbol} | SL: {intent.sl} | TP: {intent.tp} | Forecast: {intent.forecast:+.2f} | IDM: {intent.idm:.2f} | Policy: {intent.policy} | Warrant: {intent.warrant.warrant_id}"
+    )
+
+    exec_res = rt.mt5_mgr.open_market_order(
+        symbol=intent.symbol,
+        direction=intent.action,
+        volume=intent.volume,
+        sl=intent.sl,
+        tp=intent.tp,
+        magic=intent.magic,
+        comment=f"{intent.state_id}:{client_order_id[:16]}"[:31],
+    )
+
+    if exec_res.get("success"):
+        ticket = exec_res.get("ticket")
+        fill_price = exec_res.get("price", intent.current_price)
+        order_state.transition_to(
+            OrderState.FILLED,
+            fill_volume=intent.volume,
+            fill_price=fill_price,
+            broker_order_id=ticket,
+        )
+        logger.info(
+            f"✅ [EXECUTION SUCCESS] {intent.state_id} #{ticket} {intent.action} {intent.volume}L @ {fill_price}"
+        )
+        return exec_res
+
+    err = exec_res.get("error", "Execution failed")
+    retcode = exec_res.get("retcode", -1)
+    order_state.transition_to(OrderState.REJECTED, reason=str(err))
+    intent.warrant.revoke(reason=f"Broker execution failed: {err}")
+    if retcode == 10018:
+        logger.info(f"ℹ️ [MARKET_CLOSED] {intent.state_id} ({intent.symbol}): Thị trường đóng cửa / nghỉ lễ (10018) -> Tạm bỏ qua an toàn.")
+    else:
+        logger.warning(f"❌ [EXECUTION FAILED] {intent.state_id} order failed: {err} -> Warrant revoked.")
+    return None

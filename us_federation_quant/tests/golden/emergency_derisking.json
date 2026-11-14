@@ -1,0 +1,649 @@
+{
+ "manual_get_positions": {
+  "calls": {
+   "close_position": [],
+   "get_positions": [
+    [
+     [],
+     {}
+    ]
+   ],
+   "get_symbol_spec": [
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "GBPUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ],
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ]
+   ],
+   "modify_position_sltp": [
+    [
+     [],
+     {
+      "sl": 1.10015,
+      "ticket": 1001
+     }
+    ],
+    [
+     [],
+     {
+      "sl": 1.29985,
+      "ticket": 1002
+     }
+    ],
+    [
+     [],
+     {
+      "sl": 150.265,
+      "ticket": 1004
+     }
+    ],
+    [
+     [],
+     {
+      "sl": 1.19985,
+      "ticket": 1005
+     }
+    ]
+   ]
+  },
+  "directive": {
+   "auth_token": "d010e41fd8854ba1",
+   "current_drawdown_pct": -0.1,
+   "is_trading_locked": true,
+   "position_scale_factor": 0.0,
+   "reason": "MANUAL CRO OVERRIDE: Simulated CRO stop",
+   "status_level": "RED_KILL_SWITCH",
+   "timestamp": 1800000000.0
+  },
+  "freeze_until": 1800086400.0,
+  "history": 1,
+  "locked": true
+ },
+ "manual_no_broker": {
+  "calls": null,
+  "directive": {
+   "auth_token": "d010e41fd8854ba1",
+   "current_drawdown_pct": -0.1,
+   "is_trading_locked": true,
+   "position_scale_factor": 0.0,
+   "reason": "MANUAL CRO OVERRIDE: Simulated CRO stop",
+   "status_level": "RED_KILL_SWITCH",
+   "timestamp": 1800000000.0
+  },
+  "freeze_until": 1800086400.0,
+  "history": 1,
+  "locked": true
+ },
+ "manual_positions_attr": {
+  "calls": {
+   "close_position": [],
+   "get_symbol_spec": [
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ]
+   ],
+   "modify_position_sltp": [
+    [
+     [],
+     {
+      "sl": 1.10015,
+      "ticket": 1001
+     }
+    ]
+   ]
+  },
+  "directive": {
+   "auth_token": "d010e41fd8854ba1",
+   "current_drawdown_pct": -0.1,
+   "is_trading_locked": true,
+   "position_scale_factor": 0.0,
+   "reason": "MANUAL CRO OVERRIDE: Simulated CRO stop",
+   "status_level": "RED_KILL_SWITCH",
+   "timestamp": 1800000000.0
+  },
+  "freeze_until": 1800086400.0,
+  "history": 1,
+  "locked": true
+ },
+ "soft_empty": {
+  "calls": {
+   "close_position": [],
+   "get_symbol_spec": [],
+   "modify_position_sltp": []
+  },
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [SOFT DE-RISKING PROTOCOL ACTIVATED] System freeze engaged for 24 hours (until Sat Jan 16 15:00:00 2027). Market dump (Fleet Close) ABORTED. Processing 0 active positions via Soft De-risking..."
+   ]
+  ],
+  "result": []
+ },
+ "soft_full": {
+  "calls": {
+   "close_position": [],
+   "get_symbol_spec": [
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "GBPUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ],
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ]
+   ],
+   "modify_position_sltp": [
+    [
+     [],
+     {
+      "sl": 1.10015,
+      "ticket": 1001
+     }
+    ],
+    [
+     [],
+     {
+      "sl": 1.29985,
+      "ticket": 1002
+     }
+    ],
+    [
+     [],
+     {
+      "sl": 150.265,
+      "ticket": 1004
+     }
+    ],
+    [
+     [],
+     {
+      "sl": 1.19985,
+      "ticket": 1005
+     }
+    ]
+   ]
+  },
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [SOFT DE-RISKING PROTOCOL ACTIVATED] System freeze engaged for 24 hours (until Sat Jan 16 15:00:00 2027). Market dump (Fleet Close) ABORTED. Processing 6 active positions via Soft De-risking..."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1001 (EURUSD, PnL: +$50.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.10015 (Open: 1.1)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1002 (GBPUSD, PnL: +$35.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.29985 (Open: 1.3)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Floating Loss Position #1003 (USDJPY, PnL: -$45.00 USD): Retained original protective SL to await technical pullback. Market close avoided."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1004 (USDJPY, PnL: +$0.01 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 150.265 (Open: 150.25)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1005 (EURUSD, PnL: +$10.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.19985 (Open: 1.2)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Floating Loss Position #1006 (EURUSD, PnL: -$0.00 USD): Retained original protective SL to await technical pullback. Market close avoided."
+   ]
+  ],
+  "result": [
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.10015,
+    "profit": 50.0,
+    "result": {
+     "success": true,
+     "ticket": 1001
+    },
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.29985,
+    "profit": 35.0,
+    "result": {
+     "success": true,
+     "ticket": 1002
+    },
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   },
+   {
+    "action": "RETAIN_ORIGINAL_SL",
+    "profit": -45.0,
+    "symbol": "USDJPY",
+    "ticket": 1003
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 150.265,
+    "profit": 0.01,
+    "result": {
+     "success": true,
+     "ticket": 1004
+    },
+    "symbol": "USDJPY",
+    "ticket": 1004
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.19985,
+    "profit": 10.0,
+    "result": {
+     "success": true,
+     "ticket": 1005
+    },
+    "symbol": "EURUSD",
+    "ticket": 1005
+   },
+   {
+    "action": "RETAIN_ORIGINAL_SL",
+    "profit": 0.0,
+    "symbol": "EURUSD",
+    "ticket": 1006
+   }
+  ]
+ },
+ "soft_mt5_fallback_info": {
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [SOFT DE-RISKING PROTOCOL ACTIVATED] System freeze engaged for 24 hours (until Sat Jan 16 15:00:00 2027). Market dump (Fleet Close) ABORTED. Processing 2 active positions via Soft De-risking..."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1001 (EURUSD, PnL: +$50.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.10015 (Open: 1.1)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1002 (GBPUSD, PnL: +$35.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.29985 (Open: 1.3)."
+   ]
+  ],
+  "result": [
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.10015,
+    "profit": 50.0,
+    "result": null,
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.29985,
+    "profit": 35.0,
+    "result": null,
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   }
+  ]
+ },
+ "soft_mt5_fallback_none": {
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [SOFT DE-RISKING PROTOCOL ACTIVATED] System freeze engaged for 24 hours (until Sat Jan 16 15:00:00 2027). Market dump (Fleet Close) ABORTED. Processing 2 active positions via Soft De-risking..."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1001 (EURUSD, PnL: +$50.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.1 (Open: 1.1)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1002 (GBPUSD, PnL: +$35.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.3 (Open: 1.3)."
+   ]
+  ],
+  "result": [
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.1,
+    "profit": 50.0,
+    "result": null,
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.3,
+    "profit": 35.0,
+    "result": null,
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   }
+  ]
+ },
+ "soft_no_modify_method": {
+  "calls": {
+   "close_position": [],
+   "get_symbol_spec": [
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "GBPUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ],
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ]
+   ]
+  },
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [SOFT DE-RISKING PROTOCOL ACTIVATED] System freeze engaged for 24 hours (until Sat Jan 16 15:00:00 2027). Market dump (Fleet Close) ABORTED. Processing 6 active positions via Soft De-risking..."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1001 (EURUSD, PnL: +$50.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.10015 (Open: 1.1)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1002 (GBPUSD, PnL: +$35.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.29985 (Open: 1.3)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Floating Loss Position #1003 (USDJPY, PnL: -$45.00 USD): Retained original protective SL to await technical pullback. Market close avoided."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1004 (USDJPY, PnL: +$0.01 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 150.265 (Open: 150.25)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #1005 (EURUSD, PnL: +$10.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.19985 (Open: 1.2)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Floating Loss Position #1006 (EURUSD, PnL: -$0.00 USD): Retained original protective SL to await technical pullback. Market close avoided."
+   ]
+  ],
+  "result": [
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.10015,
+    "profit": 50.0,
+    "result": null,
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.29985,
+    "profit": 35.0,
+    "result": null,
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   },
+   {
+    "action": "RETAIN_ORIGINAL_SL",
+    "profit": -45.0,
+    "symbol": "USDJPY",
+    "ticket": 1003
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 150.265,
+    "profit": 0.01,
+    "result": null,
+    "symbol": "USDJPY",
+    "ticket": 1004
+   },
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.19985,
+    "profit": 10.0,
+    "result": null,
+    "symbol": "EURUSD",
+    "ticket": 1005
+   },
+   {
+    "action": "RETAIN_ORIGINAL_SL",
+    "profit": 0.0,
+    "symbol": "EURUSD",
+    "ticket": 1006
+   }
+  ]
+ },
+ "soft_objects": {
+  "calls": {
+   "close_position": [],
+   "get_symbol_spec": [
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ]
+   ],
+   "modify_position_sltp": [
+    [
+     [],
+     {
+      "sl": 1.10015,
+      "ticket": 2001
+     }
+    ]
+   ]
+  },
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [SOFT DE-RISKING PROTOCOL ACTIVATED] System freeze engaged for 24 hours (until Sat Jan 16 15:00:00 2027). Market dump (Fleet Close) ABORTED. Processing 2 active positions via Soft De-risking..."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Profitable Position #2001 (EURUSD, PnL: +$7.00 USD): Locked in Break-Even + 15pt buffer. Target SL updated to 1.10015 (Open: 1.1)."
+   ],
+   [
+    "INFO",
+    "🛡️ [SOFT DE-RISKING] Floating Loss Position #2002 (EURUSD, PnL: -$7.00 USD): Retained original protective SL to await technical pullback. Market close avoided."
+   ]
+  ],
+  "result": [
+   {
+    "action": "LOCK_IN_BREAKEVEN_BUFFER",
+    "new_sl": 1.10015,
+    "profit": 7.0,
+    "result": {
+     "success": true,
+     "ticket": 2001
+    },
+    "symbol": "EURUSD",
+    "ticket": 2001
+   },
+   {
+    "action": "RETAIN_ORIGINAL_SL",
+    "profit": -7.0,
+    "symbol": "EURUSD",
+    "ticket": 2002
+   }
+  ]
+ },
+ "update_equity_red_no_broker": {
+  "calls": null,
+  "directive": {
+   "auth_token": "74fa8a194f76241d",
+   "current_drawdown_pct": -0.13,
+   "is_trading_locked": true,
+   "position_scale_factor": 0.0,
+   "reason": "CRITICAL DRAWDOWN -13.0% breached limit -12.0%. MASTER KILL-SWITCH ACTIVATED!",
+   "status_level": "RED_KILL_SWITCH",
+   "timestamp": 1800000000.0
+  },
+  "locked": true
+ },
+ "update_equity_red_with_broker": {
+  "calls": {
+   "close_position": [],
+   "get_positions": [
+    [
+     [],
+     {}
+    ]
+   ],
+   "get_symbol_spec": [
+    [
+     [
+      "EURUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "GBPUSD"
+     ],
+     {}
+    ],
+    [
+     [
+      "USDJPY"
+     ],
+     {}
+    ]
+   ],
+   "modify_position_sltp": [
+    [
+     [],
+     {
+      "sl": 1.10015,
+      "ticket": 1001
+     }
+    ],
+    [
+     [],
+     {
+      "sl": 1.29985,
+      "ticket": 1002
+     }
+    ]
+   ]
+  },
+  "directive": {
+   "auth_token": "74fa8a194f76241d",
+   "current_drawdown_pct": -0.13,
+   "is_trading_locked": true,
+   "position_scale_factor": 0.0,
+   "reason": "CRITICAL DRAWDOWN -13.0% breached limit -12.0%. MASTER KILL-SWITCH ACTIVATED!",
+   "status_level": "RED_KILL_SWITCH",
+   "timestamp": 1800000000.0
+  },
+  "locked": true
+ }
+}
