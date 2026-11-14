@@ -28,6 +28,8 @@ env/
 # Research & Backtest Large Datasets
 research/real_data/
 
-# OS Artifacts
+# OS Artifacts & Locks
 .DS_Store
 Thumbs.db
+*.lock
+scratch_*.py

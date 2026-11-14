@@ -79,25 +79,48 @@ def discover_latest_bot_entrypoint(target_bot_dir: Optional[Path] = None) -> Tup
 
 
 
-def terminate_stale_bot_processes(target_script_name: str) -> List[int]:
+def terminate_stale_bot_processes(target_script_name: str, lock_file_path: Optional[Path] = None) -> List[int]:
     """Terminates existing bot processes running target_script_name to prevent duplicate zombie processes."""
     import psutil
     terminated_pids = []
     current_pid = os.getpid()
+
+    # 1. First check lock file if provided
+    if lock_file_path and lock_file_path.exists():
+        try:
+            with open(lock_file_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read().strip()
+                if content.isdigit():
+                    lock_pid = int(content)
+                    if lock_pid != current_pid and psutil.pid_exists(lock_pid):
+                        if os.name == "nt":
+                            subprocess.run(["taskkill", "/F", "/PID", str(lock_pid)], capture_output=True)
+                        else:
+                            os.kill(lock_pid, 9)
+                        terminated_pids.append(lock_pid)
+        except Exception:
+            pass
+
+    # 2. Iterate processes and terminate any remaining matching target_script_name
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
-            if proc.pid == current_pid:
+            if proc.pid == current_pid or proc.pid in terminated_pids:
                 continue
             cmdline = proc.info.get("cmdline") or []
             cmd_str = " ".join(cmdline)
             if target_script_name in cmd_str and ("python" in proc.name().lower() or "python" in cmd_str.lower()):
-                proc.terminate()
-                try:
-                    proc.wait(timeout=3.0)
-                except psutil.TimeoutExpired:
-                    proc.kill()
+                if os.name == "nt":
+                    subprocess.run(["taskkill", "/F", "/PID", str(proc.pid)], capture_output=True)
+                else:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3.0)
+                    except psutil.TimeoutExpired:
+                        proc.kill()
                 terminated_pids.append(proc.pid)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/F", "/PID", str(proc.pid)], capture_output=True)
             continue
     return terminated_pids
 
@@ -108,8 +131,10 @@ def check_and_launch_latest_bot_process(
     audit_payload: Dict[str, Any],
     custom_cmd: Optional[str] = None,
     dry_run: bool = False,
+    force_restart: bool = False,
 ) -> Dict[str, Any]:
     """Verify Risk Gate after audit and automatically launch/restart the latest bot process."""
+    import psutil
     entrypoint_path = entrypoint_path.resolve()
     rec = audit_payload.get("3_daily_100usd_reconciliation", {})
     nrg = audit_payload.get("counterfactual_no_regression_gate", {})
@@ -126,6 +151,31 @@ def check_and_launch_latest_bot_process(
             "entrypoint": str(entrypoint_path),
             "reason": "Tài khoản chạm ngưỡng ngắt mạch khẩn cấp TIER_3_HALTED (-7.5% DD). Đóng băng mở tiến trình mới theo Điều Răn #1.",
         }
+
+    # Check Single-Instance Lockfile: If bot is already running healthy with its PID in lockfile and not forcing restart
+    lock_file = entrypoint_path.parent / "us_federation_quant.lock"
+    if not force_restart and lock_file.exists():
+        try:
+            with open(lock_file, "r", encoding="utf-8", errors="ignore") as f:
+                c_pid_str = f.read().strip()
+            if c_pid_str.isdigit():
+                c_pid = int(c_pid_str)
+                if psutil.pid_exists(c_pid):
+                    try:
+                        p_obj = psutil.Process(c_pid)
+                        cmd_str = " ".join(p_obj.cmdline())
+                        if entrypoint_path.name in cmd_str:
+                            return {
+                                "relaunch_status": "ALREADY_RUNNING_HEALTHY",
+                                "bot_name": bot_name,
+                                "pid": c_pid,
+                                "entrypoint": str(entrypoint_path),
+                                "message": f"Tiến trình bot PID {c_pid} đang chạy khỏe mạnh độc quyền qua Mutex Lock. Không cần tái khởi chạy.",
+                            }
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+        except Exception:
+            pass
 
     cmd_list = custom_cmd.split() if custom_cmd else [sys.executable, str(entrypoint_path)]
     log_dir = REPORT_ARCHIVE_DIR / "process_logs"
@@ -146,7 +196,7 @@ def check_and_launch_latest_bot_process(
         }
 
     # Automatically terminate any stale running bot process before launching new PID
-    stale_pids = terminate_stale_bot_processes(entrypoint_path.name)
+    stale_pids = terminate_stale_bot_processes(entrypoint_path.name, lock_file_path=lock_file)
     if stale_pids:
         print(f"🔄 [PROCESS CLEANUP] Đã đóng các tiến trình cũ tồn dư: {stale_pids}")
 

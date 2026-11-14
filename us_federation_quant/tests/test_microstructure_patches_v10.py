@@ -388,7 +388,7 @@ def test_p0_sweeper_default_warmup_applies_with_explicit_now():
     assert sig.parameters["open_warmup_sec"].default == 600.0
 
 def test_gbpchf_uk100_risk_cap_15usd():
-    """Verify that GBPCHF and UK100 lots are capped at max_risk_usd=15.0 instead of 35.0."""
+    """Verify that all standard/forex pairs (including EURUSD, GBPCHF, UK100) are capped at universal max_risk_usd=15.0."""
     from us_federation_quant.live_federation_runner import USFederationQuantRuntime
     runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
 
@@ -401,17 +401,117 @@ def test_gbpchf_uk100_risk_cap_15usd():
     mock_info.volume_step = 0.01
 
     with patch("MetaTrader5.symbol_info", return_value=mock_info):
-        # sl_points = 200. Normal pair (EURUSD) with max_risk 35: raw = 35 / (200*1) = 0.175 -> 0.18L
+        # sl_points = 200. Universal $15 cap applies even if 35.0 is requested: raw = 15 / (200*1) = 0.075 -> 0.07L (floor)
         lot_eur = runtime.calculate_risk_adjusted_lot("EURUSD", sl_points=200.0, max_risk_usd=35.0)
-        assert lot_eur == 0.18
+        assert lot_eur == 0.07, f"EURUSD must be capped at $15 (expected 0.07, got {lot_eur})"
 
-        # GBPCHF: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.08L
+        # GBPCHF: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.07L
         lot_gbp = runtime.calculate_risk_adjusted_lot("GBPCHF", sl_points=200.0, max_risk_usd=35.0)
-        assert lot_gbp == 0.08
+        assert lot_gbp == 0.07
 
-        # UK100: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.08L
+        # UK100: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.07L
         lot_uk = runtime.calculate_risk_adjusted_lot("UK100", sl_points=200.0, max_risk_usd=35.0)
-        assert lot_uk == 0.08
+        assert lot_uk == 0.07
+
+        # Test enforce_hard_risk_cap floor rounding: 0.25L with 150 sl points (loss per lot = 150) -> cap = 15/150 = 0.10L
+        capped = runtime.enforce_hard_risk_cap("GBPUSD", raw_lot=0.25, sl_distance_price=0.0150)
+        assert capped <= 0.10
+
+
+def test_breakeven_lock_buffer_1_5_pips():
+    """Verify that positions reaching >= 50% TP distance or >= $12.00 get SL advanced to Entry +/- 1.5 pips buffer."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+    runtime.mt5_mgr = MagicMock()
+    runtime.mt5_mgr.modify_position_sltp.return_value = {"success": True}
+
+    # Position 1: BUY EURUSD entry=1.11500, TP=1.12500 (+100 pips), current=1.12100 (+60 pips = 60% of TP)
+    # SL is currently 1.11000. Buffer is 1.5 pips = 0.00015 -> Target SL = 1.11515
+    mock_pos_buy = {
+        "ticket": 6001,
+        "symbol": "EURUSD",
+        "type": "BUY",
+        "price_open": 1.11500,
+        "price_current": 1.12100,
+        "sl": 1.11000,
+        "tp": 1.12500,
+        "profit": 15.00,
+    }
+    # Position 2: SELL GBPUSD entry=1.34000, TP=1.33000 (+100 pips), current=1.33400 (+60 pips = 60% of TP)
+    # SL is currently 1.34500. Buffer is 1.5 pips = 0.00015 -> Target SL = 1.33985
+    mock_pos_sell = {
+        "ticket": 6002,
+        "symbol": "GBPUSD",
+        "type": "SELL",
+        "price_open": 1.34000,
+        "price_current": 1.33400,
+        "sl": 1.34500,
+        "tp": 1.33000,
+        "profit": 18.00,
+    }
+    runtime.mt5_mgr.get_positions.return_value = [mock_pos_buy, mock_pos_sell]
+
+    mock_info = MagicMock()
+    mock_info.point = 0.00001
+    mock_info.digits = 5
+
+    with patch("MetaTrader5.symbol_info", return_value=mock_info):
+        res = runtime.check_and_apply_breakeven_lock(buffer_pips=1.5)
+
+    assert len(res) == 2
+    runtime.mt5_mgr.modify_position_sltp.assert_any_call(ticket=6001, sl=1.11515, tp=1.12500)
+    runtime.mt5_mgr.modify_position_sltp.assert_any_call(ticket=6002, sl=1.33985, tp=1.33000)
+
+
+def test_anti_chasing_cooldown_and_same_direction_lockout():
+    """Verify Anti-Chasing 15-min cooldown and 2-consecutive SL lockout on same direction."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+
+    now_ts = 100_000.0
+
+    # 1. Initially allowed
+    can_enter, reason = runtime.can_enter_trade("GBPUSD", "BUY", now_ts)
+    assert can_enter is True
+    assert reason == "OK"
+
+    # 2. Simulate position exit on GBPUSD at now_ts
+    runtime.symbol_state["GBPUSD"] = {
+        "last_exit_ts": now_ts,
+        "consec_sl_buy": 0,
+        "consec_sl_sell": 0,
+        "lock_buy_until": 0.0,
+        "lock_sell_until": 0.0,
+    }
+
+    # At now_ts + 24s (like Ticket #2821336086 today): MUST BE VETOED!
+    can_enter_24s, reason_24s = runtime.can_enter_trade("GBPUSD", "BUY", now_ts + 24.0)
+    assert can_enter_24s is False
+    assert "VETO_ANTI_CHASING" in reason_24s
+
+    # At now_ts + 901s (after 15 minutes): Allowed
+    can_enter_15m, reason_15m = runtime.can_enter_trade("GBPUSD", "BUY", now_ts + 901.0)
+    assert can_enter_15m is True
+
+    # 3. Simulate EURUSD suffering 2 consecutive SL on SELL direction
+    runtime.symbol_state["EURUSD"] = {
+        "last_exit_ts": now_ts - 1000.0,  # Cooldown passed
+        "consec_sl_buy": 0,
+        "consec_sl_sell": 2,
+        "lock_buy_until": 0.0,
+        "lock_sell_until": now_ts + 7200.0,  # Locked for 2 hours
+    }
+
+    # SELL direction must be LOCKED (Anti-Trend Trap)
+    can_sell, reason_sell = runtime.can_enter_trade("EURUSD", "SELL", now_ts)
+    assert can_sell is False
+    assert "VETO_TREND_TRAP" in reason_sell
+    assert "SELL" in reason_sell
+
+    # BUY direction is NOT locked (can trade with the trend!)
+    can_buy, reason_buy = runtime.can_enter_trade("EURUSD", "BUY", now_ts)
+    assert can_buy is True
+    assert reason_buy == "OK"
 
 
 def test_enforce_gbpchf_uk100_hard_stop_cap():

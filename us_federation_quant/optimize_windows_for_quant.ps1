@@ -59,8 +59,12 @@ try {
 }
 
 # 3. KIỂM SOÁT WINDOWS UPDATE (CHỐNG TỰ ĐỘNG KHỞI ĐỘNG LẠI GIỮA PHIÊN)
-Write-Host "`n[3/4] Configuring Windows Update Anti-Reboot Policies..." -ForegroundColor Yellow
+Write-Host "`n[3/5] Configuring Windows Update Anti-Reboot Policies..." -ForegroundColor Yellow
 try {
+    $parentPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
+    if (-not (Test-Path $parentPath)) {
+        New-Item -Path $parentPath -Force | Out-Null
+    }
     $wuPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
     if (-not (Test-Path $wuPath)) {
         New-Item -Path $wuPath -Force | Out-Null
@@ -69,19 +73,59 @@ try {
     Set-ItemProperty -Path $wuPath -Name "NoAutoRebootWithLoggedOnUsers" -Value 1 -Type DWord -Force
     # AUOptions = 2 (Notify for download and notify for install - no surprise reboots)
     Set-ItemProperty -Path $wuPath -Name "AUOptions" -Value 2 -Type DWord -Force
+    # AlwaysAutoRebootAtScheduledTime = 0 (Disable scheduled reboot timer)
+    Set-ItemProperty -Path $wuPath -Name "AlwaysAutoRebootAtScheduledTime" -Value 0 -Type DWord -Force
+    # AutoInstallMinorUpdateTargets = 0
+    Set-ItemProperty -Path $wuPath -Name "AutoInstallMinorUpdateTargets" -Value 0 -Type DWord -Force
+    
+    # DisableDualScan on root WindowsUpdate key
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "DisableDualScan" -Value 1 -Type DWord -Force
+
     Write-Host "  ✅ Windows Update configured: 'No auto-restart with logged on users' ENABLED." -ForegroundColor Green
+    Write-Host "  ✅ AUOptions set to 'Notify before download/install' (No silent background updates)." -ForegroundColor Green
 } catch {
     Write-Host "  ⚠️ Windows Update policy notice (requires Admin): $_" -ForegroundColor DarkYellow
 }
 
-# 4. TỰ PHỤC HỒI QUA STARTUP SHORTCUT & TASK SCHEDULER
-Write-Host "`n[4/4] Ensuring Auto-Startup Watchdog is Active..." -ForegroundColor Yellow
+# 4. KÍCH HOẠT GPEDIT.MSC (CHO WINDOWS HOME / HOME SINGLE LANGUAGE NẾU CẦN)
+Write-Host "`n[4/5] Checking Group Policy Editor (gpedit.msc)..." -ForegroundColor Yellow
+if (-not (Test-Path "$env:SystemRoot\System32\gpedit.msc")) {
+    Write-Host "  Installing gpedit.msc packages for Windows Home via DISM..." -ForegroundColor Cyan
+    $pkgDir = "$env:SystemRoot\servicing\Packages"
+    Get-ChildItem -Path $pkgDir -Filter "Microsoft-Windows-GroupPolicy-ClientExtensions-Package~*.mum" | ForEach-Object {
+        dism.exe /online /norestart /add-package:"$($_.FullName)" | Out-Null
+    }
+    Get-ChildItem -Path $pkgDir -Filter "Microsoft-Windows-GroupPolicy-ClientTools-Package~*.mum" | ForEach-Object {
+        dism.exe /online /norestart /add-package:"$($_.FullName)" | Out-Null
+    }
+    Write-Host "  ✅ gpedit.msc packages installed successfully." -ForegroundColor Green
+} else {
+    Write-Host "  ✅ gpedit.msc is already installed on the system." -ForegroundColor Green
+}
+
+# Run gpupdate to apply policies immediately
+try {
+    gpupdate.exe /force | Out-Null
+    Write-Host "  ✅ Group Policy refreshed immediately via 'gpupdate /force'." -ForegroundColor Green
+} catch {
+    Write-Host "  ⚠️ gpupdate notice: $_" -ForegroundColor DarkYellow
+}
+
+# 5. TỰ PHỤC HỒI QUA STARTUP SHORTCUT & TASK SCHEDULER
+Write-Host "`n[5/5] Ensuring Auto-Startup Watchdog is Active..." -ForegroundColor Yellow
 $startupPath = [Environment]::GetFolderPath('Startup')
 $shortcutPath = Join-Path $startupPath "US_Federation_Quant.lnk"
 if (Test-Path $shortcutPath) {
     Write-Host "  ✅ Auto-Startup Shortcut confirmed in Startup Folder: $shortcutPath" -ForegroundColor Green
 } else {
     & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Quant_03\us_federation_quant\create_startup_shortcut.ps1"
+}
+
+# Register Task Scheduler Watchdog for system boot recovery
+try {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Quant_03\us_federation_quant\setup_windows_watchdog_task.ps1"
+} catch {
+    Write-Host "  ⚠️ Task Scheduler notice: $_" -ForegroundColor DarkYellow
 }
 
 Write-Host "`n=======================================================" -ForegroundColor Cyan
