@@ -191,7 +191,7 @@ def generate_signals(
     :return: (signals, lots_requested) — signal ∈ {1 BUY, -1 SELL, 0 HOLD}
     """
     pod_mod = importlib.import_module(
-        "us_federation_quant.05_the_50_states.state_01_xauusd_scalp.pod"
+        "us_federation_quant.layers.l2_alpha"
     )
     pod = pod_mod.GoldScalpPod(allocated_capital=account_equity)
 

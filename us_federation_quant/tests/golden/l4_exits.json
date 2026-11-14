@@ -1,0 +1,1265 @@
+{
+ "breakeven": {
+  "close_calls": [],
+  "ladder_locked": [],
+  "modify_calls": [
+   [
+    [],
+    {
+     "sl": 1.10015,
+     "ticket": 1,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.09985,
+     "ticket": 3,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.09985,
+     "ticket": 4,
+     "tp": 1.098
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 150.015,
+     "ticket": 6,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.10015,
+     "ticket": 8,
+     "tp": 0.0
+    }
+   ]
+  ],
+  "returned": [
+   {
+    "success": true,
+    "ticket": 1
+   },
+   {
+    "success": true,
+    "ticket": 3
+   },
+   {
+    "success": true,
+    "ticket": 4
+   },
+   {
+    "success": true,
+    "ticket": 6
+   },
+   {
+    "success": true,
+    "ticket": 8
+   }
+  ],
+  "tier2_locked": []
+ },
+ "friday_eod": {
+  "all": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 1
+     }
+    ],
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 2
+     }
+    ],
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 3
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 2,
+   "tier2_locked": []
+  },
+  "empty": {
+   "close_calls": [],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 0,
+   "tier2_locked": []
+  },
+  "objects": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 11
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 1,
+   "tier2_locked": []
+  },
+  "tiered_2020": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 2
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 1,
+   "tier2_locked": []
+  },
+  "tiered_2145": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 1
+     }
+    ],
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 2
+     }
+    ],
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 3
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 3,
+   "tier2_locked": []
+  }
+ },
+ "ladder": {
+  "close_calls": [],
+  "ladder_locked": [
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "8",
+   "9"
+  ],
+  "modify_calls": [
+   [
+    [],
+    {
+     "sl": 1.101,
+     "ticket": 1,
+     "tp": 1.11
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.099,
+     "ticket": 2,
+     "tp": 1.09
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.1004,
+     "ticket": 3,
+     "tp": 1.11
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.0996,
+     "ticket": 4,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.10015,
+     "ticket": 5,
+     "tp": 1.11
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.101,
+     "ticket": 8,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.101,
+     "ticket": 9,
+     "tp": 1.11
+    }
+   ]
+  ],
+  "returned": [
+   {
+    "success": true,
+    "ticket": 1
+   },
+   {
+    "success": true,
+    "ticket": 2
+   },
+   {
+    "success": true,
+    "ticket": 3
+   },
+   {
+    "success": true,
+    "ticket": 4
+   },
+   {
+    "success": true,
+    "ticket": 5
+   },
+   {
+    "success": true,
+    "ticket": 8
+   },
+   {
+    "success": true,
+    "ticket": 9
+   }
+  ],
+  "tier2_locked": [
+   "1",
+   "2",
+   "3",
+   "4",
+   "8",
+   "9"
+  ]
+ },
+ "readiness": {
+  "future_tick_offset": {
+   "result": [
+    false,
+    "Warmup Buffer active for EURUSDm (0s / 600s post-open)"
+   ],
+   "saved": [
+    {
+     "EURUSDm": 1794211200.0
+    }
+   ],
+   "state": {
+    "EURUSDm": 1794211200.0
+   }
+  },
+  "fx_spread_ok_cross": {
+   "result": [
+    true,
+    "Ready (post-open=900s)"
+   ],
+   "saved": [],
+   "state": {
+    "GBPCHFm": 1794210300.0
+   }
+  },
+  "fx_spread_wide_cross": {
+   "result": [
+    false,
+    "FX Spread Guard active for GBPCHFm (90.0 pts > 65.0 pts)"
+   ],
+   "saved": [],
+   "state": {
+    "GBPCHFm": 1794210300.0
+   }
+  },
+  "fx_spread_wide_major": {
+   "result": [
+    false,
+    "FX Spread Guard active for EURUSDm (100.0 pts > 35.0 pts)"
+   ],
+   "saved": [],
+   "state": {
+    "EURUSDm": 1794210300.0
+   }
+  },
+  "index_spread_ok": {
+   "result": [
+    true,
+    "Ready (post-open=900s)"
+   ],
+   "saved": [],
+   "state": {
+    "UK100m": 1794210300.0
+   }
+  },
+  "index_spread_wide": {
+   "result": [
+    false,
+    "Index Spread Guard active for UK100m (10.0 bps > 8.0 bps)"
+   ],
+   "saved": [],
+   "state": {
+    "UK100m": 1794210300.0
+   }
+  },
+  "market_closed": {
+   "result": [
+    false,
+    "Market closed for EURUSDm"
+   ],
+   "saved": [],
+   "state": {}
+  },
+  "no_warmup_param": {
+   "result": [
+    true,
+    "Ready (post-open=0s)"
+   ],
+   "saved": [
+    {
+     "EURUSDm": 1794211200.0
+    }
+   ],
+   "state": {
+    "EURUSDm": 1794211200.0
+   }
+  },
+  "safety_ceiling": {
+   "result": [
+    true,
+    "Ready (post-open=2000s)"
+   ],
+   "saved": [],
+   "state": {
+    "EURUSDm": 1794209200.0
+   }
+  },
+  "stale_tick": {
+   "result": [
+    false,
+    "Stale tick (300s > 60s) - EURUSDm session not yet open"
+   ],
+   "saved": [
+    {}
+   ],
+   "state": {}
+  },
+  "tick_none": {
+   "result": [
+    true,
+    "OK (Manager market_open verified)"
+   ],
+   "saved": [],
+   "state": {}
+  },
+  "tick_time_zero": {
+   "result": [
+    false,
+    "Invalid tick.time=0 for EURUSDm"
+   ],
+   "saved": [],
+   "state": {}
+  },
+  "trade_mode_not_full": {
+   "result": [
+    false,
+    "Trade mode 0 != FULL for EURUSDm"
+   ],
+   "saved": [],
+   "state": {}
+  },
+  "warmup_active": {
+   "result": [
+    false,
+    "Warmup Buffer active for EURUSDm (0s / 600s post-open)"
+   ],
+   "saved": [
+    {
+     "EURUSDm": 1794211200.0
+    }
+   ],
+   "state": {
+    "EURUSDm": 1794211200.0
+   }
+  },
+  "warmup_done_ready": {
+   "result": [
+    true,
+    "Ready (post-open=900s)"
+   ],
+   "saved": [],
+   "state": {
+    "EURUSDm": 1794210300.0
+   }
+  }
+ },
+ "reconcile": {
+  "multi": {
+   "close_calls": [
+    [
+     [
+      3
+     ],
+     {}
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": [
+    {
+     "error": "x",
+     "success": true,
+     "ticket": 3
+    }
+   ],
+   "tier2_locked": []
+  },
+  "single": {
+   "close_calls": [],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": [],
+   "tier2_locked": []
+  }
+ },
+ "sweeper": {
+  "friday_eod_market_closed": {
+   "close_calls": [],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 0,
+   "saved": [],
+   "tier2_locked": []
+  },
+  "friday_eod_market_open": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 1
+     }
+    ],
+    [
+     [],
+     {
+      "comment": "Friday EOD Flat",
+      "ticket": 2
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 2,
+   "saved": [],
+   "tier2_locked": []
+  },
+  "monday_index_spread_defers": {
+   "close_calls": [],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 0,
+   "saved": [],
+   "tier2_locked": []
+  },
+  "monday_weekend_hold_closes": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Weekend Hold Flat",
+      "ticket": 1
+     }
+    ],
+    [
+     [],
+     {
+      "comment": "Weekend Hold Flat",
+      "ticket": 2
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 1,
+   "saved": [],
+   "tier2_locked": []
+  },
+  "naive_time_is_utc": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Emergency 12h Cut",
+      "ticket": 1
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 1,
+   "saved": [
+    {
+     "EURUSDm": 1794405600.0
+    }
+   ],
+   "tier2_locked": []
+  },
+  "no_positions": {
+   "close_calls": [],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 0,
+   "saved": [],
+   "tier2_locked": []
+  },
+  "over_12h_cut": {
+   "close_calls": [
+    [
+     [],
+     {
+      "comment": "Emergency 12h Cut",
+      "ticket": 1
+     }
+    ]
+   ],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 1,
+   "saved": [
+    {
+     "EURUSDm": 1794405600.0
+    }
+   ],
+   "tier2_locked": []
+  },
+  "sunday_warmup_defers": {
+   "close_calls": [],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 0,
+   "saved": [
+    {
+     "EURUSDm": 1794177000.0
+    }
+   ],
+   "tier2_locked": []
+  },
+  "young_position": {
+   "close_calls": [],
+   "ladder_locked": [],
+   "modify_calls": [],
+   "returned": 0,
+   "saved": [],
+   "tier2_locked": []
+  }
+ },
+ "time_helpers": {
+  "curfew": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-06T21:00:00+00:00",
+    true
+   ],
+   [
+    "2026-03-08T22:00:00+00:00",
+    false
+   ],
+   [
+    "2026-10-30T20:00:00+00:00",
+    true
+   ],
+   [
+    "2026-11-01T23:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-06T21:00:00+00:00",
+    true
+   ],
+   [
+    "2026-11-08T23:00:00+00:00",
+    false
+   ],
+   [
+    "2027-01-01T21:00:00+00:00",
+    true
+   ],
+   [
+    "2027-01-03T23:00:00+00:00",
+    false
+   ]
+  ],
+  "eod_eurusd": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-06T21:30:00+00:00",
+    true
+   ],
+   [
+    "2026-03-07T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-10-30T20:30:00+00:00",
+    true
+   ],
+   [
+    "2026-10-31T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-06T21:30:00+00:00",
+    true
+   ],
+   [
+    "2026-11-07T00:00:00+00:00",
+    false
+   ],
+   [
+    "2027-01-01T21:30:00+00:00",
+    true
+   ],
+   [
+    "2027-01-02T00:00:00+00:00",
+    false
+   ]
+  ],
+  "eod_none": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-06T21:30:00+00:00",
+    true
+   ],
+   [
+    "2026-03-07T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-10-30T20:30:00+00:00",
+    true
+   ],
+   [
+    "2026-10-31T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-06T21:30:00+00:00",
+    true
+   ],
+   [
+    "2026-11-07T00:00:00+00:00",
+    false
+   ],
+   [
+    "2027-01-01T21:30:00+00:00",
+    true
+   ],
+   [
+    "2027-01-02T00:00:00+00:00",
+    false
+   ]
+  ],
+  "eod_uk100": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-06T20:15:00+00:00",
+    true
+   ],
+   [
+    "2026-03-07T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-10-30T20:15:00+00:00",
+    true
+   ],
+   [
+    "2026-10-31T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-06T20:15:00+00:00",
+    true
+   ],
+   [
+    "2026-11-07T00:00:00+00:00",
+    false
+   ],
+   [
+    "2027-01-01T20:15:00+00:00",
+    true
+   ],
+   [
+    "2027-01-02T00:00:00+00:00",
+    false
+   ]
+  ],
+  "hk50": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-06T01:15:00+00:00",
+    true
+   ],
+   [
+    "2026-03-06T04:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-06T05:00:00+00:00",
+    true
+   ],
+   [
+    "2026-03-06T08:30:00+00:00",
+    false
+   ],
+   [
+    "2026-03-06T09:15:00+00:00",
+    true
+   ],
+   [
+    "2026-03-06T19:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-09T01:15:00+00:00",
+    true
+   ],
+   [
+    "2026-03-09T04:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-09T05:00:00+00:00",
+    true
+   ],
+   [
+    "2026-03-09T08:30:00+00:00",
+    false
+   ],
+   [
+    "2026-03-09T09:15:00+00:00",
+    true
+   ],
+   [
+    "2026-03-09T19:00:00+00:00",
+    false
+   ],
+   [
+    "2026-10-30T01:15:00+00:00",
+    true
+   ],
+   [
+    "2026-10-30T04:00:00+00:00",
+    false
+   ],
+   [
+    "2026-10-30T05:00:00+00:00",
+    true
+   ],
+   [
+    "2026-10-30T08:30:00+00:00",
+    false
+   ],
+   [
+    "2026-10-30T09:15:00+00:00",
+    true
+   ],
+   [
+    "2026-10-30T19:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-02T01:15:00+00:00",
+    true
+   ],
+   [
+    "2026-11-02T04:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-02T05:00:00+00:00",
+    true
+   ],
+   [
+    "2026-11-02T08:30:00+00:00",
+    false
+   ],
+   [
+    "2026-11-02T09:15:00+00:00",
+    true
+   ],
+   [
+    "2026-11-02T19:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-06T01:15:00+00:00",
+    true
+   ],
+   [
+    "2026-11-06T04:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-06T05:00:00+00:00",
+    true
+   ],
+   [
+    "2026-11-06T08:30:00+00:00",
+    false
+   ],
+   [
+    "2026-11-06T09:15:00+00:00",
+    true
+   ],
+   [
+    "2026-11-06T19:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-09T01:15:00+00:00",
+    true
+   ],
+   [
+    "2026-11-09T04:00:00+00:00",
+    false
+   ],
+   [
+    "2026-11-09T05:00:00+00:00",
+    true
+   ],
+   [
+    "2026-11-09T08:30:00+00:00",
+    false
+   ],
+   [
+    "2026-11-09T09:15:00+00:00",
+    true
+   ],
+   [
+    "2026-11-09T19:00:00+00:00",
+    false
+   ],
+   [
+    "2026-12-31T01:15:00+00:00",
+    true
+   ],
+   [
+    "2026-12-31T04:00:00+00:00",
+    false
+   ],
+   [
+    "2026-12-31T05:00:00+00:00",
+    true
+   ],
+   [
+    "2026-12-31T08:30:00+00:00",
+    false
+   ],
+   [
+    "2026-12-31T09:15:00+00:00",
+    true
+   ],
+   [
+    "2026-12-31T19:00:00+00:00",
+    false
+   ],
+   [
+    "2027-01-01T01:15:00+00:00",
+    true
+   ],
+   [
+    "2027-01-01T04:00:00+00:00",
+    false
+   ],
+   [
+    "2027-01-01T05:00:00+00:00",
+    true
+   ],
+   [
+    "2027-01-01T08:30:00+00:00",
+    false
+   ],
+   [
+    "2027-01-01T09:15:00+00:00",
+    true
+   ],
+   [
+    "2027-01-01T19:00:00+00:00",
+    false
+   ]
+  ],
+  "server_dt": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-03-06T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-03-07T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-03-07T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-03-08T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-03-08T07:00:00+00:00",
+    3
+   ],
+   [
+    "2026-03-08T21:00:00+00:00",
+    -21
+   ],
+   [
+    "2026-03-09T00:00:00+00:00",
+    3
+   ],
+   [
+    "2026-03-09T21:00:00+00:00",
+    -21
+   ],
+   [
+    "2026-10-30T00:00:00+00:00",
+    3
+   ],
+   [
+    "2026-10-30T21:00:00+00:00",
+    -21
+   ],
+   [
+    "2026-10-31T00:00:00+00:00",
+    3
+   ],
+   [
+    "2026-10-31T21:00:00+00:00",
+    -21
+   ],
+   [
+    "2026-11-01T00:00:00+00:00",
+    3
+   ],
+   [
+    "2026-11-01T06:00:00+00:00",
+    2
+   ],
+   [
+    "2026-11-01T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-11-02T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-11-02T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-11-06T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-11-06T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-11-07T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-11-07T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-11-08T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-11-08T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-11-09T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-11-09T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2026-12-31T00:00:00+00:00",
+    2
+   ],
+   [
+    "2026-12-31T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2027-01-01T00:00:00+00:00",
+    2
+   ],
+   [
+    "2027-01-01T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2027-01-02T00:00:00+00:00",
+    2
+   ],
+   [
+    "2027-01-02T22:00:00+00:00",
+    -22
+   ],
+   [
+    "2027-01-03T00:00:00+00:00",
+    2
+   ],
+   [
+    "2027-01-03T22:00:00+00:00",
+    -22
+   ]
+  ],
+  "toxic_hours": [
+   0,
+   6,
+   18,
+   23
+  ],
+  "us_dst": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    false
+   ],
+   [
+    "2026-03-08T07:00:00+00:00",
+    true
+   ],
+   [
+    "2026-11-01T06:00:00+00:00",
+    false
+   ]
+  ],
+  "weekly_open": [
+   [
+    "2026-03-06T00:00:00+00:00",
+    "2026-03-01T22:00:00+00:00"
+   ],
+   [
+    "2026-03-08T21:00:00+00:00",
+    "2026-03-08T21:00:00+00:00"
+   ],
+   [
+    "2026-10-30T00:00:00+00:00",
+    "2026-10-25T21:00:00+00:00"
+   ],
+   [
+    "2026-11-01T22:00:00+00:00",
+    "2026-11-01T22:00:00+00:00"
+   ],
+   [
+    "2026-11-08T22:00:00+00:00",
+    "2026-11-08T22:00:00+00:00"
+   ],
+   [
+    "2026-12-31T00:00:00+00:00",
+    "2026-12-27T22:00:00+00:00"
+   ],
+   [
+    "2027-01-03T22:00:00+00:00",
+    "2027-01-03T22:00:00+00:00"
+   ]
+  ]
+ },
+ "two_tier": {
+  "close_calls": [
+   [
+    [],
+    {
+     "comment": "Tier1 50% TP",
+     "ticket": 1,
+     "volume": 0.05
+    }
+   ],
+   [
+    [],
+    {
+     "comment": "Tier1 50% TP",
+     "ticket": 5,
+     "volume": 0.05
+    }
+   ]
+  ],
+  "ladder_locked": [],
+  "modify_calls": [
+   [
+    [],
+    {
+     "sl": 1.10055,
+     "ticket": 1
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.09945,
+     "ticket": 2
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.095,
+     "ticket": 2,
+     "tp": 1.07
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.1005,
+     "ticket": 3,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.0995,
+     "ticket": 4,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.1005,
+     "ticket": 5,
+     "tp": 0.0
+    }
+   ],
+   [
+    [],
+    {
+     "sl": 1.1005,
+     "ticket": 6,
+     "tp": 0.0
+    }
+   ]
+  ],
+  "returned": {
+   "partial_closed": [
+    {
+     "error": "x",
+     "success": true,
+     "ticket": 1
+    }
+   ],
+   "trailed_runners": [
+    {
+     "success": true,
+     "ticket": 2
+    },
+    {
+     "success": true,
+     "ticket": 3
+    },
+    {
+     "success": true,
+     "ticket": 4
+    },
+    {
+     "success": true,
+     "ticket": 5
+    },
+    {
+     "success": true,
+     "ticket": 6
+    }
+   ]
+  },
+  "saved_state": [
+   {
+    "1": {
+     "closed_vol": 0.05,
+     "remain_vol": 0.05,
+     "tier1_closed": true
+    },
+    "2": {
+     "closed_vol": 0.0,
+     "remain_vol": 0.01,
+     "tier1_closed": true
+    },
+    "6": {
+     "tier1_closed": true
+    }
+   }
+  ],
+  "tier2_locked": [
+   "2",
+   "3",
+   "4",
+   "5",
+   "6"
+  ]
+ }
+}

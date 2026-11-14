@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-_fleet_mod = importlib.import_module("us_federation_quant.01_congress_alpha.formulaic_alpha_fleet")
+_fleet_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 FracDiffEngine = _fleet_mod.FracDiffEngine
 FracDiffAudit = _fleet_mod.FracDiffAudit
 FormulaicAlphas101 = _fleet_mod.FormulaicAlphas101
@@ -20,7 +20,7 @@ FormulaicAlphaSnapshot = _fleet_mod.FormulaicAlphaSnapshot
 MetaLabelingFilter = _fleet_mod.MetaLabelingFilter
 MetaLabelingVerdict = _fleet_mod.MetaLabelingVerdict
 
-_bills_mod = importlib.import_module("us_federation_quant.01_congress_alpha.legislative_bills.bill_builder")
+_bills_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 Congress = _bills_mod.Congress
 AlphaBill = _bills_mod.AlphaBill
 

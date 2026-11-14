@@ -1,0 +1,206 @@
+{
+  "enforce_forex_portfolio_hard_stop_cap": {
+    "alerts": [
+      [
+        "NAS100 HARD STOP CAP TRIGGERED",
+        "Closed ticket #8 (NAS100) at $-61.00 USD to cap loss at $15."
+      ],
+      [
+        "GBPCHFm HARD STOP CAP TRIGGERED",
+        "Closed ticket #9 (GBPCHFm) at $-15.00 USD to cap loss at $15."
+      ],
+      [
+        "UK100m HARD STOP CAP TRIGGERED",
+        "Closed ticket #10 (UK100m) at $-20.00 USD to cap loss at $15."
+      ],
+      [
+        "EURUSDm HARD STOP CAP TRIGGERED",
+        "Closed ticket #11 (EURUSDm) at $-15.01 USD to cap loss at $15."
+      ],
+      [
+        "GBPUSDm HARD STOP CAP TRIGGERED",
+        "Closed ticket #17 (GBPUSDm) at $-16.00 USD to cap loss at $15."
+      ]
+    ],
+    "close_calls": [
+      [
+        8,
+        "HardCap 15"
+      ],
+      [
+        9,
+        "HardCap 15"
+      ],
+      [
+        10,
+        "HardCap 15"
+      ],
+      [
+        11,
+        "HardCap 15"
+      ],
+      [
+        13,
+        "HardCap 15"
+      ],
+      [
+        17,
+        "HardCap 15"
+      ]
+    ],
+    "returned": [
+      {
+        "success": true,
+        "ticket": 8
+      },
+      {
+        "success": true,
+        "ticket": 9
+      },
+      {
+        "success": true,
+        "ticket": 10
+      },
+      {
+        "success": true,
+        "ticket": 11
+      },
+      {
+        "success": true,
+        "ticket": 17
+      }
+    ]
+  },
+  "enforce_gbpchf_uk100_hard_stop_cap": {
+    "alerts": [
+      [
+        "GBPCHF/UK100 HARD STOP CAP TRIGGERED",
+        "Closed ticket #9 (GBPCHFm) at $-15.00 USD to cap loss at $15."
+      ],
+      [
+        "GBPCHF/UK100 HARD STOP CAP TRIGGERED",
+        "Closed ticket #10 (UK100m) at $-20.00 USD to cap loss at $15."
+      ]
+    ],
+    "close_calls": [
+      [
+        9,
+        "HardCap 15"
+      ],
+      [
+        10,
+        "HardCap 15"
+      ]
+    ],
+    "returned": [
+      {
+        "success": true,
+        "ticket": 9
+      },
+      {
+        "success": true,
+        "ticket": 10
+      }
+    ]
+  },
+  "enforce_index_hard_stop_cap": {
+    "alerts": [
+      [
+        "INDEX HARD STOP CAP TRIGGERED",
+        "Closed Index ticket #5 at $-60.00 USD to cap fat-tail loss."
+      ],
+      [
+        "INDEX HARD STOP CAP TRIGGERED",
+        "Closed Index ticket #7 at $-100.00 USD to cap fat-tail loss."
+      ],
+      [
+        "INDEX HARD STOP CAP TRIGGERED",
+        "Closed Index ticket #8 at $-61.00 USD to cap fat-tail loss."
+      ]
+    ],
+    "close_calls": [
+      [
+        5,
+        "Index HardCap 60"
+      ],
+      [
+        7,
+        "Index HardCap 60"
+      ],
+      [
+        8,
+        "Index HardCap 60"
+      ]
+    ],
+    "returned": [
+      {
+        "success": true,
+        "ticket": 5
+      },
+      {
+        "success": true,
+        "ticket": 7
+      },
+      {
+        "success": true,
+        "ticket": 8
+      }
+    ]
+  },
+  "enforce_xauusd_hard_stop_cap": {
+    "alerts": [
+      [
+        "XAUUSD HARD STOP CAP TRIGGERED",
+        "Closed Gold ticket #1 at $-75.00 USD to cap fat-tail loss."
+      ],
+      [
+        "XAUUSD HARD STOP CAP TRIGGERED",
+        "Closed Gold ticket #3 at $-75.50 USD to cap fat-tail loss."
+      ],
+      [
+        "XAUUSD HARD STOP CAP TRIGGERED",
+        "Closed Gold ticket #4 at $-90.00 USD to cap fat-tail loss."
+      ],
+      [
+        "XAUUSD HARD STOP CAP TRIGGERED",
+        "Closed Gold ticket #15 at $-500.00 USD to cap fat-tail loss."
+      ]
+    ],
+    "close_calls": [
+      [
+        1,
+        "XAU HardCap 75"
+      ],
+      [
+        3,
+        "XAU HardCap 75"
+      ],
+      [
+        4,
+        "XAU HardCap 75"
+      ],
+      [
+        15,
+        "XAU HardCap 75"
+      ]
+    ],
+    "returned": [
+      {
+        "success": true,
+        "ticket": 1
+      },
+      {
+        "success": true,
+        "ticket": 3
+      },
+      {
+        "success": true,
+        "ticket": 4
+      },
+      {
+        "success": true,
+        "ticket": 15
+      }
+    ]
+  }
+}

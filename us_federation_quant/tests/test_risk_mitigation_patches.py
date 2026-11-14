@@ -16,7 +16,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import importlib
-_base_pod_mod = importlib.import_module("us_federation_quant.05_the_50_states.base_pod")
+_base_pod_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 BaseStatePod = _base_pod_mod.BaseStatePod
 INDEX_MAX_LOTS = _base_pod_mod.INDEX_MAX_LOTS
 

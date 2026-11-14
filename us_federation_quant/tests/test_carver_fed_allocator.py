@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import importlib
 
-_fed_mod = importlib.import_module("us_federation_quant.04_federal_reserve.dynamic_qe_qt_allocator")
+_fed_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 FederalReserveAllocator = _fed_mod.FederalReserveAllocator
 CarverQEAllocationEngine = _fed_mod.CarverQEAllocationEngine
 

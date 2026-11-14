@@ -49,10 +49,10 @@ if hasattr(sys.stdout, "reconfigure"):
 # Core Tools & Components
 from bots._shared.gemini_router import GeminiSmartRouter, TaskTier
 
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 
-_titan_mod = importlib.import_module("us_federation_quant.04_federal_reserve.quad_titan_engine")
+_titan_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 MITTitanModule = _titan_mod.MITTitanModule
 RayDalioTitanModule = _titan_mod.RayDalioTitanModule
 BlackRockTreasuryModule = _titan_mod.BlackRockTreasuryModule

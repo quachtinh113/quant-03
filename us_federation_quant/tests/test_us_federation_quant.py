@@ -12,48 +12,48 @@ import pandas as pd
 from us_federation_quant.federation_hub import FederationHub
 import importlib
 
-_house_mod = importlib.import_module("us_federation_quant.01_congress_alpha.house_of_representatives.micro_features")
+_house_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 HouseOfRepresentatives = _house_mod.HouseOfRepresentatives
 
-_senate_mod = importlib.import_module("us_federation_quant.01_congress_alpha.senate_macro.macro_regime")
+_senate_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 SenateMacro = _senate_mod.SenateMacro
 
-_congress_mod = importlib.import_module("us_federation_quant.01_congress_alpha.legislative_bills.bill_builder")
+_congress_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 Congress = _congress_mod.Congress
 
-_court_mod = importlib.import_module("us_federation_quant.02_supreme_court.cryptographic_warrant")
+_court_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 SupremeCourt = _court_mod.SupremeCourt
 JudicialVetoError = _court_mod.JudicialVetoError
 
-_dsr_mod = importlib.import_module("us_federation_quant.02_supreme_court.deflated_sharpe_test")
+_dsr_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 compute_dsr_and_psr = _dsr_mod.compute_dsr_and_psr
 
-_ledger_mod = importlib.import_module("us_federation_quant.02_supreme_court.trial_ledger")
+_ledger_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 ImmutableTrialLedger = _ledger_mod.ImmutableTrialLedger
 
-_vault_mod = importlib.import_module("us_federation_quant.02_supreme_court.cold_storage_vault")
+_vault_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 ColdStorageOOSVault = _vault_mod.ColdStorageOOSVault
 
-_swan_mod = importlib.import_module("us_federation_quant.02_supreme_court.black_swan_stress_tester")
+_swan_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 BlackSwanStressTester = _swan_mod.BlackSwanStressTester
 
-_exec_mod = importlib.import_module("us_federation_quant.03_executive_presidency.order_router.router")
+_exec_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 ExecutiveOrderRouter = _exec_mod.ExecutiveOrderRouter
 ExecutiveUnauthorizedError = _exec_mod.ExecutiveUnauthorizedError
 
-_nf_mod = importlib.import_module("us_federation_quant.03_executive_presidency.nuclear_football_hardstop")
+_nf_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 NuclearFootball = _nf_mod.NuclearFootball
 
-_as_mod = importlib.import_module("us_federation_quant.03_executive_presidency.avellaneda_stoikov.engine")
+_as_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 AvellanedaStoikovEngine = _as_mod.AvellanedaStoikovEngine
 
-_fed_mod = importlib.import_module("us_federation_quant.04_federal_reserve.dynamic_qe_qt_allocator")
+_fed_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 FederalReserveAllocator = _fed_mod.FederalReserveAllocator
 
-_cov_mod = importlib.import_module("us_federation_quant.04_federal_reserve.interest_rate_matrix")
+_cov_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 ledoit_wolf_covariance_shrinkage = _cov_mod.ledoit_wolf_covariance_shrinkage
 
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 
 
@@ -77,12 +77,12 @@ def bullish_market_data():
 def test_the_constitution_articles_exist():
     """Test 1: Articles 1 & 2 of the Constitution exist and are readable."""
     base_dir = os.path.dirname(os.path.dirname(__file__))
-    art1_path = os.path.join(base_dir, "00_the_constitution", "article_1_max_drawdown.yaml")
+    art1_path = os.path.join(base_dir, "config", "constitution", "article_1_max_drawdown.yaml")
     if not os.path.exists(art1_path):
-        art1_path = os.path.join(base_dir, "us_federation_quant", "00_the_constitution", "article_1_max_drawdown.yaml")
-    art2_path = os.path.join(base_dir, "00_the_constitution", "article_2_var_limits.yaml")
+        art1_path = os.path.join(base_dir, "us_federation_quant", "config", "constitution", "article_1_max_drawdown.yaml")
+    art2_path = os.path.join(base_dir, "config", "constitution", "article_2_var_limits.yaml")
     if not os.path.exists(art2_path):
-        art2_path = os.path.join(base_dir, "us_federation_quant", "00_the_constitution", "article_2_var_limits.yaml")
+        art2_path = os.path.join(base_dir, "us_federation_quant", "config", "constitution", "article_2_var_limits.yaml")
     assert os.path.exists(art1_path)
     assert os.path.exists(art2_path)
 
@@ -264,7 +264,7 @@ def test_federation_master_lifecycle_end_to_end(bullish_market_data):
 def test_quad_titan_engine_pillars():
     """Test 13: Quad-Titan Quantitative Foundation (MIT - Wall Street - Ray Dalio - BlackRock)."""
     import importlib
-    mod = importlib.import_module("us_federation_quant.04_federal_reserve.quad_titan_engine")
+    mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
     QuadTitanEngine = mod.QuadTitanEngine
 
     engine = QuadTitanEngine(initial_capital_usd=10_000.0)

@@ -22,12 +22,12 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from us_federation_quant.core.high_water_mark import (  # noqa: E402
+from us_federation_quant.layers.l4_risk import (  # noqa: E402
     HighWaterMarkTracker,
     HighWaterMarkState,
 )
 
-_titan = importlib.import_module("us_federation_quant.04_federal_reserve.quad_titan_engine")
+_titan = importlib.import_module("us_federation_quant.layers.l3_sizing")
 WallStreetPodDefense = _titan.WallStreetPodDefense
 
 

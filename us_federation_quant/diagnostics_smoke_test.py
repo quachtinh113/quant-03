@@ -42,7 +42,7 @@ print(f"  ✅ Live Trading : {live_mode}")
 
 # 2. Check 50 States Registry
 print("\n[2/6] Kiểm tra State Federation Registry (50 Tiểu bang)...")
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 registry = _states_mod.StateFederationRegistry()
 summary = registry.get_federation_summary()
 print(f"  ✅ Tổng số tiểu bang: {summary['total_states']} / 50")
@@ -54,7 +54,7 @@ print(f"  ✅ State 50: {state_50.state_name} ({state_50.primary_asset}) | Magic
 
 # 3. Check Quad-Titan Foundation
 print("\n[3/6] Kiểm tra Bộ Tứ Trụ (MIT - Phố Wall - Ray Dalio - BlackRock)...")
-_titan_mod = importlib.import_module("us_federation_quant.04_federal_reserve.quad_titan_engine")
+_titan_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 quad = _titan_mod.QuadTitanEngine(initial_capital_usd=10_000.0)
 audit_res = quad.execute_quad_audit(
     current_equity=10_500.0,
@@ -81,7 +81,7 @@ print("  ✅ Ban Hành pháp Executive Order Router: Sẵn sàng")
 print("\n[5/6] Kiểm tra Cổng Kết Nối MetaTrader 5 (Exness)...")
 try:
     try:
-        from us_federation_quant.core.mt5_connection_manager import MT5ConnectionManager
+        from us_federation_quant.layers.l5_execution import MT5ConnectionManager
     except ImportError:
         from All_Fleet_Bot.core.mt5_connection_manager import MT5ConnectionManager
     mt5_mgr = MT5ConnectionManager()

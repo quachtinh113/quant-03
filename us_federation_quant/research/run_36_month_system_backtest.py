@@ -47,10 +47,10 @@ for p in [str(_DIR), str(_WORKSPACE)]:
 from dotenv import load_dotenv
 load_dotenv(_DIR / ".env")
 
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 
-_sc_mod = importlib.import_module("us_federation_quant.02_supreme_court.deflated_sharpe_test")
+_sc_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 compute_dsr_and_psr = _sc_mod.compute_dsr_and_psr
 
 LOG_DIR = _DIR / "logs"

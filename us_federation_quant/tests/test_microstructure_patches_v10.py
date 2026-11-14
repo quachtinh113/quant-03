@@ -537,7 +537,7 @@ def test_enforce_gbpchf_uk100_hard_stop_cap():
 def test_hk50_elimination_and_session_gate():
     """Verify HK50 (STATE_17) is eliminated and session gate properly identifies market breaks."""
     import importlib
-    reg_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+    reg_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
     ELITE_STATE_IDS = reg_mod.ELITE_STATE_IDS
     ELIMINATED_STATE_IDS = reg_mod.ELIMINATED_STATE_IDS
     from us_federation_quant.live_federation_runner import USFederationQuantRuntime

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from us_federation_quant.institutional_governance_rules import check_factor_limits
 import importlib
-_ks_mod = importlib.import_module("us_federation_quant.06_the_fourth_estate.federal_master_kill_switch")
+_ks_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 FederalMasterKillSwitch = _ks_mod.FederalMasterKillSwitch
 FederalCircuitBreakerActive = _ks_mod.FederalCircuitBreakerActive
 from us_federation_quant.live_federation_runner import USFederationQuantRuntime
@@ -124,7 +124,7 @@ def test_soft_derisking_protocol():
 
 def test_trailing_stop_manager_ratchet():
     """Test TrailingStopManager ratchets Stop Loss according to H1 ATR Chandelier Exit."""
-    from us_federation_quant.execution_layer.trailing_stop_manager import TrailingStopManager
+    from us_federation_quant.layers.l5_execution import TrailingStopManager
 
     ts = TrailingStopManager(atr_period=14, atr_multiplier=2.0, min_modification_points=15)
 

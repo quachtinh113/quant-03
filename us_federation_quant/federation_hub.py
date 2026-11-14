@@ -14,30 +14,30 @@ import numpy as np
 import pandas as pd
 
 # Dynamic imports to cleanly handle numeric folder names in compliance with Python PEP 8
-_congress_mod = importlib.import_module("us_federation_quant.01_congress_alpha.legislative_bills.bill_builder")
+_congress_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 Congress = _congress_mod.Congress
 AlphaBill = _congress_mod.AlphaBill
 
-_court_mod = importlib.import_module("us_federation_quant.02_supreme_court.cryptographic_warrant")
+_court_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 SupremeCourt = _court_mod.SupremeCourt
 JudicialWarrant = _court_mod.JudicialWarrant
 JudicialVetoError = _court_mod.JudicialVetoError
 
-_router_mod = importlib.import_module("us_federation_quant.03_executive_presidency.order_router.router")
+_router_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 ExecutiveOrderRouter = _router_mod.ExecutiveOrderRouter
 MicroOrderSlice = _router_mod.MicroOrderSlice
 ExecutiveUnauthorizedError = _router_mod.ExecutiveUnauthorizedError
 
-_fed_mod = importlib.import_module("us_federation_quant.04_federal_reserve.dynamic_qe_qt_allocator")
+_fed_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 FederalReserveAllocator = _fed_mod.FederalReserveAllocator
 
-_fund_mod = importlib.import_module("us_federation_quant.04_federal_reserve.emergency_liquidity_fund")
+_fund_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 EmergencyLiquidityFund = _fund_mod.EmergencyLiquidityFund
 
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 
-_fourth_mod = importlib.import_module("us_federation_quant.06_the_fourth_estate.central_risk_desk")
+_fourth_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 CentralRiskDesk = _fourth_mod.CentralRiskDesk
 
 

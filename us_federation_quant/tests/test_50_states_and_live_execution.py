@@ -16,7 +16,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 BaseStatePod = _states_mod.BaseStatePod
 StateTradeProposal = _states_mod.StateTradeProposal
@@ -24,7 +24,7 @@ GoldScalpPod = _states_mod.GoldScalpPod
 US30HybridPod = _states_mod.US30HybridPod
 USDJPYCarryPod = _states_mod.USDJPYCarryPod
 
-_exec_mod = importlib.import_module("us_federation_quant.03_executive_presidency")
+_exec_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 MT5PayloadBuilder = _exec_mod.MT5PayloadBuilder
 MT5LiveConnector = _exec_mod.MT5LiveConnector
 MT5RetCode = _exec_mod.MT5RetCode

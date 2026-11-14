@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 import importlib
 
-_review_mod = importlib.import_module("us_federation_quant.02_supreme_court.judicial_review")
+_review_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 JudicialReview = _review_mod.JudicialReview
 
-_court_mod = importlib.import_module("us_federation_quant.02_supreme_court.cryptographic_warrant")
+_court_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 SupremeCourt = _court_mod.SupremeCourt
 JudicialVetoError = _court_mod.JudicialVetoError
 

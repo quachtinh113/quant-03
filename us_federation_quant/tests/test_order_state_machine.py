@@ -9,7 +9,7 @@ import pytest
 import time
 from unittest.mock import MagicMock, patch
 
-from us_federation_quant.core.order_state_machine import (
+from us_federation_quant.layers.l5_execution import (
     OrderState,
     FederationOrder,
     OrderStateMachine,
@@ -18,17 +18,17 @@ from us_federation_quant.core.order_state_machine import (
     InvalidStateTransitionError,
     DuplicateOrderSubmissionError,
 )
-from us_federation_quant.core.mt5_connection_manager import MT5ConnectionManager
+from us_federation_quant.layers.l5_execution import MT5ConnectionManager
 import importlib
 
-_court_mod = importlib.import_module("us_federation_quant.02_supreme_court.cryptographic_warrant")
+_court_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 JudicialWarrant = _court_mod.JudicialWarrant
 
-_router_mod = importlib.import_module("us_federation_quant.03_executive_presidency.order_router.router")
+_router_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 ExecutiveOrderRouter = _router_mod.ExecutiveOrderRouter
 MicroOrderSlice = _router_mod.MicroOrderSlice
 
-_bridge_mod = importlib.import_module("us_federation_quant.03_executive_presidency.broker_bridge.mt5_payload_builder")
+_bridge_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 MT5PayloadBuilder = _bridge_mod.MT5PayloadBuilder
 
 
@@ -332,7 +332,7 @@ def test_mt5_connection_manager_order_state_machine_flow():
     mock_res.price = 2650.2
     mock_res.volume = 0.10
 
-    with patch("us_federation_quant.core.mt5_connection_manager.mt5") as mock_mt5:
+    with patch("us_federation_quant.layers.l5_execution.mt5") as mock_mt5:
         mock_mt5.TRADE_RETCODE_DONE = 10009
         mock_mt5.TRADE_ACTION_DEAL = 1
         mock_mt5.ORDER_TYPE_BUY = 0

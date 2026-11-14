@@ -13,7 +13,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-_fe_mod = importlib.import_module("us_federation_quant.06_the_fourth_estate")
+_fe_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 CentralVaREngine = _fe_mod.CentralVaREngine
 VaRMetricResult = _fe_mod.VaRMetricResult
 ExposureAndBetaDesk = _fe_mod.ExposureAndBetaDesk

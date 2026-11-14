@@ -26,7 +26,7 @@ for p in [str(_DIR), str(_WORKSPACE)]:
         sys.path.insert(0, p)
 
 import importlib
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 ELITE_STATE_IDS = _states_mod.ELITE_STATE_IDS
 ELIMINATED_STATE_IDS = _states_mod.ELIMINATED_STATE_IDS

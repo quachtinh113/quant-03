@@ -13,7 +13,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-_ml_mod = importlib.import_module("us_federation_quant.01_congress_alpha.ml_engine")
+_ml_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 SymmetricCUSUMFilter = _ml_mod.SymmetricCUSUMFilter
 TripleBarrierLabeler = _ml_mod.TripleBarrierLabeler
 PurgedKFold = _ml_mod.PurgedKFold
@@ -22,7 +22,7 @@ MetaClassifierArtifact = _ml_mod.MetaClassifierArtifact
 ModelInferenceService = _ml_mod.ModelInferenceService
 MLInferenceResult = _ml_mod.MLInferenceResult
 
-_bills_mod = importlib.import_module("us_federation_quant.01_congress_alpha.legislative_bills.bill_builder")
+_bills_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 Congress = _bills_mod.Congress
 AlphaBill = _bills_mod.AlphaBill
 

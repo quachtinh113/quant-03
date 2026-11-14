@@ -43,7 +43,7 @@ for p in [str(_DIR), str(_WORKSPACE), str(_WORKSPACE / "All_Fleet_Bot"), str(_WO
     if p not in sys.path:
         sys.path.insert(0, p)
 
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 
 LOG_DIR = _DIR / "logs"

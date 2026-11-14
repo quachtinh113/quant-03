@@ -41,12 +41,12 @@ from dotenv import load_dotenv
 load_dotenv(_DIR / ".env")
 
 try:
-    from us_federation_quant.core.mt5_connection_manager import MT5ConnectionManager
+    from us_federation_quant.layers.l5_execution import MT5ConnectionManager
 except ImportError:
     from All_Fleet_Bot.core.mt5_connection_manager import MT5ConnectionManager
 import MetaTrader5 as mt5
 
-_states_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 StateFederationRegistry = _states_mod.StateFederationRegistry
 
 LOG_DIR = _DIR / "logs"

@@ -7,14 +7,14 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 from datetime import datetime, timezone
 
-from us_federation_quant.core.mt5_connection_manager import MT5ConnectionManager
+from us_federation_quant.layers.l5_execution import MT5ConnectionManager
 
 
 class TestRecoveryAndMarketSession(unittest.TestCase):
     def setUp(self):
         self.mgr = MT5ConnectionManager()
 
-    @patch("us_federation_quant.core.mt5_connection_manager.mt5")
+    @patch("us_federation_quant.layers.l5_execution.mt5")
     def test_market_session_blocks_non_full_access(self, mock_mt5):
         """Verify is_market_open returns False when trade_mode is not FULL (e.g. CLOSEONLY or DISABLED)."""
         mock_mt5.SYMBOL_TRADE_MODE_FULL = 4
@@ -37,7 +37,7 @@ class TestRecoveryAndMarketSession(unittest.TestCase):
         with patch.object(self.mgr, "ensure_connected", return_value=True):
             self.assertTrue(self.mgr.is_market_open("USTEC"))
 
-    @patch("us_federation_quant.core.mt5_connection_manager.mt5")
+    @patch("us_federation_quant.layers.l5_execution.mt5")
     def test_open_market_order_handles_market_closed_10018(self, mock_mt5):
         """Verify retcode 10018 (MARKET_CLOSED) returns clean rejection without raising exceptions."""
         mock_mt5.TRADE_RETCODE_DONE = 10009

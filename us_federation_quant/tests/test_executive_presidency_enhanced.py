@@ -11,7 +11,7 @@ Enhanced Unit Tests for Khối Hành Pháp (The Executive Presidency):
 import importlib
 import pytest
 
-_exec_mod = importlib.import_module("us_federation_quant.03_executive_presidency")
+_exec_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 AvellanedaStoikovEngine = _exec_mod.AvellanedaStoikovEngine
 AlmgrenChrissExecutor = _exec_mod.AlmgrenChrissExecutor
 VWAPProfileSlicer = _exec_mod.VWAPProfileSlicer
@@ -23,11 +23,11 @@ MT5PayloadBuilder = _exec_mod.MT5PayloadBuilder
 MT5TradeAction = _exec_mod.MT5TradeAction
 MT5OrderType = _exec_mod.MT5OrderType
 
-_court_mod = importlib.import_module("us_federation_quant.02_supreme_court")
+_court_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 SupremeCourt = _court_mod.SupremeCourt
 JudicialWarrant = _court_mod.JudicialWarrant
 
-_bills_mod = importlib.import_module("us_federation_quant.01_congress_alpha.legislative_bills.bill_builder")
+_bills_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 AlphaBill = _bills_mod.AlphaBill
 
 

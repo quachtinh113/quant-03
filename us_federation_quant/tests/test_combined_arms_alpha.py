@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import importlib
 
-_mod = importlib.import_module("us_federation_quant.01_congress_alpha.combined_arms_alpha")
+_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 ReconnaissanceUnit = _mod.ReconnaissanceUnit
 ArmoredMomentumUnit = _mod.ArmoredMomentumUnit
 ArtilleryMeanReversionUnit = _mod.ArtilleryMeanReversionUnit

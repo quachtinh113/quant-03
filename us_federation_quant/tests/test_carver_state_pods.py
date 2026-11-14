@@ -9,11 +9,11 @@ import numpy as np
 import pandas as pd
 import importlib
 
-_base_mod = importlib.import_module("us_federation_quant.05_the_50_states.base_pod")
+_base_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 BaseStatePod = _base_mod.BaseStatePod
 StateTradeProposal = _base_mod.StateTradeProposal
 
-_gold_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_01_xauusd_scalp.pod")
+_gold_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 GoldScalpPod = _gold_mod.GoldScalpPod
 
 

@@ -68,10 +68,10 @@ except ImportError:
 _hub_mod = importlib.import_module("us_federation_quant.federation_hub")
 FederationHub = _hub_mod.FederationHub
 
-_titan_mod = importlib.import_module("us_federation_quant.04_federal_reserve.quad_titan_engine")
+_titan_mod = importlib.import_module("us_federation_quant.03_portfolio.federal_reserve.quad_titan_engine")
 QuadTitanEngine = _titan_mod.QuadTitanEngine
 
-_states_reg_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+_states_reg_mod = importlib.import_module("us_federation_quant.03_portfolio.the_50_states.state_registry")
 ELITE_STATE_IDS = getattr(_states_reg_mod, "ELITE_STATE_IDS", [])
 ELIMINATED_STATE_IDS = getattr(_states_reg_mod, "ELIMINATED_STATE_IDS", [])
 

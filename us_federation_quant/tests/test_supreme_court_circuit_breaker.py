@@ -15,7 +15,7 @@ if str(_DIR) not in sys.path:
     sys.path.insert(0, str(_DIR))
 
 import importlib
-_sc_manager_mod = importlib.import_module("us_federation_quant.02_supreme_court.supreme_court_circuit_breaker_manager")
+_sc_manager_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 SupremeCourtCircuitBreakerManager = _sc_manager_mod.SupremeCourtCircuitBreakerManager
 PodQuarantineRecord = _sc_manager_mod.PodQuarantineRecord
 SystemCircuitBreakerSnapshot = _sc_manager_mod.SystemCircuitBreakerSnapshot

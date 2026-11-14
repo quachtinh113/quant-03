@@ -48,7 +48,7 @@ from us_federation_quant.institutional_governance_rules import (
     StatutoryAuditResult,
 )
 
-_sc_mod = importlib.import_module("us_federation_quant.02_supreme_court.supreme_court_circuit_breaker_manager")
+_sc_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 SupremeCourtCircuitBreakerManager = _sc_mod.SupremeCourtCircuitBreakerManager
 
 logger = logging.getLogger("GoldOracleTradingBot")

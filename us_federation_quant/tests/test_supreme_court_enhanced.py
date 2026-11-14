@@ -13,22 +13,22 @@ import numpy as np
 import pandas as pd
 import pytest
 
-_court_mod = importlib.import_module("us_federation_quant.02_supreme_court")
+_court_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 SupremeCourt = _court_mod.SupremeCourt
 JudicialReview = _court_mod.JudicialReview
 JudicialWarrant = _court_mod.JudicialWarrant
 JudicialVetoError = _court_mod.JudicialVetoError
 BlackSwanStressTester = _court_mod.BlackSwanStressTester
 
-_bills_mod = importlib.import_module("us_federation_quant.01_congress_alpha.legislative_bills.bill_builder")
+_bills_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 Congress = _bills_mod.Congress
 AlphaBill = _bills_mod.AlphaBill
 
-_router_mod = importlib.import_module("us_federation_quant.03_executive_presidency.order_router.router")
+_router_mod = importlib.import_module("us_federation_quant.layers.l5_execution")
 ExecutiveOrderRouter = _router_mod.ExecutiveOrderRouter
 ExecutiveUnauthorizedError = _router_mod.ExecutiveUnauthorizedError
 
-_mit_mod = importlib.import_module("us_federation_quant.01_congress_alpha.mit_dalio_foundation")
+_mit_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 MITMatrixCompensator = _mit_mod.MITMatrixCompensator
 
 
