@@ -22,7 +22,6 @@ from ..mit_dalio_foundation.mit_matrix_compensator import MITMatrixCompensator
 from .meta_classifier_trainer import MetaClassifierArtifact
 
 
-
 @dataclass
 class MLInferenceResult:
     """Real-time ML Prediction & Feature Attribution."""
@@ -42,7 +41,7 @@ class ModelInferenceService:
     def __init__(
         self,
         artifact: Optional[MetaClassifierArtifact] = None,
-        prob_threshold: float = 0.52,
+        prob_threshold: float = 0.50,
         default_d: float = 0.40
     ):
         self.artifact = artifact
@@ -69,7 +68,6 @@ class ModelInferenceService:
 
         # 1. FracDiff Stationary Price
         frac_close = FracDiffEngine.frac_diff_ffd(close, d=self.default_d)
-
 
         # 2. Garman-Klass Extreme-Value Volatility
         log_hl = np.log(np.maximum(1e-4, high / low))
@@ -101,7 +99,6 @@ class ModelInferenceService:
             index=df.index
         ).fillna(0.0)
 
-
         # 5. Order Flow Imbalance proxy (Close position within bar * Volume)
         spread = np.maximum(1e-4, high - low)
         bar_pos = ((close - low) - (high - close)) / spread
@@ -130,7 +127,7 @@ class ModelInferenceService:
         signal_strength: float = 0.5
     ) -> MLInferenceResult:
         """
-        Extracts features at the latest bar and computes calibrated P(Win) and Kelly multiplier.
+        Extracts features at the latest bar and computes directionally calibrated P(Win) and Kelly multiplier.
         """
         features_df = self.extract_features(df)
         latest_row = features_df.iloc[-1]
@@ -142,15 +139,15 @@ class ModelInferenceService:
             raw_prob = float(self.artifact.model.predict_proba(feature_vector)[0, 1])
             model_source = "TRAINED_META_MODEL"
         else:
-            # Analytic empirical Bayesian prior
-            # Combine signal strength + variance ratio trend boost + alpha composite
+            # Analytic empirical Bayesian prior with strict directional alignment
+            action_sign = 1.0 if primary_action.upper() == "BUY" else -1.0
             base_prob = 0.50
-            alpha_boost = np.clip(latest_row["alpha_composite"], -0.15, 0.15)
+            alpha_boost = float(np.clip(latest_row["alpha_composite"] * action_sign, -0.15, 0.15))
             vr_boost = 0.05 if latest_row["variance_ratio"] > 1.20 else (-0.05 if latest_row["variance_ratio"] < 0.80 else 0.0)
-            mom_sign = 1.0 if primary_action.upper() == "BUY" else -1.0
-            mom_boost = float(np.clip(latest_row["momentum_5"] * mom_sign * 5.0, -0.10, 0.10))
+            mom_boost = float(np.clip(latest_row["momentum_5"] * action_sign * 15.0, -0.10, 0.10))
+            ofi_boost = float(np.clip(latest_row["ofi_proxy"] * action_sign * 0.05, -0.05, 0.05))
 
-            raw_prob = float(np.clip(base_prob + alpha_boost + vr_boost + mom_boost + 0.05 * signal_strength, 0.05, 0.95))
+            raw_prob = float(np.clip(base_prob + alpha_boost + vr_boost + mom_boost + ofi_boost + 0.05 * signal_strength, 0.05, 0.95))
             model_source = "EMPIRICAL_ANALYTIC_ENGINE"
 
         win_prob = round(raw_prob, 4)

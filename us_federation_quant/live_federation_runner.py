@@ -27,9 +27,12 @@ import os
 import signal
 import sys
 import time
+import atexit
+if os.name == "nt":
+    import msvcrt
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
 import pandas as pd
@@ -38,6 +41,51 @@ from dotenv import load_dotenv
 # Ensure root paths
 _DIR = Path(__file__).resolve().parent
 _WORKSPACE = _DIR.parent
+
+_LOCK_FILE_PATH = _DIR / "us_federation_quant.lock"
+_LOCK_FILE_OBJ = None
+
+def acquire_single_instance_lock():
+    """
+    Trụ cột 1: Single-Instance OS Mutex Lock.
+    Sử dụng msvcrt.locking (LK_NBLCK) trên Windows để khóa độc quyền us_federation_quant.lock
+    ngay khi khởi động tiến trình. Nếu file đã bị khóa bởi tiến trình khác, lập tức ghi log
+    [CRITICAL] Duplicate instance detected và thoát trong < 10ms.
+    """
+    global _LOCK_FILE_OBJ
+    if os.name != "nt":
+        return
+    try:
+        _LOCK_FILE_OBJ = open(_LOCK_FILE_PATH, "a+b")
+        _LOCK_FILE_OBJ.seek(0)
+        msvcrt.locking(_LOCK_FILE_OBJ.fileno(), msvcrt.LK_NBLCK, 1)
+        _LOCK_FILE_OBJ.seek(0)
+        _LOCK_FILE_OBJ.truncate()
+        _LOCK_FILE_OBJ.write(f"{os.getpid()}\n".encode("utf-8"))
+        _LOCK_FILE_OBJ.flush()
+    except (IOError, OSError) as e:
+        msg = f"🛑 [CRITICAL] Duplicate instance detected! us_federation_quant.lock is exclusively held by another process: {e}"
+        try:
+            logger.critical(msg)
+        except Exception:
+            pass
+        print(msg, file=sys.stderr)
+        sys.exit(1)
+
+def release_single_instance_lock():
+    global _LOCK_FILE_OBJ
+    if os.name == "nt" and _LOCK_FILE_OBJ:
+        try:
+            _LOCK_FILE_OBJ.seek(0)
+            msvcrt.locking(_LOCK_FILE_OBJ.fileno(), msvcrt.LK_UNLCK, 1)
+            _LOCK_FILE_OBJ.close()
+            _LOCK_FILE_OBJ = None
+            if _LOCK_FILE_PATH.exists():
+                _LOCK_FILE_PATH.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+atexit.register(release_single_instance_lock)
 
 for p in [str(_DIR), str(_WORKSPACE), str(_WORKSPACE / "All_Fleet_Bot"), str(_WORKSPACE / "ML_4_Bot")]:
     if p not in sys.path:
@@ -174,6 +222,29 @@ class USFederationQuantRuntime:
         self.ts_manager = TrailingStopManager(atr_period=14, atr_multiplier=2.0, min_modification_points=15)
         self.TOXIC_HOURS = self.__class__.TOXIC_HOURS
 
+        # 8b. Institutional Risk, Cooldown & Anti-Chasing / Anti-Trend-Trap State (Skill 07 Enhanced)
+        self.MAX_HARD_RISK_USD: float = 15.0          # Universal Fallback Cap for ALL Standard Trades
+        self.MAX_INDEX_HARD_RISK_USD: float = 60.0    # Institutional Risk Cap for US Indices (USTEC/US30/US100/US500)
+        self.COOLDOWN_AFTER_EXIT_SEC: float = 900.0   # 15 phút khóa sau khi đóng bất kỳ lệnh nào (3 nến M5)
+        self.MAX_CONSECUTIVE_SL_SAME_DIR: int = 2     # Tối đa 2 lệnh SL liên tiếp cùng chiều
+        self.DIRECTION_LOCKOUT_SEC: float = 7200.0    # Khóa chiều thua 2 tiếng (7200s)
+        self.symbol_state: Dict[str, Dict[str, Any]] = {}
+        self._tracked_open_tickets: Dict[int, Dict[str, Any]] = {}
+        self._tier2_locked_tickets: Set[int] = set()  # Trụ cột 4: Miễn nhiễm Stagnation Exit 4h cho các vị thế đã khóa lãi +5$ USD
+        self._profit_ladder_locked_tickets: Set[int] = set()  # Bậc thang Khóa Lãi 3 Tầng: Miễn nhiễm Stagnation tuyệt đối
+        self.ELITE_ALPHA_SYMBOLS: Set[str] = {"GBPCHF", "EURAUD", "GBPUSD", "USDCHF", "US30"}
+        self.ALPHA_BOOSTER_MULTIPLIER: float = 1.6    # Hệ số đòn bẩy Alpha cho nhóm Elite under $15 Cap
+
+        # 8. Financial ML Engine: Marcos López de Prado Meta-Labeling Inference Service
+        try:
+            import importlib
+            ml_mod = importlib.import_module("us_federation_quant.01_congress_alpha.ml_engine.model_inference_service")
+            self.ml_service = ml_mod.ModelInferenceService(prob_threshold=0.48)
+            logger.info("🧠 [ML ENGINE ACTIVE] Đã kích hoạt ModelInferenceService (Meta-Labeling AFML & Fractional Kelly).")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to initialize ModelInferenceService: {e}")
+            self.ml_service = None
+
     def print_constitutional_dashboard(
         self,
         account_info: Dict[str, Any],
@@ -247,15 +318,62 @@ class USFederationQuantRuntime:
         else:
             logger.info("  🔍 [TIMELINE SCAN] 50/50 Tiểu bang Sẵn sàng | Đang quét tín hiệu vào lệnh (XAUUSDm, US30, USDJPY, BTC...)")
 
-    def calculate_risk_adjusted_lot(self, symbol: str, sl_points: float, max_risk_usd: float = 35.0) -> float:
+    def enforce_hard_risk_cap(self, symbol: str, raw_lot: float, sl_distance_price: float, max_risk_usd: float = 15.0) -> float:
         """
-        Quant Core V9: Volatility ATR Dollar Sizing.
-        Dynamically calculates lot size such that hitting Stop Loss risks exactly max_risk_usd.
+        Khống chế mức lỗ tối đa tại SL không bao giờ vượt quá max_risk_usd ($15.00).
+        Làm tròn xuống theo volume_step để đảm bảo toán học không bị làm tròn lên vượt trần rủi ro.
+        """
+        import MetaTrader5 as mt5
+        sym_info = mt5.symbol_info(symbol)
+        if sym_info is None and hasattr(self, "mt5_mgr"):
+            resolved = self.mt5_mgr.resolve_symbol(symbol)
+            sym_info = mt5.symbol_info(resolved)
+
+        if not sym_info or sl_distance_price <= 0:
+            return sym_info.volume_min if sym_info else 0.01
+
+        trade_tick_size = float(getattr(sym_info, "trade_tick_size", 0.0) or 0.0)
+        trade_tick_value = float(getattr(sym_info, "trade_tick_value", 0.0) or 0.0)
+        volume_step = float(getattr(sym_info, "volume_step", 0.01) or 0.01)
+        volume_min = float(getattr(sym_info, "volume_min", 0.01) or 0.01)
+        volume_max = float(getattr(sym_info, "volume_max", 100.0) or 100.0)
+
+        if trade_tick_size <= 0:
+            trade_tick_size = getattr(sym_info, "point", 0.0001) or 0.0001
+        if trade_tick_value <= 0:
+            trade_tick_value = 1.0
+
+        ticks_in_sl = sl_distance_price / trade_tick_size
+        loss_per_lot = ticks_in_sl * trade_tick_value
+        if loss_per_lot <= 0:
+            return volume_min
+
+        sym_clean = symbol.upper().replace("M", "")
+        is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
+        cap_limit = getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0) if is_index else getattr(self, "MAX_HARD_RISK_USD", 15.0)
+        target_cap = min(max_risk_usd, cap_limit)
+        max_allowed_lot = target_cap / loss_per_lot
+        capped_lot = min(raw_lot, max_allowed_lot)
+
+        # Làm tròn xuống theo volume_step để không bao giờ vượt cap
+        if volume_step > 0:
+            step_count = int(round(capped_lot / volume_step, 6))
+            final_lot = step_count * volume_step
+        else:
+            final_lot = capped_lot
+
+        final_lot = max(volume_min, min(round(final_lot, 2), volume_max))
+        return final_lot
+
+    def calculate_risk_adjusted_lot(self, symbol: str, sl_points: float, max_risk_usd: float = 15.0) -> float:
+        """
+        Quant Core V9 & Skill 07: Volatility ATR Dollar Sizing với Hard Risk Cap $15 Mặc định Toàn Cầu.
+        Dynamically calculates lot size such that hitting Stop Loss risks at most max_risk_usd ($15.00 default).
 
         Formula: raw_lot = max_risk_usd / (sl_points * tick_value_per_point)
         Live MT5 Integration: Fetches trade_tick_value, trade_tick_size, point, volume_step via mt5.symbol_info().
         Cap Logic: Hard caps lot size between 0.01 and 0.03 for ["USTEC", "US30", "US100", "HK50"].
-        Normalization: Rounds final lot size to broker volume_step and clamps within volume_min/volume_max.
+        Normalization: Rounds down (floor) to broker volume_step so expected loss never exceeds $15.00.
         """
         import MetaTrader5 as mt5
 
@@ -295,20 +413,24 @@ class USFederationQuantRuntime:
         if tick_value_per_point <= 0:
             tick_value_per_point = 1.0
 
-        # 3. Dynamic Lot Calculation
+        # 3. Dynamic Lot Calculation with Universal Hard Risk Cap ($15.00)
+        sym_clean = symbol.upper().replace("M", "")
+        # Apply $15 cap as default fallback across all symbols (can be smaller, but never exceeds $15)
+        universal_cap = getattr(self, "MAX_HARD_RISK_USD", 15.0)
+        effective_risk_usd = min(float(max_risk_usd), universal_cap)
+
         safe_sl_points = max(float(sl_points), 10.0)
         dollar_risk_per_lot = safe_sl_points * tick_value_per_point
-        raw_lot = max_risk_usd / max(dollar_risk_per_lot, 1e-6)
+        raw_lot = effective_risk_usd / max(dollar_risk_per_lot, 1e-6)
 
         # 4. Cap logic: Hard cap lot size between 0.01 and 0.03 for indices
-        sym_clean = symbol.upper().replace("M", "")
         is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "HK50"])
         if is_index:
             raw_lot = float(np.clip(raw_lot, 0.01, 0.03))
 
-        # 5. Normalization: Round to broker volume_step and clamp within boundaries
+        # 5. Normalization: Floor round to broker volume_step to NEVER exceed effective_risk_usd
         if volume_step > 0:
-            steps = round(raw_lot / volume_step)
+            steps = int(round(raw_lot / volume_step, 6))
             normalized_lot = steps * volume_step
         else:
             normalized_lot = raw_lot
@@ -317,10 +439,17 @@ class USFederationQuantRuntime:
         normalized_lot = max(volume_min, min(normalized_lot, volume_max))
         normalized_lot = round(normalized_lot, 2)
 
+        # Safety Check: If dollar risk exceeds effective_risk_usd due to minimum volume clamp, reduce 1 step if possible
+        expected_sl_loss = dollar_risk_per_lot * normalized_lot
+        if expected_sl_loss > effective_risk_usd and normalized_lot > volume_min:
+            normalized_lot = max(volume_min, round(normalized_lot - volume_step, 2))
+            expected_sl_loss = dollar_risk_per_lot * normalized_lot
+
         logger.info(
             f"📐 [VOLATILITY ATR SIZING] {symbol}: sl_points={safe_sl_points:.1f}, "
             f"trade_tick_value={trade_tick_value}, tick_val_per_point={tick_value_per_point:.5f}, "
-            f"max_risk=${max_risk_usd:.2f} -> raw={raw_lot:.4f}L, normalized={normalized_lot:.2f}L (Index Cap: {is_index})"
+            f"max_risk=${effective_risk_usd:.2f} -> raw={raw_lot:.4f}L, normalized={normalized_lot:.2f}L "
+            f"(Expected SL Loss: ${expected_sl_loss:.2f}, Index Cap: {is_index})"
         )
         return normalized_lot
 
@@ -356,7 +485,16 @@ class USFederationQuantRuntime:
             )
             return executed_trades
 
-        # Logic 1b (Friday EOD & Weekend Curfew): Chặn toàn bộ việc mở vị thế mới từ 20:00 UTC Thứ Sáu xuyên suốt cuối tuần (Time Rule 23:45)
+        # Logic 1b (Zero Weekend Hold - Friday Entry Lock):
+        # Chặn toàn bộ việc mở vị thế mới vào Thứ Sáu từ 19:00 UTC (và từ 18:00 UTC cho Chỉ số)
+        # để đảm bảo toàn bộ vị thế có đủ thời gian chạm TP hoặc đóng sạch trước giờ đóng sàn cuối tuần.
+        if now_dt.weekday() == 4 and now_dt.hour >= 19:
+            logger.info(
+                f"🛡️ [FRIDAY ZERO-WEEKEND-HOLD CURFEW] Thứ Sáu {now_dt.strftime('%H:%M')} UTC: "
+                f"Khóa hoàn toàn việc mở vị thế mới từ 19:00 UTC Thứ Sáu để đảm bảo 100% tiền mặt cuối tuần (Skill 07)."
+            )
+            return executed_trades
+
         if self.is_friday_or_weekend_curfew(now_dt):
             logger.info(
                 f"🛡️ [FRIDAY EOD & WEEKEND CURFEW] {now_dt.strftime('%Y-%m-%d %H:%M')} UTC: "
@@ -422,6 +560,10 @@ class USFederationQuantRuntime:
             asset_clean = pod.primary_asset.upper()
             clean_ticker = actual_symbol.upper().replace("M", "")
 
+            # Deactivate HK50 (STATE_17): Low win rate (26%), noise PnL, session closed retcode=10044
+            if "HK50" in clean_ticker or pod.state_id == "STATE_17":
+                continue
+
             # Task 4.2: Blacklist illiquid / high-spread US Equities
             if clean_ticker in self.US_EQUITIES_BLACKLIST:
                 continue
@@ -457,13 +599,24 @@ class USFederationQuantRuntime:
                 if len(gbp_positions) >= 2:
                     continue
 
-            # Logic 2 (US Index NY Session Gate): Chỉ cho phép mở lệnh chỉ số Mỹ từ 13:00 đến 21:00 UTC
-            if any(idx in actual_symbol.upper() for idx in ["USTEC", "US30", "US100"]):
+            # Logic 2 (US Index NY Session Gate & Trụ cột 3 NYSE Opening Bell Blackout)
+            is_us_index = any(idx in actual_symbol.upper() for idx in ["USTEC", "US30", "US100", "US500"])
+            if is_us_index:
                 if not (13 <= now_dt.hour <= 21):
                     logger.info(
                         f"🛡️ [INDEX SESSION GATE] {pod.state_id} ({actual_symbol}): "
                         f"Bỏ qua tín hiệu ngoài phiên New York ({now_dt.hour:02d}:{now_dt.minute:02d} UTC). "
                         f"Chỉ cho phép mở lệnh chỉ số từ 13:00 đến 21:00 UTC."
+                    )
+                    continue
+
+                # Trụ cột 3: NYSE Opening Bell Blackout (14:25:00 UTC đến 14:45:00 UTC)
+                # Cấm mở lệnh mới đối với các mã chỉ số Mỹ trong 20 phút đầu mở phiên NYSE để chống giãn spread & săn thanh khoản
+                if now_dt.hour == 14 and (25 <= now_dt.minute <= 45):
+                    logger.info(
+                        f"🛡️ [VETO_NYSE_OPEN_BLACKOUT] {pod.state_id} ({actual_symbol}): "
+                        f"Cấm mở lệnh chỉ số trong 20 phút mở cửa NYSE ({now_dt.strftime('%H:%M:%S')} UTC) "
+                        f"để tránh giãn spread và săn thanh khoản (Opening Bell Stop-Hunt)."
                     )
                     continue
 
@@ -509,6 +662,14 @@ class USFederationQuantRuntime:
                         # State pod already holds a live position on this asset
                         continue
 
+                    # Anti-Chasing Cooldown (15p) & Same-Direction SL Lockout (2h) (Skill 07 Enhanced)
+                    can_enter, reason = self.can_enter_trade(actual_symbol, proposal.action, time.time())
+                    if not can_enter:
+                        logger.info(
+                            f"🛡️ [COOLDOWN/TREND-LOCK VETO] {pod.state_id} ({actual_symbol} {proposal.action}): {reason}"
+                        )
+                        continue
+
                     # Task 4.3: Trend & Momentum Confirmation Filter for whitelisted US Equities
                     if is_us_equity:
                         if abs(proposal.carver_forecast) < 10.0:
@@ -531,6 +692,12 @@ class USFederationQuantRuntime:
                     if pod.state_id == "STATE_31" or "EURGBP" in actual_symbol.upper():
                         current_h1_price = float(market_df["close"].iloc[-1])
                         if not self.check_eurgbp_d1_ema200_filter(actual_symbol, current_h1_price, proposal.action):
+                            continue
+
+                    # Trụ cột 2: Khóa xu hướng vĩ mô H4/D1 EMA200 cho nhóm JPY (EURJPY, AUDJPY, GBPJPY, USDJPY)
+                    if any(jpy in actual_symbol.upper() for jpy in ["EURJPY", "AUDJPY", "GBPJPY", "USDJPY"]):
+                        current_h1_price = float(market_df["close"].iloc[-1])
+                        if not self.check_jpy_macro_trend_filter(actual_symbol, current_h1_price, proposal.action):
                             continue
 
                     # Federal Index Exposure Cap: prevent multiple pods from stacking > 0.50L on US Indices
@@ -595,6 +762,26 @@ class USFederationQuantRuntime:
                         )
                         continue
 
+                    # 1c. Financial ML Meta-Labeling Clearance (AFML: Kakushadze Alphas + FracDiff + Variance Ratio)
+                    ml_scale = 1.0
+                    if getattr(self, "ml_service", None) is not None and len(market_df) >= 30:
+                        try:
+                            ml_res = self.ml_service.predict_latest_bar(
+                                market_df,
+                                primary_action=proposal.action,
+                                signal_strength=min(1.0, abs(proposal.carver_forecast) / 20.0 if hasattr(proposal, "carver_forecast") else 0.5)
+                            )
+                            if not ml_res.is_approved:
+                                logger.info(
+                                    f"🧠 [ML META-LABELING VETO] {pod.state_id} ({actual_symbol} {proposal.action}) vetoed: "
+                                    f"Win Prob {ml_res.win_probability:.1%} < {ml_res.prob_threshold:.1%} (Kelly Mult: {ml_res.kelly_multiplier:.2f})."
+                                )
+                                continue
+                            if ml_res.kelly_multiplier > 0:
+                                ml_scale = max(0.70, min(1.25, ml_res.kelly_multiplier))
+                        except Exception as e:
+                            logger.debug(f"ML inference evaluation skipped: {e}")
+
                     # 2. Dynamic Volatility ATR Dollar Sizing (Quant Core V9: max_risk_usd=35.0)
                     tick = self.mt5_mgr.get_tick(actual_symbol) if hasattr(self, "mt5_mgr") else None
                     if tick and tick.get("ask") and tick.get("bid"):
@@ -620,15 +807,47 @@ class USFederationQuantRuntime:
                     spread = getattr(sym_info, "spread", 0) or 0
                     min_stop_dist = (stops_level + spread + 5) * pt
                     min_point_floor = 150.0 * pt
-                    sl_dist = max(1.8 * atr_14, min_point_floor, min_stop_dist)
+
+                    # Trụ cột 3: Dynamic ATR Buffer cho Chỉ số Mỹ (>= 2.2 * ATR14 M15)
+                    # Nới rộng khoảng cách SL TRƯỚC hàm tính Lot để Lot tự động giảm, giữ nguyên Hard Risk Cap ($60 Index / $15 FX)
+                    actual_sym_clean = actual_symbol.upper().replace("M", "")
+                    is_index = any(idx in actual_sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
+
+                    if is_index:
+                        sl_dist = max(2.2 * atr_14, min_point_floor, min_stop_dist)
+                    else:
+                        sl_dist = max(1.8 * atr_14, min_point_floor, min_stop_dist)
+
                     tp_dist = max(2.5 * atr_14, sl_dist * 1.5)
                     sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
 
+                    symbol_max_risk = getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0) if is_index else getattr(self, "MAX_HARD_RISK_USD", 15.0)
                     risk_adjusted_lots = self.calculate_risk_adjusted_lot(
                         symbol=actual_symbol,
                         sl_points=sl_points,
-                        max_risk_usd=35.0,
+                        max_risk_usd=symbol_max_risk,
                     )
+
+                    # TASK 3: Carver Tier-A Elite Alpha Booster (Hệ số x1.6 cho nhóm Alpha chủ lực)
+                    is_elite = any(actual_sym_clean == elite or actual_sym_clean.startswith(elite) for elite in getattr(self, "ELITE_ALPHA_SYMBOLS", {"GBPCHF", "EURAUD", "GBPUSD", "USDCHF", "US30"}))
+                    if is_elite and not is_index:
+                        booster = getattr(self, "ALPHA_BOOSTER_MULTIPLIER", 1.6)
+                        boosted_lot = round(risk_adjusted_lots * booster, 2)
+                        # Ràng buộc an toàn tuyệt đối (Invariant): Luôn chặn trên bởi Universal Hard Risk Cap <= $15.00
+                        risk_adjusted_lots = self.enforce_hard_risk_cap(
+                            actual_symbol, boosted_lot, sl_dist, max_risk_usd=symbol_max_risk
+                        )
+                        logger.info(
+                            f"🚀 [ALPHA BOOSTER] {actual_symbol} thuộc nhóm Elite Alpha -> "
+                            f"Áp dụng x{booster} đòn bẩy: {boosted_lot}L -> Capped: {risk_adjusted_lots}L (Trần rủi ro <= ${symbol_max_risk:.2f})."
+                        )
+
+                    if ml_scale != 1.0:
+                        risk_adjusted_lots = round(risk_adjusted_lots * ml_scale, 2)
+                        # Re-enforce hard cap after ML Kelly scaling
+                        risk_adjusted_lots = self.enforce_hard_risk_cap(
+                            actual_symbol, risk_adjusted_lots, sl_dist, max_risk_usd=symbol_max_risk
+                        )
 
                     # Central Risk Desk clearance & broker lot normalization
                     cleared_lots = self.hub.central_risk_desk.verify_order_clearance(
@@ -636,6 +855,10 @@ class USFederationQuantRuntime:
                         asset_notional=risk_adjusted_lots * current_price,
                     )
                     cleared_lots = self.mt5_mgr.normalize_lot(actual_symbol, cleared_lots)
+                    # Skill 07: Re-enforce Universal Hard Risk Cap $15 on final cleared lots
+                    cleared_lots = self.enforce_hard_risk_cap(
+                        actual_symbol, cleared_lots, sl_dist, max_risk_usd=symbol_max_risk
+                    )
 
                     digits = getattr(sym_info, "digits", 2) or 2
                     if proposal.action == "BUY":
@@ -820,6 +1043,475 @@ class USFederationQuantRuntime:
                         )
         return closed_positions
 
+    def enforce_gbpchf_uk100_hard_stop_cap(self, max_loss_usd: float = 15.0) -> List[Dict[str, Any]]:
+        """
+        Hard Stop Circuit Breaker for GBPCHF and UK100 (Cap: -$15 USD).
+        Continuously monitors open GBPCHF and UK100 positions.
+        If floating loss reaches or breaches -$15.00 USD (including commission & swap),
+        triggers an immediate emergency Market Close to protect capital.
+        """
+        positions = self.mt5_mgr.get_positions()
+        closed_positions = []
+        target_keys = ["GBPCHF", "UK100"]
+        for p in positions:
+            sym_clean = p.get("symbol", "").upper().replace("M", "")
+            if any(k in sym_clean for k in target_keys):
+                ticket = p.get("ticket")
+                profit = float(p.get("profit", 0.0))
+                swap = float(p.get("swap", 0.0))
+                comm = float(p.get("commission", 0.0))
+                total_loss = profit + swap + comm
+
+                if total_loss <= -max_loss_usd:
+                    logger.warning(
+                        f"🚨 [GBPCHF/UK100 HARD STOP CAP] Ticket #{ticket} ({p.get('symbol')} {p.get('type')} {p.get('volume')}L): "
+                        f"Loss reached ${total_loss:.2f} USD (Cap: -${max_loss_usd:.2f} USD). "
+                        f"Triggering Emergency Market Close to protect capital!"
+                    )
+                    res = self.mt5_mgr.close_position(ticket=ticket, comment="HardCap 15")
+                    if res.get("success"):
+                        closed_positions.append(res)
+                        self.telemetry.broadcast_critical_alert(
+                            subject="GBPCHF/UK100 HARD STOP CAP TRIGGERED",
+                            body=f"Closed ticket #{ticket} ({p.get('symbol')}) at ${total_loss:.2f} USD to cap loss at $15.",
+                        )
+        return closed_positions
+
+    def enforce_forex_portfolio_hard_stop_cap(self, max_loss_usd: float = 15.0) -> List[Dict[str, Any]]:
+        """
+        Portfolio Hard Stop Cap: Khống chế mức lỗ tối đa -$15.00 cho TOÀN BỘ các cặp Forex.
+        Nếu vị thế lỗ vượt quá -$15.00 USD, kích hoạt đóng khẩn cấp ngay lập tức để bảo vệ tài khoản.
+        """
+        positions = self.mt5_mgr.get_positions()
+        closed_positions = []
+        for p in positions:
+            sym_clean = p.get("symbol", "").upper().replace("M", "")
+            # Skip Indices and Gold as they have separate institutional caps ($60 and $75)
+            if any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50", "XAUUSD", "GOLD"]):
+                continue
+            ticket = p.get("ticket")
+            profit = float(p.get("profit", 0.0))
+            swap = float(p.get("swap", 0.0))
+            comm = float(p.get("commission", 0.0))
+            total_loss = profit + swap + comm
+
+            if total_loss <= -max_loss_usd:
+                logger.warning(
+                    f"🚨 [PORTFOLIO HARD STOP CAP] Ticket #{ticket} ({p.get('symbol')} {p.get('type')} {p.get('volume')}L): "
+                    f"Loss reached ${total_loss:.2f} USD (Cap: -${max_loss_usd:.2f} USD). "
+                    f"Triggering Emergency Market Close to protect capital!"
+                )
+                res = self.mt5_mgr.close_position(ticket=ticket, comment="HardCap 15")
+                if res.get("success"):
+                    closed_positions.append(res)
+                    self.telemetry.broadcast_critical_alert(
+                        subject=f"{p.get('symbol')} HARD STOP CAP TRIGGERED",
+                        body=f"Closed ticket #{ticket} ({p.get('symbol')}) at ${total_loss:.2f} USD to cap loss at $15.",
+                    )
+        return closed_positions
+
+    def check_and_apply_breakeven_lock(self, buffer_pips: float = 1.5) -> List[Dict[str, Any]]:
+        """
+        Dời SL về Breakeven + Buffer 1.5 pips khi lợi nhuận đạt >= 50% TP hoặc profit >= $12.00.
+        Buffer 1.5 pips bù đắp phí commission và giãn spread thực tế của sàn giao dịch.
+        """
+        import MetaTrader5 as mt5
+        positions = self.mt5_mgr.get_positions()
+        modified = []
+        for p in positions:
+            ticket = p.get("ticket")
+            symbol = p.get("symbol")
+            entry = float(p.get("price_open", 0.0))
+            current_price = float(p.get("price_current", entry))
+            sl = float(p.get("sl", 0.0))
+            tp = float(p.get("tp", 0.0))
+            profit = float(p.get("profit", 0.0))
+            pos_type = p.get("type")
+
+            if entry <= 0 or current_price <= 0:
+                continue
+
+            sym_info = mt5.symbol_info(symbol)
+            if sym_info is None and hasattr(self, "mt5_mgr"):
+                resolved = self.mt5_mgr.resolve_symbol(symbol)
+                sym_info = mt5.symbol_info(resolved)
+            if sym_info is None:
+                continue
+
+            point = float(getattr(sym_info, "point", 0.0001) or 0.0001)
+            digits = int(getattr(sym_info, "digits", 2) or 2)
+            pip_size = point * 10.0 if digits in (3, 5) else point
+            buffer_price = buffer_pips * pip_size
+
+            # Tính tiến độ tới TP (nếu có TP)
+            reached_half_tp = False
+            if tp > 0:
+                total_tp_dist = abs(tp - entry)
+                current_dist = (current_price - entry) if pos_type in ["BUY", 0] else (entry - current_price)
+                if total_tp_dist > 0 and (current_dist / total_tp_dist) >= 0.50:
+                    reached_half_tp = True
+
+            # Trigger condition: Lãi >= $12.00 HOẶC đi được >= 50% quãng đường TP
+            if profit >= 12.0 or reached_half_tp:
+                if pos_type in ["BUY", 0]:
+                    new_sl = round(entry + buffer_price, digits)
+                    # Chỉ dời nếu SL hiện tại nhỏ hơn new_sl và giá thị trường hiện tại đang cao hơn new_sl
+                    if sl < new_sl and current_price > new_sl:
+                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=new_sl, tp=tp)
+                        if res.get("success"):
+                            logger.info(
+                                f"🛡️ [BREAKEVEN LOCK ADVANCED] Ticket #{ticket} ({symbol} BUY): "
+                                f"Profit ${profit:+.2f} USD / 50% TP. Dời SL: {sl} -> {new_sl} (Entry + {buffer_pips} pips buffer)."
+                            )
+                            modified.append(res)
+                elif pos_type in ["SELL", 1]:
+                    new_sl = round(entry - buffer_price, digits)
+                    # Chỉ dời nếu SL hiện tại lớn hơn new_sl (hoặc = 0) và giá thị trường hiện tại đang thấp hơn new_sl
+                    if (sl == 0.0 or sl > new_sl) and current_price < new_sl:
+                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=new_sl, tp=tp)
+                        if res.get("success"):
+                            logger.info(
+                                f"🛡️ [BREAKEVEN LOCK ADVANCED] Ticket #{ticket} ({symbol} SELL): "
+                                f"Profit ${profit:+.2f} USD / 50% TP. Dời SL: {sl} -> {new_sl} (Entry - {buffer_pips} pips buffer)."
+                            )
+                            modified.append(res)
+        return modified
+
+    def manage_multi_tier_profit_ladder(self) -> List[Dict[str, Any]]:
+        """
+        TASK 1: BẬC THANG KHÓA LÃI 3 TẦNG (3-TIER PROFIT LADDER)
+        - Tầng 1 (Breakeven Plus: Floating PnL >= +$4.00 USD hoặc >= 40% TP):
+            Dời Hard SL về Entry + 1.5 pips buffer (hoặc khóa tối thiểu +$0.80 USD).
+            Cấp quyền Miễn nhiễm Stagnation Exit.
+        - Tầng 2 (Profit Lock & Runner: Floating PnL >= +$8.00 USD):
+            Dời Hard SL khóa cứng lợi nhuận tại +$4.00 USD và tự động nới rộng TP ra mức +$25.00 USD.
+            Cấp quyền Miễn nhiễm Stagnation Exit.
+        - Tầng 3 (Super Trend Lock: Floating PnL >= +$15.00 USD):
+            Dời Hard SL khóa cứng lợi nhuận tại +$10.00 USD và nới rộng TP ra mức +$40.00 USD.
+            Cấp quyền Miễn nhiễm Stagnation Exit.
+        """
+        import MetaTrader5 as mt5
+        positions = self.mt5_mgr.get_positions()
+        if not positions:
+            return []
+
+        modified_actions = []
+        for p in positions:
+            ticket = p.get("ticket")
+            symbol = p.get("symbol")
+            entry = float(p.get("price_open", 0.0))
+            curr_price = float(p.get("price_current", entry))
+            sl = float(p.get("sl", 0.0))
+            tp = float(p.get("tp", 0.0))
+            profit = float(p.get("profit", 0.0)) + float(p.get("swap", 0.0))
+            volume = float(p.get("volume", 0.01))
+            pos_type = p.get("type")
+
+            if entry <= 0 or curr_price <= 0:
+                continue
+
+            sym_info = mt5.symbol_info(symbol)
+            if sym_info is None and hasattr(self, "mt5_mgr"):
+                resolved = self.mt5_mgr.resolve_symbol(symbol)
+                sym_info = mt5.symbol_info(resolved)
+
+            def _safe_float(obj, attr, default):
+                val = getattr(obj, attr, default)
+                try:
+                    res = float(val)
+                    return res if res > 0 else default
+                except Exception:
+                    return default
+
+            if sym_info is not None:
+                point = _safe_float(sym_info, "point", 0.0001)
+                digits = int(getattr(sym_info, "digits", 2) or 2)
+                trade_tick_val = _safe_float(sym_info, "trade_tick_value", 1.0)
+                trade_tick_sz = _safe_float(sym_info, "trade_tick_size", point)
+                spread = _safe_float(sym_info, "spread", 2.0) * point
+            else:
+                spec = self.mt5_mgr.get_symbol_spec(symbol) if hasattr(self, "mt5_mgr") else {}
+                digits = spec.get("digits", 2) if spec else 2
+                point = float(spec.get("point", 0.0001) or 0.0001)
+                trade_tick_sz = float(spec.get("tick_size", point) or point)
+                trade_tick_val = float(spec.get("tick_value", 1.0) or 1.0)
+                spread = 2.0 * point
+
+            pip_size = point * 10.0 if digits in (3, 5) else point
+            buffer_price = 1.5 * pip_size
+
+            # Tính giá trị biến động tương ứng với volume (val_per_price)
+            if trade_tick_sz > 0:
+                val_per_price = (trade_tick_val / trade_tick_sz) * volume
+            else:
+                val_per_price = volume * 100_000.0 if digits in (3, 5) else volume
+            val_per_price = max(val_per_price, 1e-6)
+
+            # Khoảng cách tối thiểu với giá thị trường để Broker chấp thuận sửa SL/TP
+            min_stop_gap = max(spread + 2.0 * point, 5.0 * point)
+
+            target_new_sl = sl
+            target_new_tp = tp
+            should_modify = False
+            tier_label = ""
+
+            # Kiểm tra tiến độ 40% quãng đường tới TP
+            progress_40pct_tp = False
+            if tp > 0:
+                total_tp_dist = abs(tp - entry)
+                current_dist = (curr_price - entry) if pos_type in ["BUY", 0] else (entry - curr_price)
+                if total_tp_dist > 0 and (current_dist / total_tp_dist) >= 0.40:
+                    progress_40pct_tp = True
+
+            # --- TẦNG 3: SUPER TREND LOCK (Floating PnL >= +$15.00 USD) ---
+            if profit >= 15.0:
+                dist_10usd = 10.0 / val_per_price
+                dist_40usd = 40.0 / val_per_price
+                tier_label = "TIER_3_SUPER_TREND (+10$ Lock / +40$ TP)"
+
+                if pos_type in ["BUY", 0]:
+                    calc_sl = round(entry + dist_10usd, digits)
+                    calc_tp = round(entry + dist_40usd, digits)
+                    if calc_sl > target_new_sl and calc_sl < (curr_price - min_stop_gap):
+                        target_new_sl = calc_sl
+                        should_modify = True
+                    if (target_new_tp == 0.0 or calc_tp > target_new_tp) and calc_tp > (curr_price + min_stop_gap):
+                        target_new_tp = calc_tp
+                        should_modify = True
+                elif pos_type in ["SELL", 1]:
+                    calc_sl = round(entry - dist_10usd, digits)
+                    calc_tp = round(entry - dist_40usd, digits)
+                    if (target_new_sl == 0.0 or calc_sl < target_new_sl) and calc_sl > (curr_price + min_stop_gap):
+                        target_new_sl = calc_sl
+                        should_modify = True
+                    if (target_new_tp == 0.0 or calc_tp < target_new_tp) and calc_tp < (curr_price - min_stop_gap):
+                        target_new_tp = calc_tp
+                        should_modify = True
+
+                self._profit_ladder_locked_tickets.add(ticket)
+                self._tier2_locked_tickets.add(ticket)
+
+            # --- TẦNG 2: PROFIT LOCK & RUNNER (Floating PnL >= +$8.00 USD) ---
+            elif profit >= 8.0:
+                dist_4usd = 4.0 / val_per_price
+                dist_25usd = 25.0 / val_per_price
+                tier_label = "TIER_2_RUNNER (+4$ Lock / +25$ TP)"
+
+                if pos_type in ["BUY", 0]:
+                    calc_sl = round(entry + dist_4usd, digits)
+                    calc_tp = round(entry + dist_25usd, digits)
+                    if calc_sl > target_new_sl and calc_sl < (curr_price - min_stop_gap):
+                        target_new_sl = calc_sl
+                        should_modify = True
+                    if (target_new_tp == 0.0 or calc_tp > target_new_tp) and calc_tp > (curr_price + min_stop_gap):
+                        target_new_tp = calc_tp
+                        should_modify = True
+                elif pos_type in ["SELL", 1]:
+                    calc_sl = round(entry - dist_4usd, digits)
+                    calc_tp = round(entry - dist_25usd, digits)
+                    if (target_new_sl == 0.0 or calc_sl < target_new_sl) and calc_sl > (curr_price + min_stop_gap):
+                        target_new_sl = calc_sl
+                        should_modify = True
+                    if (target_new_tp == 0.0 or calc_tp < target_new_tp) and calc_tp < (curr_price - min_stop_gap):
+                        target_new_tp = calc_tp
+                        should_modify = True
+
+                self._profit_ladder_locked_tickets.add(ticket)
+                self._tier2_locked_tickets.add(ticket)
+
+            # --- TẦNG 1: BREAKEVEN PLUS (Floating PnL >= +$4.00 USD hoặc Progress >= 40% TP) ---
+            elif profit >= 4.0 or progress_40pct_tp:
+                dist_min_profit = 0.80 / val_per_price
+                be_offset = max(buffer_price, dist_min_profit)
+                tier_label = "TIER_1_BREAKEVEN_PLUS (Entry + 1.5p / +0.80$ Lock)"
+
+                if pos_type in ["BUY", 0]:
+                    calc_sl = round(entry + be_offset, digits)
+                    if calc_sl > target_new_sl and calc_sl < (curr_price - min_stop_gap):
+                        target_new_sl = calc_sl
+                        should_modify = True
+                elif pos_type in ["SELL", 1]:
+                    calc_sl = round(entry - be_offset, digits)
+                    if (target_new_sl == 0.0 or calc_sl < target_new_sl) and calc_sl > (curr_price + min_stop_gap):
+                        target_new_sl = calc_sl
+                        should_modify = True
+
+                self._profit_ladder_locked_tickets.add(ticket)
+
+            # Chỉ gửi lệnh sửa SL/TP khi có thay đổi thực sự có lợi (Ratchet Only, chống spam)
+            if should_modify:
+                sl_diff = abs(target_new_sl - sl)
+                tp_diff = abs(target_new_tp - tp)
+                if sl_diff >= (point * 1.5) or tp_diff >= (point * 5.0):
+                    res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_new_sl, tp=target_new_tp)
+                    if res.get("success"):
+                        logger.info(
+                            f"🪜 [{tier_label}] Ticket #{ticket} ({symbol} {'BUY' if pos_type in ['BUY', 0] else 'SELL'} {volume}L): "
+                            f"Floating Profit ${profit:+.2f} USD. Ratchet SL: {sl} -> {target_new_sl} | TP: {tp} -> {target_new_tp}."
+                        )
+                        modified_actions.append(res)
+
+        return modified_actions
+
+    def can_enter_trade(self, symbol: str, direction: str, current_ts: float) -> tuple[bool, str]:
+        """
+        Kiểm tra Anti-Chasing Cooldown 15p và Chống nhồi lệnh ngược xu hướng (Same-Direction SL Lockout).
+        Truy vấn trực tiếp mt5.history_deals_get trong 24h qua để đảm bảo tính stateless persistence
+        kể cả khi khởi động lại bot.
+        """
+        import MetaTrader5 as mt5
+        clean_sym = symbol.upper().replace("M", "")
+        dir_upper = direction.upper()
+        cooldown_sec = getattr(self, "COOLDOWN_AFTER_EXIT_SEC", 900.0)
+        lockout_sec = getattr(self, "DIRECTION_LOCKOUT_SEC", 7200.0)
+
+        # 1. Thử truy vấn deals từ MT5 trong 24h qua
+        deals = None
+        try:
+            from_t = datetime.fromtimestamp(current_ts - 86400, tz=timezone.utc)
+            to_t = datetime.fromtimestamp(current_ts + 60, tz=timezone.utc)
+            deals = mt5.history_deals_get(from_t, to_t)
+        except Exception as e:
+            logger.debug(f"history_deals_get error: {e}")
+
+        if deals is not None:
+            # Map position entry directions: DEAL_ENTRY_IN (0) has type 0 (BUY) or 1 (SELL)
+            pos_dirs = {}
+            for d in deals:
+                if getattr(d, 'entry', None) == 0:
+                    pos_dirs[d.position_id] = "BUY" if d.type == 0 else "SELL"
+
+            # Filter closed deals for this symbol (DEAL_ENTRY_OUT = 1, DEAL_ENTRY_INOUT = 3) up to current_ts
+            closed_deals = [
+                d for d in deals
+                if getattr(d, 'symbol', '').upper().replace("M", "") == clean_sym
+                and getattr(d, 'entry', None) in (1, 3)
+                and float(getattr(d, 'time', 0)) <= current_ts
+            ]
+            closed_deals.sort(key=lambda d: (float(d.time), int(d.ticket)))
+
+            # Check 1: Anti-Chasing Cooldown 15 phút (900s) sau khi đóng deal gần nhất
+            if closed_deals:
+                last_deal = closed_deals[-1]
+                time_since_exit = current_ts - float(last_deal.time)
+                if time_since_exit < cooldown_sec:
+                    rem = int(cooldown_sec - time_since_exit)
+                    return False, f"VETO_ANTI_CHASING_COOLDOWN: Cooldown còn {rem}s trên {clean_sym} (Chống fomo/đu đỉnh đáy sau đóng lệnh)"
+
+            # Check 2: Same-Direction 2-SL Lockout 2 giờ (7200s)
+            if len(closed_deals) >= 2:
+                d1 = closed_deals[-2]
+                d2 = closed_deals[-1]
+                p1 = float(getattr(d1, 'profit', 0.0))
+                p2 = float(getattr(d2, 'profit', 0.0))
+
+                # Xác định chiều của vị thế ban đầu
+                dir1 = pos_dirs.get(d1.position_id, "BUY" if d1.type == 1 else "SELL")
+                dir2 = pos_dirs.get(d2.position_id, "BUY" if d2.type == 1 else "SELL")
+
+                if p1 < 0 and p2 < 0 and dir1 == dir2 and dir1 == dir_upper:
+                    time_since_d2 = current_ts - float(d2.time)
+                    if time_since_d2 < lockout_sec:
+                        rem = int(lockout_sec - time_since_d2)
+                        return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều {dir1} trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
+        else:
+            # Fallback to in-memory symbol_state (cho offline tests / mock MT5)
+            st = self.symbol_state.get(clean_sym, {})
+            last_exit = st.get("last_exit_ts", 0.0)
+            if current_ts - last_exit < cooldown_sec:
+                rem = int(cooldown_sec - (current_ts - last_exit))
+                return False, f"VETO_ANTI_CHASING_COOLDOWN (VETO_ANTI_CHASING): Cooldown còn {rem}s trên {clean_sym}"
+
+            if dir_upper == "BUY" and current_ts < st.get("lock_buy_until", 0.0):
+                rem = int(st.get("lock_buy_until", 0.0) - current_ts)
+                return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều BUY trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
+            if dir_upper == "SELL" and current_ts < st.get("lock_sell_until", 0.0):
+                rem = int(st.get("lock_sell_until", 0.0) - current_ts)
+                return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều SELL trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
+
+        return True, "OK"
+
+    def update_symbol_exit_tracking(self, now_ts: float):
+        """
+        Giám sát trạng thái đóng lệnh trong thời gian thực:
+        - Ghi nhận `last_exit_ts` để kích hoạt Anti-Chasing Cooldown 15 phút.
+        - Phân tích deal thoát lệnh nếu dính Stop Loss: đếm số lần SL liên tiếp cùng chiều.
+        - Khóa chiều thua 2 tiếng (7200s) nếu dính 2 SL liên tiếp cùng chiều để triệt hạ bẫy ngược xu hướng.
+        """
+        try:
+            import MetaTrader5 as mt5
+            current_positions_list = self.mt5_mgr.get_positions()
+            current_positions = {p["ticket"]: p for p in current_positions_list}
+
+            if self._tracked_open_tickets:
+                for old_ticket, old_pos in self._tracked_open_tickets.items():
+                    if old_ticket not in current_positions:
+                        # Vị thế vừa được đóng
+                        symbol = old_pos.get("symbol", "")
+                        clean_sym = symbol.upper().replace("M", "")
+                        pos_type = old_pos.get("type", "BUY")
+
+                        # Tra cứu deal lịch sử để xem lý do đóng và PnL thực tế
+                        from_t = datetime.fromtimestamp(now_ts - 1800, tz=timezone.utc)
+                        to_t = datetime.fromtimestamp(now_ts + 60, tz=timezone.utc)
+                        deals = mt5.history_deals_get(from_t, to_t)
+                        deal_pnl = 0.0
+                        deal_comment = ""
+                        if deals:
+                            for d in deals:
+                                if getattr(d, "position_id", 0) == old_ticket and getattr(d, "entry", 0) == 1:
+                                    deal_pnl = float(d.profit + d.commission + d.swap)
+                                    deal_comment = str(d.comment)
+                                    break
+
+                        st = self.symbol_state.setdefault(
+                            clean_sym,
+                            {
+                                "last_exit_ts": now_ts,
+                                "consec_sl_buy": 0,
+                                "consec_sl_sell": 0,
+                                "lock_buy_until": 0.0,
+                                "lock_sell_until": 0.0,
+                            }
+                        )
+                        st["last_exit_ts"] = now_ts
+
+                        is_sl = ("sl" in deal_comment.lower()) or (deal_pnl < -0.5)
+                        lockout_dur = getattr(self, "DIRECTION_LOCKOUT_SEC", 7200.0)
+                        max_consec = getattr(self, "MAX_CONSECUTIVE_SL_SAME_DIR", 2)
+
+                        if is_sl:
+                            if pos_type in ["BUY", 0]:
+                                st["consec_sl_buy"] += 1
+                                st["consec_sl_sell"] = 0
+                                if st["consec_sl_buy"] >= max_consec:
+                                    st["lock_buy_until"] = now_ts + lockout_dur
+                                    logger.warning(
+                                        f"🛑 [SAME-DIRECTION SL LOCKOUT] {clean_sym} dính {st['consec_sl_buy']} SL liên tiếp chiều BUY. "
+                                        f"Khóa mở BUY trong {lockout_dur/3600:.1f} giờ để chống bắt dao rơi."
+                                    )
+                            elif pos_type in ["SELL", 1]:
+                                st["consec_sl_sell"] += 1
+                                st["consec_sl_buy"] = 0
+                                if st["consec_sl_sell"] >= max_consec:
+                                    st["lock_sell_until"] = now_ts + lockout_dur
+                                    logger.warning(
+                                        f"🛑 [SAME-DIRECTION SL LOCKOUT] {clean_sym} dính {st['consec_sl_sell']} SL liên tiếp chiều SELL. "
+                                        f"Khóa mở SELL trong {lockout_dur/3600:.1f} giờ để chống bán ngược xu hướng tăng (Anti-Trend Trap)."
+                                    )
+                        elif deal_pnl > 0.0:
+                            st["consec_sl_buy"] = 0
+                            st["consec_sl_sell"] = 0
+
+                        logger.info(
+                            f"🔔 [POSITION CLOSED DETECTED] Ticket #{old_ticket} ({symbol} {pos_type}): "
+                            f"PnL ${deal_pnl:+.2f} USD ({deal_comment}). Kích hoạt Anti-Chasing Cooldown 15m (đến {datetime.fromtimestamp(now_ts + self.COOLDOWN_AFTER_EXIT_SEC, tz=timezone.utc).strftime('%H:%M:%S')} UTC)."
+                        )
+
+            self._tracked_open_tickets = current_positions
+        except Exception as e:
+            logger.debug(f"Error in update_symbol_exit_tracking: {e}")
+
     def enforce_two_tier_exit_engine(self, min_partial_profit_usd: float = 25.0) -> Dict[str, List[Any]]:
         """
         Task 3: Two-Tier Exit Engine (Chốt lời từng phần & Trailing Runner).
@@ -899,53 +1591,69 @@ class USFederationQuantRuntime:
                         partial_closed.append(res)
                         continue
 
-            # --- TIER 2: TREND RUNNER (DYNAMIC TRAILING FOR REMAINING VOLUME) ---
+            # --- TRỤ CỘT 4: TWO-TIER DYNAMIC EXIT & STAGNATION IMMUNITY ---
+            # Trigger: Floating PnL >= +$15.00 USD
+            # Action: Dời Hard SL khóa lợi nhuận tại mức +$5.00 USD và nới rộng Take Profit ra mức +$30.00 USD
             if profit >= 15.0:
-                if profit >= 200.0:
-                    lock_ratio = 0.70
-                    tier_label = "TIER_2_RUNNER_70PCT"
-                elif profit >= 100.0:
-                    lock_ratio = 0.50
-                    tier_label = "TIER_2_RUNNER_50PCT"
-                elif profit >= 50.0:
-                    lock_ratio = max(0.30, 25.0 / profit)
-                    tier_label = "TIER_2_RUNNER_30PCT"
-                elif profit >= 40.0:
-                    lock_ratio = 25.0 / profit  # Dynamically lock in at least $25.00 USD
-                    tier_label = "TIER_2_LOCK_PROFIT_25USD"
+                trade_tick_val = float(spec.get("tick_value", 1.0) or 1.0)
+                trade_tick_sz = float(spec.get("tick_size", 0.0001) or 0.0001)
+                if trade_tick_sz > 0:
+                    val_per_price = (trade_tick_val / trade_tick_sz) * volume
                 else:
-                    lock_ratio = 0.0
-                    tier_label = "TIER_1_BREAK_EVEN"
+                    val_per_price = volume
+                val_per_price = max(val_per_price, 1e-6)
 
-                if pos_type == "BUY":
-                    if lock_ratio > 0.0 and curr_price > open_price:
-                        target_sl = round(open_price + (curr_price - open_price) * lock_ratio, digits)
-                    else:
-                        target_sl = round(open_price + spread_padding, digits)
+                dist_5usd = 5.0 / val_per_price
+                dist_30usd = 30.0 / val_per_price
 
-                    if target_sl > sl and target_sl < curr_price:
-                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_sl)
+                if pos_type in ["BUY", 0]:
+                    target_locked_sl = round(open_price + dist_5usd, digits)
+                    target_expanded_tp = round(open_price + dist_30usd, digits)
+                    should_modify = False
+                    new_sl_val = sl
+                    new_tp_val = p.get("tp", 0.0)
+
+                    if target_locked_sl > sl and target_locked_sl < curr_price:
+                        new_sl_val = target_locked_sl
+                        should_modify = True
+                    if (new_tp_val == 0.0 or target_expanded_tp > new_tp_val) and target_expanded_tp > curr_price:
+                        new_tp_val = target_expanded_tp
+                        should_modify = True
+
+                    if should_modify:
+                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=new_sl_val, tp=new_tp_val)
                         if res.get("success"):
                             logger.info(
-                                f"🔒 [{tier_label}] Ticket #{ticket} ({symbol} BUY) Runner SL trailed from {sl} -> {target_sl} "
-                                f"(Current: {curr_price}, Profit: ${profit:,.2f})"
+                                f"🔒 [TIER_2_LOCK_5USD_RUNNER] Ticket #{ticket} ({symbol} BUY): "
+                                f"Profit +${profit:,.2f} USD >= +$15. Hard SL locked to +$5.00 ({new_sl_val}), TP expanded to +$30.00 ({new_tp_val})."
                             )
                             trailed_runners.append(res)
 
-                elif pos_type == "SELL":
-                    if lock_ratio > 0.0 and curr_price < open_price:
-                        target_sl = round(open_price - (open_price - curr_price) * lock_ratio, digits)
-                    else:
-                        target_sl = round(open_price - spread_padding, digits)
+                elif pos_type in ["SELL", 1]:
+                    target_locked_sl = round(open_price - dist_5usd, digits)
+                    target_expanded_tp = round(open_price - dist_30usd, digits)
+                    should_modify = False
+                    new_sl_val = sl
+                    new_tp_val = p.get("tp", 0.0)
 
-                    if (sl == 0.0 or target_sl < sl) and target_sl > curr_price:
-                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=target_sl)
+                    if (sl == 0.0 or target_locked_sl < sl) and target_locked_sl > curr_price:
+                        new_sl_val = target_locked_sl
+                        should_modify = True
+                    if (new_tp_val == 0.0 or target_expanded_tp < new_tp_val) and target_expanded_tp < curr_price:
+                        new_tp_val = target_expanded_tp
+                        should_modify = True
+
+                    if should_modify:
+                        res = self.mt5_mgr.modify_position_sltp(ticket=ticket, sl=new_sl_val, tp=new_tp_val)
                         if res.get("success"):
                             logger.info(
-                                f"🔒 [{tier_label}] Ticket #{ticket} ({symbol} SELL) Runner SL trailed from {sl} -> {target_sl} "
-                                f"(Current: {curr_price}, Profit: ${profit:,.2f})"
+                                f"🔒 [TIER_2_LOCK_5USD_RUNNER] Ticket #{ticket} ({symbol} SELL): "
+                                f"Profit +${profit:,.2f} USD >= +$15. Hard SL locked to +$5.00 ({new_sl_val}), TP expanded to +$30.00 ({new_tp_val})."
                             )
                             trailed_runners.append(res)
+
+                # Miễn nhiễm với bộ quét Stagnation Exit 4h để gồng sóng bứt phá
+                self._tier2_locked_tickets.add(ticket)
 
         if state_modified:
             self._save_two_tier_state(two_tier_state)
@@ -1075,6 +1783,91 @@ class USFederationQuantRuntime:
             logger.warning(f"⚠️ Exception in check_eurgbp_d1_ema200_filter for {symbol}: {e}")
             return True
 
+    def check_jpy_macro_trend_filter(
+        self,
+        symbol: str,
+        current_price: float,
+        action: str,
+    ) -> bool:
+        """
+        Trụ cột 2: Khóa xu hướng vĩ mô H4/D1 EMA200 cho nhóm JPY (EURJPY, AUDJPY, GBPJPY, USDJPY).
+        Trích xuất 200 nến H4 (hoặc D1) bằng mt5.copy_rates_from_pos.
+        Chặn tuyệt đối BUY nếu current_price < EMA200 (VETO_JPY_COUNTER_TREND).
+        Chặn tuyệt đối SELL nếu current_price > EMA200 (VETO_JPY_COUNTER_TREND).
+        """
+        jpy_pairs = ["EURJPY", "AUDJPY", "GBPJPY", "USDJPY"]
+        sym_clean = symbol.upper().replace("M", "")
+        if not any(jp in sym_clean for jp in jpy_pairs):
+            return True
+
+        try:
+            import MetaTrader5 as mt5
+            actual_sym = self.mt5_mgr.resolve_symbol(symbol)
+            rates_h4 = mt5.copy_rates_from_pos(actual_sym, mt5.TIMEFRAME_H4, 0, 200)
+            if rates_h4 is None or len(rates_h4) < 50:
+                rates_h4 = mt5.copy_rates_from_pos(actual_sym, mt5.TIMEFRAME_D1, 0, 200)
+
+            if rates_h4 is None or len(rates_h4) < 30:
+                df_h4 = self.mt5_mgr.get_rates(actual_sym, "H4", count=200)
+                if df_h4 is not None and len(df_h4) >= 30:
+                    rates_h4 = df_h4
+                else:
+                    return True
+
+            if isinstance(rates_h4, pd.DataFrame):
+                df_rates = rates_h4
+            else:
+                df_rates = pd.DataFrame(rates_h4)
+
+            span_len = min(200, len(df_rates))
+            ema200 = df_rates["close"].ewm(span=span_len, adjust=False).mean().iloc[-1]
+            act_upper = action.upper()
+
+            if act_upper == "BUY" and current_price < ema200:
+                logger.info(
+                    f"🛡️ [VETO_JPY_COUNTER_TREND] {actual_sym} BUY bị từ chối: "
+                    f"Giá hiện tại ({current_price:.3f}) < EMA200 ({ema200:.3f}). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY."
+                )
+                return False
+            elif act_upper == "SELL" and current_price > ema200:
+                logger.info(
+                    f"🛡️ [VETO_JPY_COUNTER_TREND] {actual_sym} SELL bị từ chối: "
+                    f"Giá hiện tại ({current_price:.3f}) > EMA200 ({ema200:.3f}). Triệt tiêu bẫy bán khống ngược xu hướng tăng JPY."
+                )
+                return False
+
+            return True
+        except Exception as e:
+            logger.warning(f"⚠️ Exception in check_jpy_macro_trend_filter for {symbol}: {e}")
+            return True
+
+    @classmethod
+    def is_hk50_session_open(cls, dt_utc: Optional[datetime] = None) -> bool:
+        """
+        Hang Seng Index (HK50) Trading Session Gate (Exness / HKEX):
+        Trading is active only in 3 sessions:
+        - Morning: 01:15 - 04:00 UTC (09:15 - 12:00 HKT)
+        - Afternoon: 05:00 - 08:30 UTC (13:00 - 16:30 HKT)
+        - After-hours: 09:15 - 19:00 UTC (17:15 - 03:00 HKT)
+        All other times (including 04:00-05:00 UTC lunch break) return False (retcode=10044 session closed).
+        """
+        if dt_utc is None:
+            dt_utc = datetime.now(timezone.utc)
+        if dt_utc.weekday() in (5, 6):
+            return False
+        h, m = dt_utc.hour, dt_utc.minute
+        t_min = h * 60 + m
+        # 01:15 - 04:00 UTC
+        if 75 <= t_min < 240:
+            return True
+        # 05:00 - 08:30 UTC
+        if 300 <= t_min < 510:
+            return True
+        # 09:15 - 19:00 UTC
+        if 555 <= t_min < 1140:
+            return True
+        return False
+
     @classmethod
     def is_us_dst(cls, dt_utc: Optional[datetime] = None) -> bool:
         """
@@ -1136,22 +1929,55 @@ class USFederationQuantRuntime:
         sunday_open_utc_hour = 21 if cls.is_us_dst(dt_utc) else 22
         if utc_wd == 5:
             return True
-        if utc_wd == 6 and dt_utc.hour < sunday_open_utc_hour:
+        # P0 FIX (Audit 05/11/2026): Chặn mở lệnh mới thêm 60 phút sau giờ mở phiên tuần mới (Chủ Nhật 21:00/22:00 UTC)
+        # để né vùng giãn spread cực đại. Curfew cũ (Thứ Hai 00:00 UTC) lệch 2h so với giờ mở phiên thực tế.
+        if utc_wd == 6 and dt_utc.hour < sunday_open_utc_hour + 1:
             return True
         return False
 
     @classmethod
-    def is_friday_eod_flat_window(cls, dt_utc: Optional[datetime] = None) -> bool:
+    def get_last_weekly_open_utc(cls, dt_utc: Optional[datetime] = None) -> datetime:
         """
-        Kiểm tra khung giờ xả sạch danh mục tối Thứ Sáu theo MT5 Server Time (Skill 07 Time Rule 23:30 - 23:45 Server Time):
-        - Kích hoạt cố định từ 23:30 MT5 Server Time Thứ Sáu (29 phút trước giờ đóng sàn 23:59 Server Time).
-        - Tự động thích ứng với đổi giờ mùa đông Mỹ (US DST 01/11/2026):
-          + Trước 01/11/2026 (EDT, Server UTC+3): 23:30 Server Time = 20:30 UTC.
-          + Từ 01/11/2026 (EST, Server UTC+2): 23:30 Server Time = 21:30 UTC (không bị đóng sớm 1.5h!).
+        Trả về mốc mở phiên tuần gần nhất (<= dt_utc): Chủ Nhật 21:00 UTC (US DST/EDT) hoặc 22:00 UTC (EST).
+        Chỉ vị thế mở TRƯỚC mốc này mới được coi là "kẹt qua tuần" (Weekend Hold).
+        """
+        from datetime import timedelta
+        if dt_utc is None:
+            dt_utc = datetime.now(timezone.utc)
+        if dt_utc.tzinfo is None:
+            dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+        days_since_sunday = (dt_utc.weekday() + 1) % 7
+        sunday = (dt_utc - timedelta(days=days_since_sunday)).replace(hour=0, minute=0, second=0, microsecond=0)
+        candidate = sunday.replace(hour=21 if cls.is_us_dst(sunday + timedelta(hours=12)) else 22)
+        if candidate > dt_utc:
+            prev_sunday = sunday - timedelta(days=7)
+            candidate = prev_sunday.replace(hour=21 if cls.is_us_dst(prev_sunday + timedelta(hours=12)) else 22)
+        return candidate
+
+    @classmethod
+    def is_friday_eod_flat_window(cls, dt_utc: Optional[datetime] = None, symbol: Optional[str] = None) -> bool:
+        """
+        Kiểm tra khung giờ xả sạch danh mục tối Thứ Sáu (Skill 07 Time Rule 23:30 - 23:45 Server Time):
+        - Phân tầng Chỉ số (CFD Indices: UK100, USTEC, US30...): Kích hoạt từ 20:15 UTC Thứ Sáu
+          (trước khi sàn đóng cửa giao dịch các mã này lúc 20:45 - 21:00 UTC).
+        - Toàn bộ danh mục (Forex & tất cả tài sản): Kích hoạt cố định từ 23:30 MT5 Server Time Thứ Sáu
+          (tức 20:30 UTC mùa hè EDT / 21:30 UTC mùa đông EST).
         """
         if dt_utc is None:
             dt_utc = datetime.now(timezone.utc)
+
         srv_dt = cls.get_mt5_server_datetime(dt_utc)
+        
+        # Phân tầng 1: Chỉ số CFD đóng sớm lúc 20:45 - 21:00 UTC trên Exness
+        if symbol is not None:
+            sym_upper = symbol.upper().replace("M", "")
+            is_index = any(idx in sym_upper for idx in ["UK100", "USTEC", "US30", "HK50", "US500", "DE30", "JP225"])
+            if is_index and dt_utc.weekday() == 4:
+                # Đóng sớm từ 20:15 UTC (22:15 Server Time mùa đông / 23:15 Server Time mùa hè)
+                if (dt_utc.hour == 20 and dt_utc.minute >= 15) or dt_utc.hour >= 21:
+                    return True
+
+        # Phân tầng 2: Toàn bộ danh mục trước giờ đóng sàn Forex
         # 23:30 -> 23:59 Server Time Thứ Sáu, hoặc vừa bước sang 00:xx Thứ Bảy Server Time khi dt_utc vẫn là Thứ Sáu
         if srv_dt.weekday() == 4 and srv_dt.hour == 23 and srv_dt.minute >= 30:
             return True
@@ -1159,7 +1985,7 @@ class USFederationQuantRuntime:
             return True
         return False
 
-    def enforce_friday_eod_flat(self) -> int:
+    def enforce_friday_eod_flat(self, now_utc: Optional[datetime] = None) -> int:
         """
         Emergency Circuit Breaker: Friday EOD Flat Rule (Bảo toàn 100% tỷ trọng tiền mặt cuối tuần).
         Khi Thứ Sáu >= 20:30 UTC (23:30 Server Time — trước giờ đóng sàn 20:59 UTC), tự động quét
@@ -1189,8 +2015,13 @@ class USFederationQuantRuntime:
                 if ticket is None:
                     continue
 
-                logger.info(
-                    f"🧹 [FRIDAY LIQUIDATION] Đóng vị thế Ticket #{ticket} ({symbol}) | Floating PnL: ${profit:+.2f} USD."
+                # Nếu truyền now_utc, kiểm tra phân tầng theo mã tài sản; nếu không truyền (None) thì thanh lý toàn bộ
+                if now_utc is not None and not self.is_friday_eod_flat_window(now_utc, symbol=symbol):
+                    continue
+
+                logger.warning(
+                    f"🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #{ticket} ({symbol}) | "
+                    f"Floating PnL: ${profit:+.2f} USD (Zero Weekend Hold Enforced)."
                 )
                 res = self.mt5_mgr.close_position(ticket=ticket, comment="Friday EOD Flat")
                 if res.get("success"):
@@ -1321,7 +2152,7 @@ class USFederationQuantRuntime:
     def enforce_weekend_hold_sweeper(
         self,
         now_utc: Optional[datetime] = None,
-        open_warmup_sec: float = 0.0,
+        open_warmup_sec: float = 600.0,
     ) -> int:
         """
         Skill 07 Anti-Weekend-Hold & 12h Max-Hold Sweeper (Microstructure V2):
@@ -1335,9 +2166,8 @@ class USFederationQuantRuntime:
         """
         if now_utc is None:
             now_utc = datetime.now(timezone.utc)
-            # Khi chạy live thực tế vào sáng Thứ Hai/Chủ Nhật mở phiên, mặc định bật đệm trễ 10 phút (600s)
-            if open_warmup_sec == 0.0:
-                open_warmup_sec = 600.0
+        # P0 FIX (Audit 05/11/2026): Vòng lặp chính luôn truyền now_utc nên trước đây warmup = 0s
+        # (log: "Gate: Ready (post-open=0s)"). Nay warmup 600s là mặc định cho mọi lời gọi.
 
         if self.is_friday_eod_flat_window(now_utc):
             positions = self.mt5_mgr.get_positions()
@@ -1345,7 +2175,7 @@ class USFederationQuantRuntime:
                 p for p in positions if self.mt5_mgr.is_market_open(p.get("symbol", ""))
             ]
             if open_market_positions:
-                return self.enforce_friday_eod_flat()
+                return self.enforce_friday_eod_flat(now_utc)
             elif positions:
                 logger.info(
                     f"⏸️ [WEEKEND HOLD QUEUED] Phát hiện {len(positions)} vị thế mở sau giờ đóng sàn Thứ Sáu. "
@@ -1358,8 +2188,11 @@ class USFederationQuantRuntime:
         if not positions:
             return 0
 
-        now_iso_year, now_iso_week, _ = now_utc.isocalendar()
-        is_weekend = now_utc.weekday() in (5, 6)
+        # P0 FIX (Audit 05/11/2026): `is_weekend = now.weekday() in (5, 6)` từng gắn cờ MỌI vị thế (kể cả lệnh vừa mở)
+        # là Weekend Hold suốt tối Chủ Nhật UTC -> vòng lặp mở/đóng 82 lệnh (-$158.72) lúc 22:09-22:45 UTC 01/11/2026.
+        # ISO-week cũng sai: lệnh mở tối Chủ Nhật bị coi là "tuần trước" lúc 00:00 UTC Thứ Hai.
+        # Nay chỉ vị thế mở TRƯỚC mốc mở phiên tuần gần nhất mới là Weekend Hold.
+        last_weekly_open_utc = self.get_last_weekly_open_utc(now_utc)
 
         for pos in positions:
             ticket = pos.get("ticket")
@@ -1373,14 +2206,11 @@ class USFederationQuantRuntime:
             else:
                 pos_time_utc = now_utc
 
-            pos_iso_year, pos_iso_week, _ = pos_time_utc.isocalendar()
             pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
-            is_prior_week_hold = (pos_iso_year, pos_iso_week) < (now_iso_year, now_iso_week)
-            is_friday_late_hold = pos_time_utc.weekday() == 4 and now_utc.weekday() != 4
+            is_weekend_hold = pos_time_utc < last_weekly_open_utc
             is_over_12h_hold = pos_age_hours >= 12.0
 
-            if is_weekend or is_prior_week_hold or is_friday_late_hold or is_over_12h_hold:
-                is_weekend_hold = is_weekend or is_prior_week_hold or is_friday_late_hold
+            if is_weekend_hold or is_over_12h_hold:
                 effective_warmup = open_warmup_sec if is_weekend_hold else 0.0
                 ready, readiness_reason = self.check_symbol_liquidation_readiness(
                     symbol=symbol,
@@ -1464,7 +2294,85 @@ class USFederationQuantRuntime:
                 drawdown = hwm_state.drawdown_fraction
                 floating_pnl = equity - balance
 
-                # Quad-Titan Audit & Timeline Log & State Proposals Scan (every 60s)
+                # =========================================================================
+                # 🚀 FAST REAL-TIME ORDER & RISK ENGINE (Runs every 3 seconds)
+                # =========================================================================
+                # 0. Symbol Exit & Cooldown Tracking (Anti-Chasing & Same-Direction SL Lockout)
+                self.update_symbol_exit_tracking(time.time())
+
+                # 1. Zero Weekend Hold Enforcer & Friday Staged EOD Flat
+                self.enforce_weekend_hold_sweeper(now_utc)
+
+                # 2. Hard Stop Caps (Sub-second emergency loss limiters)
+                self.enforce_gbpchf_uk100_hard_stop_cap(max_loss_usd=15.0)
+                self.enforce_forex_portfolio_hard_stop_cap(max_loss_usd=15.0)
+                self.enforce_index_hard_stop_cap(max_loss_usd=60.0)
+                self.enforce_xauusd_hard_stop_cap(max_loss_usd=75.0)
+
+                # 3. Multi-Tier Profit Ladder (Tầng 1 Breakeven+ >= +$4, Tầng 2 Runner >= +$8, Tầng 3 SuperTrend >= +$15)
+                try:
+                    self.manage_multi_tier_profit_ladder()
+                except Exception as e:
+                    logger.debug(f"Multi-Tier Profit Ladder Routine Error: {e}")
+
+                # 4. Two-Tier Exit Engine (Immediate +$25 profit capture & BE advancement)
+                self.enforce_two_tier_exit_engine(min_partial_profit_usd=25.0)
+
+                # 4. Dynamic Trailing Stop Chandelier Exit
+                try:
+                    self.ts_manager.update_trailing_stops()
+                except Exception as e:
+                    logger.debug(f"Trailing Stop Routine Error: {e}")
+
+                # 5. Mandatory SL Safeguard on naked orders
+                self.mt5_mgr.enforce_mandatory_sl_protection(default_sl_pct=0.015)
+
+                # 6. Tactical Index Over-exposure De-risking
+                self.reconcile_index_duplicate_derisking()
+
+                # 7. TASK 2: Smart Selective Stagnation Exit (8.0h Window & Absolute Profit Immunity)
+                positions = self.mt5_mgr.get_positions()
+                active_tickets = {p["ticket"] for p in positions}
+                self._profit_ladder_locked_tickets = getattr(self, "_profit_ladder_locked_tickets", set()).intersection(active_tickets)
+                self._tier2_locked_tickets = self._tier2_locked_tickets.intersection(active_tickets)
+                stagnant_closed = False
+                for pos in positions:
+                    pos_time = pos.get("time")
+                    if isinstance(pos_time, datetime):
+                        pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
+                    elif isinstance(pos_time, (int, float)):
+                        pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
+                    else:
+                        continue
+                    pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
+                    pos_profit = float(pos.get("profit", 0.0)) + float(pos.get("swap", 0.0))
+                    ticket = pos.get("ticket")
+                    symbol = pos.get("symbol")
+
+                    # QUY TẮC BẤT KHẢ XÂM PHẠM 1: PROFIT IMMUNITY
+                    # Tuyệt đối không bao giờ dùng Stagnation Exit cắt lệnh đang có lãi dương (> $0.00)
+                    # hoặc đã kích hoạt từ Tầng 1 của Bậc thang Khóa Lãi trở lên
+                    if pos_profit > 0.0 or ticket in self._profit_ladder_locked_tickets or ticket in self._tier2_locked_tickets:
+                        continue
+
+                    # QUY TẮC SELECTIVE DECAY CUT: Chỉ cắt khi ngâm >= 8.0h và đang âm nhẹ trong vùng -$6.00 <= PnL <= $0.00
+                    if pos_age_hours >= 8.0 and (-6.0 <= pos_profit <= 0.0):
+                        if not self.mt5_mgr.is_market_open(symbol):
+                            continue
+                        logger.info(
+                            f"⏱️ [SELECTIVE STAGNATION CUT] Ticket #{ticket} ({symbol}) "
+                            f"ngâm {pos_age_hours:.1f}h trong sideway tắt thanh khoản (PnL: ${pos_profit:+.2f} USD). "
+                            f"Đóng giải phóng ký quỹ sau 8 tiếng."
+                        )
+                        self.mt5_mgr.close_position(ticket=ticket, comment="Stagnation 8h Cut")
+                        stagnant_closed = True
+
+                if stagnant_closed:
+                    positions = self.mt5_mgr.get_positions()
+
+                # =========================================================================
+                # 🏛️ SLOW ALLOCATION & PROPOSAL ENGINE (Runs every 60 seconds)
+                # =========================================================================
                 if time.time() - last_quad_time >= 60.0:
                     last_quad_time = time.time()
                     titan_audit = self.quad_titans.execute_quad_audit(
@@ -1487,9 +2395,6 @@ class USFederationQuantRuntime:
                         )
                         sys.exit(99)
 
-                    # Emergency Circuit Breaker: Friday EOD Flat Rule (>= 20:30 UTC / 23:30 Server Time) & Weekend Hold Sweeper (Skill 07)
-                    self.enforce_weekend_hold_sweeper(now_utc)
-
                     # LỆNH 4: BlackRock Aladdin 50% Profit Sweep into Hamilton Vault
                     try:
                         from us_federation_quant.institutional_governance_rules import InstitutionalStatutoryRules
@@ -1504,56 +2409,7 @@ class USFederationQuantRuntime:
 
                     latency = self.heartbeat.measure_socket_latency()
                     active_states = len([s for s in self.hub.states_registry.states.values() if s.is_active])
-
-                    # 1. Enforce Hard Stop Cap on XAUUSD (Task 2)
-                    self.enforce_xauusd_hard_stop_cap(max_loss_usd=75.0)
-
-                    # 1b. Enforce Hard Stop Cap on US Indices (Step 3: -$60 USD)
-                    self.enforce_index_hard_stop_cap(max_loss_usd=60.0)
-
-                    # 2. Enforce Mandatory Stop Loss Protection (Article 00 Safeguard)
-                    self.mt5_mgr.enforce_mandatory_sl_protection(default_sl_pct=0.015)
-
-                    # 3. Enforce Two-Tier Exit Engine (Partial TP & Dynamic Trailing Runner) (Task 3)
-                    self.enforce_two_tier_exit_engine(min_partial_profit_usd=25.0)
-
-                    # 4. Tactical Index Over-exposure De-risking on rebound
-                    self.reconcile_index_duplicate_derisking()
-
-                    # 5. Thực thi Trailing Stop động Chandelier Exit (ATR14 H1) cho các vị thế đang thả nổi
-                    try:
-                        self.ts_manager.update_trailing_stops()
-                    except Exception as e:
-                        logger.error(f"Trailing Stop Routine Error: {e}")
-
-                    # 6. Triển khai Time-Based Stagnation Exit (Thoát vị thế ngâm >= 4 giờ và lãi < $10.0 USD)
                     positions = self.mt5_mgr.get_positions()
-                    stagnant_closed = False
-                    for pos in positions:
-                        pos_time = pos.get("time")
-                        if isinstance(pos_time, datetime):
-                            pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
-                        elif isinstance(pos_time, (int, float)):
-                            pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
-                        else:
-                            continue
-                        pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
-                        pos_profit = float(pos.get("profit", 0.0))
-                        ticket = pos.get("ticket")
-                        symbol = pos.get("symbol")
-                        if pos_age_hours >= 4.0 and pos_profit < 10.0:
-                            if not self.mt5_mgr.is_market_open(symbol):
-                                continue
-                            logger.info(
-                                f"⏱️ [TIME-BASED STAGNATION EXIT] Ticket #{ticket} ({symbol}) "
-                                f"ngâm {pos_age_hours:.1f}h trong sideway (Lãi trôi nổi: ${pos_profit:+.2f} USD < $10.0 USD). "
-                                f"Đóng chủ động bảo toàn vốn."
-                            )
-                            self.mt5_mgr.close_position(ticket=ticket, comment="Stagnation Exit")
-                            stagnant_closed = True
-
-                    if stagnant_closed:
-                        positions = self.mt5_mgr.get_positions()
 
                     # In log Timeline Vào Lệnh đơn thay vì lặp lại bảng điều khiển 2-3-4-5 lần
                     self.log_timeline_status(account_info, titan_audit, active_states, latency, hwm_state, positions)
@@ -1566,7 +2422,7 @@ class USFederationQuantRuntime:
                         open_positions=len(positions),
                     )
 
-                time.sleep(15)
+                time.sleep(3.0)
 
 
             except Exception as e:
@@ -1581,5 +2437,6 @@ class USFederationQuantRuntime:
 
 
 if __name__ == "__main__":
+    acquire_single_instance_lock()
     runner = USFederationQuantRuntime()
     runner.run()

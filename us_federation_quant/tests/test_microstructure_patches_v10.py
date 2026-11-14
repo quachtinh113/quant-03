@@ -219,6 +219,7 @@ def test_friday_eod_flat_rule():
     mock_runtime.enforce_weekend_hold_sweeper = USFederationQuantRuntime.enforce_weekend_hold_sweeper.__get__(mock_runtime)
     mock_runtime.check_symbol_liquidation_readiness = USFederationQuantRuntime.check_symbol_liquidation_readiness.__get__(mock_runtime)
     mock_runtime.is_friday_eod_flat_window = USFederationQuantRuntime.is_friday_eod_flat_window
+    mock_runtime.get_last_weekly_open_utc = USFederationQuantRuntime.get_last_weekly_open_utc
 
     mock_positions = [
         {"ticket": 1001, "symbol": "EURUSDm", "profit": 15.0, "time": datetime(2026, 10, 30, 15, 0, tzinfo=timezone.utc)},
@@ -339,4 +340,265 @@ def test_per_symbol_tick_warmup_and_spread_guard():
             assert "Ready" in reason_ok
 
 
+def test_p0_sunday_open_no_self_liquidation_loop():
+    """Regression (Audit 05/11/2026): lệnh mới mở tối Chủ Nhật sau giờ mở phiên KHÔNG được bị gắn cờ Weekend Hold.
+    Sự cố 01/11/2026 22:09-22:45 UTC: 82 lệnh mở rồi bị 'Weekend Hold Flat' sau ~10s (-$158.72)."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime as R
 
+    sun_2210 = datetime(2026, 11, 1, 22, 10, tzinfo=timezone.utc)
+    mon_0015 = datetime(2026, 11, 2, 0, 15, tzinfo=timezone.utc)
+    sat_noon = datetime(2026, 11, 7, 12, 0, tzinfo=timezone.utc)
+    assert R.get_last_weekly_open_utc(sun_2210) == datetime(2026, 11, 1, 22, 0, tzinfo=timezone.utc)
+    assert R.get_last_weekly_open_utc(mon_0015) == datetime(2026, 11, 1, 22, 0, tzinfo=timezone.utc)
+    assert R.get_last_weekly_open_utc(sat_noon) == datetime(2026, 11, 1, 22, 0, tzinfo=timezone.utc)
+    # Mùa hè (EDT): Chủ Nhật 25/10/2026 mở lúc 21:00 UTC
+    assert R.get_last_weekly_open_utc(datetime(2026, 10, 27, 9, 0, tzinfo=timezone.utc)) == datetime(2026, 10, 25, 21, 0, tzinfo=timezone.utc)
+
+    # Entry curfew kéo dài 60 phút sau giờ mở phiên tuần
+    assert R.is_friday_or_weekend_curfew(sun_2210) is True
+    assert R.is_friday_or_weekend_curfew(datetime(2026, 11, 1, 23, 5, tzinfo=timezone.utc)) is False
+
+    rt = MagicMock(spec=R)
+    rt.enforce_weekend_hold_sweeper = R.enforce_weekend_hold_sweeper.__get__(rt)
+    rt.check_symbol_liquidation_readiness = R.check_symbol_liquidation_readiness.__get__(rt)
+    rt.is_friday_eod_flat_window = R.is_friday_eod_flat_window
+    rt.get_last_weekly_open_utc = R.get_last_weekly_open_utc
+    rt.mt5_mgr = MagicMock()
+    rt.mt5_mgr.is_market_open.return_value = True
+    rt.mt5_mgr.close_position.return_value = {"success": True}
+    rt.mt5_mgr.get_positions.return_value = [
+        {"ticket": 2001, "symbol": "EURUSD", "profit": -1.36, "time": datetime(2026, 11, 1, 22, 9, 33, tzinfo=timezone.utc)},
+        {"ticket": 2002, "symbol": "USDJPY", "profit": -1.98, "time": datetime(2026, 11, 1, 23, 30, tzinfo=timezone.utc)},
+        {"ticket": 2003, "symbol": "EURGBP", "profit": -14.8, "time": datetime(2026, 10, 30, 12, 48, tzinfo=timezone.utc)},
+    ]
+    with patch("MetaTrader5.symbol_info_tick", return_value=None):
+        n1 = rt.enforce_weekend_hold_sweeper(sun_2210 + __import__("datetime").timedelta(minutes=1))
+        n2 = rt.enforce_weekend_hold_sweeper(mon_0015)
+    closed = [c.kwargs["ticket"] for c in rt.mt5_mgr.close_position.call_args_list]
+    assert 2001 not in closed and 2002 not in closed, closed
+    assert closed.count(2003) >= 1
+    assert n1 + n2 == len(closed)
+
+
+def test_p0_sweeper_default_warmup_applies_with_explicit_now():
+    """Regression: vòng lặp live truyền now_utc -> warmup phải vẫn là 600s (trước đây = 0s)."""
+    import inspect
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime as R
+    sig = inspect.signature(R.enforce_weekend_hold_sweeper)
+    assert sig.parameters["open_warmup_sec"].default == 600.0
+
+def test_gbpchf_uk100_risk_cap_15usd():
+    """Verify that all standard/forex pairs (including EURUSD, GBPCHF, UK100) are capped at universal max_risk_usd=15.0."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+
+    mock_info = MagicMock()
+    mock_info.trade_tick_value = 1.0
+    mock_info.trade_tick_size = 0.0001
+    mock_info.point = 0.0001
+    mock_info.volume_min = 0.01
+    mock_info.volume_max = 100.0
+    mock_info.volume_step = 0.01
+
+    with patch("MetaTrader5.symbol_info", return_value=mock_info):
+        # sl_points = 200. Universal $15 cap applies even if 35.0 is requested: raw = 15 / (200*1) = 0.075 -> 0.07L (floor)
+        lot_eur = runtime.calculate_risk_adjusted_lot("EURUSD", sl_points=200.0, max_risk_usd=35.0)
+        assert lot_eur == 0.07, f"EURUSD must be capped at $15 (expected 0.07, got {lot_eur})"
+
+        # GBPCHF: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.07L
+        lot_gbp = runtime.calculate_risk_adjusted_lot("GBPCHF", sl_points=200.0, max_risk_usd=35.0)
+        assert lot_gbp == 0.07
+
+        # UK100: automatically capped to max_risk_usd=15.0: raw = 15 / (200*1) = 0.075 -> 0.07L
+        lot_uk = runtime.calculate_risk_adjusted_lot("UK100", sl_points=200.0, max_risk_usd=35.0)
+        assert lot_uk == 0.07
+
+        # Test enforce_hard_risk_cap floor rounding: 0.25L with 150 sl points (loss per lot = 150) -> cap = 15/150 = 0.10L
+        capped = runtime.enforce_hard_risk_cap("GBPUSD", raw_lot=0.25, sl_distance_price=0.0150)
+        assert capped <= 0.10
+
+
+def test_breakeven_lock_buffer_1_5_pips():
+    """Verify that positions reaching >= 50% TP distance or >= $12.00 get SL advanced to Entry +/- 1.5 pips buffer."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+    runtime.mt5_mgr = MagicMock()
+    runtime.mt5_mgr.modify_position_sltp.return_value = {"success": True}
+
+    # Position 1: BUY EURUSD entry=1.11500, TP=1.12500 (+100 pips), current=1.12100 (+60 pips = 60% of TP)
+    # SL is currently 1.11000. Buffer is 1.5 pips = 0.00015 -> Target SL = 1.11515
+    mock_pos_buy = {
+        "ticket": 6001,
+        "symbol": "EURUSD",
+        "type": "BUY",
+        "price_open": 1.11500,
+        "price_current": 1.12100,
+        "sl": 1.11000,
+        "tp": 1.12500,
+        "profit": 15.00,
+    }
+    # Position 2: SELL GBPUSD entry=1.34000, TP=1.33000 (+100 pips), current=1.33400 (+60 pips = 60% of TP)
+    # SL is currently 1.34500. Buffer is 1.5 pips = 0.00015 -> Target SL = 1.33985
+    mock_pos_sell = {
+        "ticket": 6002,
+        "symbol": "GBPUSD",
+        "type": "SELL",
+        "price_open": 1.34000,
+        "price_current": 1.33400,
+        "sl": 1.34500,
+        "tp": 1.33000,
+        "profit": 18.00,
+    }
+    runtime.mt5_mgr.get_positions.return_value = [mock_pos_buy, mock_pos_sell]
+
+    mock_info = MagicMock()
+    mock_info.point = 0.00001
+    mock_info.digits = 5
+
+    with patch("MetaTrader5.symbol_info", return_value=mock_info):
+        res = runtime.check_and_apply_breakeven_lock(buffer_pips=1.5)
+
+    assert len(res) == 2
+    runtime.mt5_mgr.modify_position_sltp.assert_any_call(ticket=6001, sl=1.11515, tp=1.12500)
+    runtime.mt5_mgr.modify_position_sltp.assert_any_call(ticket=6002, sl=1.33985, tp=1.33000)
+
+
+def test_anti_chasing_cooldown_and_same_direction_lockout():
+    """Verify Anti-Chasing 15-min cooldown and 2-consecutive SL lockout on same direction."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+
+    now_ts = 100_000.0
+
+    # 1. Initially allowed
+    can_enter, reason = runtime.can_enter_trade("GBPUSD", "BUY", now_ts)
+    assert can_enter is True
+    assert reason == "OK"
+
+    # 2. Simulate position exit on GBPUSD at now_ts
+    runtime.symbol_state["GBPUSD"] = {
+        "last_exit_ts": now_ts,
+        "consec_sl_buy": 0,
+        "consec_sl_sell": 0,
+        "lock_buy_until": 0.0,
+        "lock_sell_until": 0.0,
+    }
+
+    # At now_ts + 24s (like Ticket #2821336086 today): MUST BE VETOED!
+    can_enter_24s, reason_24s = runtime.can_enter_trade("GBPUSD", "BUY", now_ts + 24.0)
+    assert can_enter_24s is False
+    assert "VETO_ANTI_CHASING" in reason_24s
+
+    # At now_ts + 901s (after 15 minutes): Allowed
+    can_enter_15m, reason_15m = runtime.can_enter_trade("GBPUSD", "BUY", now_ts + 901.0)
+    assert can_enter_15m is True
+
+    # 3. Simulate EURUSD suffering 2 consecutive SL on SELL direction
+    runtime.symbol_state["EURUSD"] = {
+        "last_exit_ts": now_ts - 1000.0,  # Cooldown passed
+        "consec_sl_buy": 0,
+        "consec_sl_sell": 2,
+        "lock_buy_until": 0.0,
+        "lock_sell_until": now_ts + 7200.0,  # Locked for 2 hours
+    }
+
+    # SELL direction must be LOCKED (Anti-Trend Trap)
+    can_sell, reason_sell = runtime.can_enter_trade("EURUSD", "SELL", now_ts)
+    assert can_sell is False
+    assert "VETO_TREND_TRAP" in reason_sell
+    assert "SELL" in reason_sell
+
+    # BUY direction is NOT locked (can trade with the trend!)
+    can_buy, reason_buy = runtime.can_enter_trade("EURUSD", "BUY", now_ts)
+    assert can_buy is True
+    assert reason_buy == "OK"
+
+
+def test_enforce_gbpchf_uk100_hard_stop_cap():
+    """Verify enforce_gbpchf_uk100_hard_stop_cap triggers emergency close at -$15.00 loss."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+    runtime.mt5_mgr = MagicMock()
+    runtime.mt5_mgr.close_position.return_value = {"success": True}
+
+    mock_positions = [
+        {"ticket": 5001, "symbol": "GBPCHFm", "type": "BUY", "volume": 0.14, "profit": -16.50, "swap": 0.0, "commission": 0.0},
+        {"ticket": 5002, "symbol": "UK100m", "type": "SELL", "volume": 0.60, "profit": -15.10, "swap": 0.0, "commission": 0.0},
+        {"ticket": 5003, "symbol": "GBPCHFm", "type": "BUY", "volume": 0.14, "profit": -8.00, "swap": 0.0, "commission": 0.0},
+        {"ticket": 5004, "symbol": "EURUSDm", "type": "BUY", "volume": 0.12, "profit": -20.00, "swap": 0.0, "commission": 0.0},
+    ]
+    runtime.mt5_mgr.get_positions.return_value = mock_positions
+
+    closed = runtime.enforce_gbpchf_uk100_hard_stop_cap(max_loss_usd=15.0)
+    assert len(closed) == 2
+    runtime.mt5_mgr.close_position.assert_any_call(ticket=5001, comment="HardCap 15")
+    runtime.mt5_mgr.close_position.assert_any_call(ticket=5002, comment="HardCap 15")
+
+def test_hk50_elimination_and_session_gate():
+    """Verify HK50 (STATE_17) is eliminated and session gate properly identifies market breaks."""
+    import importlib
+    reg_mod = importlib.import_module("us_federation_quant.05_the_50_states.state_registry")
+    ELITE_STATE_IDS = reg_mod.ELITE_STATE_IDS
+    ELIMINATED_STATE_IDS = reg_mod.ELIMINATED_STATE_IDS
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+
+    # 1. State Pod Registry: STATE_17 must NOT be in elite states and MUST be in eliminated states
+    assert "STATE_17" not in ELITE_STATE_IDS
+    assert "STATE_17" in ELIMINATED_STATE_IDS
+
+    # 2. Session Gate Tests
+    # Lunch break: 04:30 UTC (Wednesday) -> Market closed (retcode=10044 prevented)
+    wed_lunch = datetime(2026, 11, 4, 4, 30, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_lunch) is False
+
+    # Morning session: 02:00 UTC -> Open
+    wed_morning = datetime(2026, 11, 4, 2, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_morning) is True
+
+    # Afternoon session: 06:00 UTC -> Open
+    wed_afternoon = datetime(2026, 11, 4, 6, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_afternoon) is True
+
+    # After-hours session: 14:00 UTC -> Open
+    wed_night = datetime(2026, 11, 4, 14, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(wed_night) is True
+
+    # Weekend: Saturday noon -> Closed
+    sat_noon = datetime(2026, 11, 7, 12, 0, tzinfo=timezone.utc)
+    assert USFederationQuantRuntime.is_hk50_session_open(sat_noon) is False
+
+
+def test_staged_friday_eod_flat_and_entry_lock():
+    """Verify Staged Friday EOD Flat and Friday Entry Lock strictly prevents weekend hold."""
+    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
+
+    # 1. Friday 20:16 UTC in Winter (Nov 6, 2026): Server is UTC+2 (22:16 Server Time)
+    fri_2016 = datetime(2026, 11, 6, 20, 16, 0, tzinfo=timezone.utc)
+    # Indices must be in early flat window (starting 20:15 UTC before index market close)
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="UK100m") is True
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="USTECm") is True
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="US30m") is True
+    # Forex is NOT yet in flat window (in winter, waits until 21:30 UTC = 23:30 Server Time)
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="EURUSDm") is False
+    assert runtime.is_friday_eod_flat_window(fri_2016, symbol="GBPCHFm") is False
+
+    # 2. Friday 21:35 UTC in Winter (23:35 Server Time): Both Indices and Forex in flat window
+    fri_2135 = datetime(2026, 11, 6, 21, 35, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(fri_2135, symbol="UK100m") is True
+    assert runtime.is_friday_eod_flat_window(fri_2135, symbol="EURUSDm") is True
+
+    # 3. Friday 20:35 UTC in Summer (Oct 30, 2026, Server is UTC+3 -> 23:35 Server Time): Forex in flat window
+    fri_summer_2035 = datetime(2026, 10, 30, 20, 35, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(fri_summer_2035, symbol="EURUSDm") is True
+
+    # 4. Friday 17:30 UTC (Before entry lock): Normal trading
+    fri_1730 = datetime(2026, 11, 6, 17, 30, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(fri_1730, symbol="UK100m") is False
+    assert runtime.is_friday_eod_flat_window(fri_1730, symbol="EURUSDm") is False
+
+    # 5. Weekend (Saturday / Sunday): Curfew is active, but is_friday_eod_flat_window is False (Sweeper handles weekend-held orders with warmup)
+    sat_1000 = datetime(2026, 11, 7, 10, 0, 0, tzinfo=timezone.utc)
+    assert runtime.is_friday_eod_flat_window(sat_1000, symbol="UK100m") is False
+    assert runtime.is_friday_eod_flat_window(sat_1000, symbol="EURUSDm") is False
+    assert runtime.is_friday_or_weekend_curfew(sat_1000) is True
