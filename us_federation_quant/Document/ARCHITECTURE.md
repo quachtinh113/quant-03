@@ -53,19 +53,18 @@ Mỗi khối trong file tầng có tiêu đề `# ==== <đường-dẫn-cũ> ===
 ## Nợ kỹ thuật cần mở ADR (sau khi chia xong 6 tầng)
 Các mục dưới đây là hành vi được GIỮ NGUYÊN trong lúc tái cấu trúc; mỗi mục cần chủ hệ thống quyết định riêng (đổi hành vi giao dịch).
 
-1. **`manual_emergency_shutdown` / `update_equity` chạm ngưỡng -12% không đóng lệnh.** Tên là "emergency liquidation" nhưng mã chỉ
+1. ✅ **ĐÃ XỬ LÝ — ADR-003** (`ADR/ADR-003-emergency-full-liquidation.md`). Trước đây: **`manual_emergency_shutdown` / `update_equity` chạm ngưỡng -12% không đóng lệnh.** Tên là "emergency liquidation" nhưng mã chỉ
    chạy soft de-risking: dời SL về entry±15 point cho lệnh đang LÃI, giữ nguyên lệnh LỖ, đóng băng tín hiệu mới 24 giờ.
    (golden: `tests/test_golden_emergency_derisking.py`.)
 2. **Trần lỗ cứng chồng chéo:** `forex_portfolio` ($15) không loại NAS100/DJ30/SP500 nên đè lên trần chỉ số ($60); GBPCHF/UK100
    bị hai trần $15 phủ lên nhau; `.replace("M","")` xóa mọi chữ M trong tên mã. (golden: `tests/test_golden_l5_hard_caps.py`.)
 3. **Two-tier exit:** vị thế 0.01L vừa dời SL về hòa vốn vừa rơi xuống khóa lãi $15 trong cùng một lượt; đóng partial thất bại vẫn
    rơi xuống khóa lãi và không ghi state. (golden: `tests/test_golden_l4_exits.py`.)
-4. **Chưa có chốt SL/TP bắt buộc ở L5** (`submit_order_intent`); `fleet_guard` được khởi tạo nhưng không ai gọi.
-5. **`scan_and_route_state_proposals` (~480 dòng) chưa có golden**; test hiện có của nó fail từ baseline.
-6. **`scan_and_route_state_proposals` dùng lại `sym_info` của pod vòng lặp trước khi `mt5.symbol_info` ném ngoại lệ.** Gate `trade_mode`
+4. ◐ **SL: ĐÃ XỬ LÝ — ADR-005** (`ADR/ADR-005-mandatory-hard-sl.md`); TP và SL đúng phía giá vẫn mở. Trước đây: **Chưa có chốt SL/TP bắt buộc ở L5** (`submit_order_intent`); `fleet_guard` được khởi tạo nhưng không ai gọi.
+5. ✅ **Đã có golden G1** (`tests/test_golden_scan_pipeline.py`, 62 kịch bản). Test cũ của hàm này vẫn fail từ baseline (chưa xử lý).
+6. ✅ **ĐÃ XỬ LÝ — ADR-004** (`ADR/ADR-004-fail-closed-symbol-info.md`). Trước đây: **`scan_and_route_state_proposals` dùng lại `sym_info` của pod vòng lặp trước khi `mt5.symbol_info` ném ngoại lệ.** Gate `trade_mode`
    nuốt ngoại lệ và không gán `sym_info`; các bước sau (`point`, `trade_stops_level`, `spread`, `digits`) dùng giá trị còn sót từ pod
-   trước (hoặc `NameError` nếu là pod đầu tiên), có thể đặt lệnh với `digits` của mã khác. Đang được giữ nguyên bằng giá trị đánh dấu
-   `l1_data.UNSET`. (golden: `tests/test_golden_trade_mode_gate.py`.)
+   trước (hoặc `NameError` nếu là pod đầu tiên), có thể đặt lệnh với `digits` của mã khác. (Đã bỏ giá trị đánh dấu `l1_data.UNSET`.) (golden: `tests/test_golden_trade_mode_gate.py`.)
 7. **Phân bổ Carver trong `scan_and_route_state_proposals` dùng lợi suất giả ngẫu nhiên** (`np.random.normal`, 40 nến, mỗi lần quét): quota/IDM
    thay đổi không tất định giữa các lần quét. Golden phải cố định seed. (golden: `tests/test_golden_scan_pipeline.py`.)
 8. **Gate giờ độc hại ngay trước khi gửi lệnh gần như không thể chạm tới**: vòng quét đã `return` sớm ở cùng tập `TOXIC_HOURS`; chỉ khác khi

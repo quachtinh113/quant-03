@@ -1,81 +1,280 @@
 {
+ "liquidate_all_ok_profit_and_loss": {
+  "alerts": null,
+  "close_calls": [
+   1001,
+   1002,
+   1003
+  ],
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "modify_calls": 0,
+  "plan": [
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 50.0,
+    "result": {
+     "success": true,
+     "ticket": 1001
+    },
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 35.0,
+    "result": {
+     "success": true,
+     "ticket": 1002
+    },
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": -45.0,
+    "result": {
+     "success": true,
+     "ticket": 1003
+    },
+    "symbol": "USDJPY",
+    "ticket": 1003
+   }
+  ]
+ },
+ "liquidate_no_positions": {
+  "alerts": null,
+  "close_calls": [],
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "modify_calls": 0,
+  "plan": []
+ },
+ "liquidate_one_fails_others_continue_retry_fails": {
+  "alerts": null,
+  "close_calls": [
+   1001,
+   1002,
+   1003,
+   1002
+  ],
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "modify_calls": 0,
+  "plan": [
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 50.0,
+    "result": {
+     "success": true,
+     "ticket": 1001
+    },
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 35.0,
+    "result": {
+     "error": "requote",
+     "retcode": 10004,
+     "success": false
+    },
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": -45.0,
+    "result": {
+     "success": true,
+     "ticket": 1003
+    },
+    "symbol": "USDJPY",
+    "ticket": 1003
+   }
+  ]
+ },
+ "liquidate_one_raises_others_continue": {
+  "alerts": null,
+  "close_calls": [
+   1001,
+   1002,
+   1003,
+   1002
+  ],
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "modify_calls": 0,
+  "plan": [
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 50.0,
+    "result": {
+     "success": true,
+     "ticket": 1001
+    },
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 35.0,
+    "result": {
+     "error": "ipc down",
+     "success": false
+    },
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": -45.0,
+    "result": {
+     "success": true,
+     "ticket": 1003
+    },
+    "symbol": "USDJPY",
+    "ticket": 1003
+   }
+  ]
+ },
+ "liquidate_retry_skipped_when_position_gone": {
+  "alerts": null,
+  "close_calls": [
+   1001,
+   1002,
+   1003
+  ],
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "modify_calls": 0,
+  "plan": [
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 50.0,
+    "result": {
+     "success": true,
+     "ticket": 1001
+    },
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 35.0,
+    "result": {
+     "error": "requote",
+     "retcode": 10004,
+     "success": false
+    },
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": -45.0,
+    "result": {
+     "success": true,
+     "ticket": 1003
+    },
+    "symbol": "USDJPY",
+    "ticket": 1003
+   }
+  ]
+ },
+ "liquidate_retry_succeeds": {
+  "alerts": null,
+  "close_calls": [
+   1001,
+   1002,
+   1003,
+   1002
+  ],
+  "freeze_until": 1800086400.0,
+  "locked": true,
+  "modify_calls": 0,
+  "plan": [
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 50.0,
+    "result": {
+     "success": true,
+     "ticket": 1001
+    },
+    "symbol": "EURUSD",
+    "ticket": 1001
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": 35.0,
+    "result": {
+     "success": true,
+     "ticket": 1002
+    },
+    "symbol": "GBPUSD",
+    "ticket": 1002
+   },
+   {
+    "action": "EMERGENCY_CLOSE",
+    "profit": -45.0,
+    "result": {
+     "success": true,
+     "ticket": 1003
+    },
+    "symbol": "USDJPY",
+    "ticket": 1003
+   }
+  ]
+ },
  "manual_get_positions": {
   "calls": {
-   "close_position": [],
-   "get_positions": [
-    [
-     [],
-     {}
-    ]
-   ],
-   "get_symbol_spec": [
-    [
-     [
-      "EURUSD"
-     ],
-     {}
-    ],
-    [
-     [
-      "GBPUSD"
-     ],
-     {}
-    ],
-    [
-     [
-      "USDJPY"
-     ],
-     {}
-    ],
-    [
-     [
-      "USDJPY"
-     ],
-     {}
-    ],
-    [
-     [
-      "EURUSD"
-     ],
-     {}
-    ],
-    [
-     [
-      "EURUSD"
-     ],
-     {}
-    ]
-   ],
-   "modify_position_sltp": [
+   "close_position": [
     [
      [],
      {
-      "sl": 1.10015,
       "ticket": 1001
      }
     ],
     [
      [],
      {
-      "sl": 1.29985,
       "ticket": 1002
      }
     ],
     [
      [],
      {
-      "sl": 150.265,
+      "ticket": 1003
+     }
+    ],
+    [
+     [],
+     {
       "ticket": 1004
      }
     ],
     [
      [],
      {
-      "sl": 1.19985,
       "ticket": 1005
      }
+    ],
+    [
+     [],
+     {
+      "ticket": 1006
+     }
     ]
-   ]
+   ],
+   "get_positions": [
+    [
+     [],
+     {}
+    ]
+   ],
+   "get_symbol_spec": [],
+   "modify_position_sltp": []
   },
   "directive": {
    "auth_token": "d010e41fd8854ba1",
@@ -107,30 +306,22 @@
  },
  "manual_positions_attr": {
   "calls": {
-   "close_position": [],
-   "get_symbol_spec": [
-    [
-     [
-      "EURUSD"
-     ],
-     {}
-    ],
-    [
-     [
-      "USDJPY"
-     ],
-     {}
-    ]
-   ],
-   "modify_position_sltp": [
+   "close_position": [
     [
      [],
      {
-      "sl": 1.10015,
       "ticket": 1001
      }
+    ],
+    [
+     [],
+     {
+      "ticket": 1003
+     }
     ]
-   ]
+   ],
+   "get_symbol_spec": [],
+   "modify_position_sltp": []
   },
   "directive": {
    "auth_token": "d010e41fd8854ba1",
@@ -591,49 +782,34 @@
  },
  "update_equity_red_with_broker": {
   "calls": {
-   "close_position": [],
-   "get_positions": [
-    [
-     [],
-     {}
-    ]
-   ],
-   "get_symbol_spec": [
-    [
-     [
-      "EURUSD"
-     ],
-     {}
-    ],
-    [
-     [
-      "GBPUSD"
-     ],
-     {}
-    ],
-    [
-     [
-      "USDJPY"
-     ],
-     {}
-    ]
-   ],
-   "modify_position_sltp": [
+   "close_position": [
     [
      [],
      {
-      "sl": 1.10015,
       "ticket": 1001
      }
     ],
     [
      [],
      {
-      "sl": 1.29985,
       "ticket": 1002
      }
+    ],
+    [
+     [],
+     {
+      "ticket": 1003
+     }
     ]
-   ]
+   ],
+   "get_positions": [
+    [
+     [],
+     {}
+    ]
+   ],
+   "get_symbol_spec": [],
+   "modify_position_sltp": []
   },
   "directive": {
    "auth_token": "74fa8a194f76241d",

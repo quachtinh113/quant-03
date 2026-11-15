@@ -895,13 +895,58 @@ def evaluate_soft_derisking(active_positions, spec_lookup, can_modify):
     return plan, tuple(directives)
 
 
+def evaluate_emergency_liquidation(active_positions):
+    """Thanh lý khẩn cấp THUẦN (ADR-003): trả về (plan, directives), một CloseDirective cho MỌI vị thế (cả lãi lẫn lỗ).
+
+    plan[i] và directives[i] tương ứng 1-1 (capture = chỉ số i). Đóng thất bại: log lỗi + AlertDirective; caller tiếp tục các lệnh còn lại.
+    """
+    plan: List[Dict[str, Any]] = []
+    directives: List[Directive] = []
+    for idx, p in enumerate(active_positions):
+        ticket = int(p.get("ticket", 0) if isinstance(p, dict) else getattr(p, "ticket", 0))
+        symbol = str(p.get("symbol", "") if isinstance(p, dict) else getattr(p, "symbol", ""))
+        profit = float(p.get("profit", 0.0) if isinstance(p, dict) else getattr(p, "profit", 0.0))
+        directives.append(CloseDirective(
+            ticket=ticket,
+            capture=str(idx),
+            pre_log=LogLine("warning", f"🚨 [EMERGENCY LIQUIDATION] Đóng #{ticket} ({symbol}, PnL: {profit:+.2f} USD)."),
+            ok_log=LogLine("info", f"✅ [EMERGENCY LIQUIDATION] Đã đóng #{ticket} ({symbol})."),
+            fail_log=LogLine("error", f"❌ [EMERGENCY LIQUIDATION] Đóng #{ticket} ({symbol}) THẤT BẠI: {{error}}"),
+            on_failure=(AlertDirective(
+                subject="EMERGENCY LIQUIDATION: CLOSE FAILED",
+                body=f"Không đóng được vị thế #{ticket} ({symbol}, PnL {profit:+.2f} USD). Cần can thiệp tay."),),
+        ))
+        plan.append({"ticket": ticket, "symbol": symbol, "action": "EMERGENCY_CLOSE", "profit": profit, "result": None})
+    return plan, tuple(directives)
+
+
 def _legacy_inline_execute(directives, broker_connector):
-    """Bộ thực thi nội tuyến KẾ THỪA cho apply_soft_derisking khi caller không truyền executor (L5).
+    """Bộ thực thi nội tuyến KẾ THỪA cho apply_soft_derisking / apply_emergency_liquidation khi caller không truyền executor (L5).
     Luồng live đi qua L5 (runner truyền executor); hàm này chỉ giữ tương thích cho lời gọi/test trực tiếp."""
     captured: Dict[str, Any] = {}
+
+    def _ok(res):
+        return bool(res.get("success")) if isinstance(res, dict) else bool(res)
+
     for d in directives:
         if isinstance(d, ModifyDirective):
             captured[d.capture] = broker_connector.modify_position_sltp(ticket=d.ticket, sl=d.sl)
+        elif isinstance(d, CloseDirective):
+            if d.pre_log:
+                getattr(logger, d.pre_log.level)(d.pre_log.message)
+            res = broker_connector.close_position(ticket=d.ticket)
+            if d.capture is not None:
+                captured[d.capture] = res
+            if _ok(res):
+                if d.ok_log:
+                    getattr(logger, d.ok_log.level)(d.ok_log.message)
+            else:
+                err = res.get("error") if isinstance(res, dict) else None
+                if d.fail_log:
+                    getattr(logger, d.fail_log.level)(d.fail_log.message.replace("{error}", str(err)))
+                for f in d.on_failure:
+                    if isinstance(f, AlertDirective):
+                        logger.critical(f"🚨 [ALERT] {f.subject}: {f.body}")
         elif isinstance(d, LogDirective):
             getattr(logger, d.pre_log.level)(d.pre_log.message)
     return captured
@@ -1374,7 +1419,7 @@ class FederalMasterKillSwitch:
     ) -> KillSwitchDirective:
         """
         Manual trigger of the Federal Master Kill-Switch by the Chief Risk Officer.
-        Executes Soft De-risking protocol instead of aggressive market close dump.
+        ADR-003: thanh lý toàn bộ vị thế mở (apply_emergency_liquidation) rồi khóa mở lệnh mới.
         """
         self.is_locked = True
         self.freeze_until = time.time() + 86400.0  # 24 hours freeze
@@ -1478,14 +1523,63 @@ class FederalMasterKillSwitch:
         return plan
 
 
+    def apply_emergency_liquidation(
+        self,
+        active_positions: List[Dict[str, Any]],
+        broker_connector: Optional[Any] = None,
+        executor: Optional[Any] = None,
+    ) -> List[Dict[str, Any]]:
+        """ADR-003: thanh lý TOÀN BỘ vị thế mở (cả lãi lẫn lỗ) + khóa mở lệnh mới 24 giờ.
+
+        Một lệnh đóng thất bại (kể cả ném ngoại lệ) KHÔNG chặn các lệnh còn lại. Sau lượt đầu, quét lại TỐI ĐA 1 lượt các
+        ticket còn sót (nếu broker còn báo vị thế đó đang mở). Trả về plan, mỗi mục có `result` của lần đóng cuối cùng.
+        """
+        self.freeze_until = time.time() + 86400.0  # 24 hours freeze
+        self.is_locked = True
+        logger.critical(
+            f"🛑 [EMERGENCY LIQUIDATION ACTIVATED] Đóng toàn bộ {len(active_positions)} vị thế mở; khóa lệnh mới 24 giờ "
+            f"(đến {time.ctime(self.freeze_until)})."
+        )
+        plan, directives = evaluate_emergency_liquidation(active_positions)
+        run = executor if executor is not None else (lambda dirs: _legacy_inline_execute(dirs, broker_connector))
+
+        def _sweep(indices):
+            for idx in indices:
+                try:
+                    captured = run((directives[idx],))
+                    plan[idx]["result"] = captured.get(str(idx))
+                except Exception as exc:  # một lệnh lỗi không được chặn các lệnh còn lại
+                    logger.error(f"❌ [EMERGENCY LIQUIDATION] Ngoại lệ khi đóng #{plan[idx]['ticket']}: {exc}")
+                    plan[idx]["result"] = {"success": False, "error": str(exc)}
+
+        def _closed(res):
+            return bool(res.get("success")) if isinstance(res, dict) else bool(res)
+
+        _sweep(range(len(plan)))
+
+        leftover = [i for i, item in enumerate(plan) if not _closed(item["result"])]
+        if leftover:
+            still_open = None
+            try:
+                if broker_connector is not None and hasattr(broker_connector, "get_positions"):
+                    still_open = {int(p.get("ticket", 0) if isinstance(p, dict) else getattr(p, "ticket", 0))
+                                  for p in broker_connector.get_positions()}
+            except Exception as exc:
+                logger.error(f"❌ [EMERGENCY LIQUIDATION] Không đọc được vị thế để quét lại: {exc}")
+            retry = [i for i in leftover if still_open is None or plan[i]["ticket"] in still_open]
+            if retry:
+                logger.warning(f"🔁 [EMERGENCY LIQUIDATION] Quét lại 1 lượt cho {len(retry)} ticket còn sót: {[plan[i]['ticket'] for i in retry]}")
+                _sweep(retry)
+        return plan
+
     def _execute_emergency_liquidation(self, broker_connector: Any, executor: Optional[Any] = None) -> None:
-        """Executes Soft De-risking protocol instead of panic market liquidation."""
+        """ADR-003: thanh lý khẩn cấp toàn bộ vị thế (thay cho soft de-risking cũ)."""
         positions = []
         if hasattr(broker_connector, "get_positions"):
             positions = broker_connector.get_positions()
         elif hasattr(broker_connector, "positions"):
             positions = list(broker_connector.positions.values())
-        self.apply_soft_derisking(positions, broker_connector, executor)
+        self.apply_emergency_liquidation(positions, broker_connector, executor)
 
 
 # ====================================================================================================
