@@ -2585,8 +2585,21 @@ def submit_order_intent(rt, intent):
 
     Trả về dict kết quả khi thành công, None khi broker từ chối. Ngoại lệ lan ra cho caller (như bản cũ):
     sau SUBMITTED mà open_market_order nổ thì lệnh ở lại SUBMITTED và warrant KHÔNG bị revoke.
-    Chưa thêm chốt chặn SL/TP bắt buộc ở đây (đó là thay đổi hành vi, cần ADR riêng).
+    ADR-005: chốt SL cứng bắt buộc. Thiếu SL (None / không hữu hạn / <= 0) -> KHÔNG tạo order, KHÔNG gọi open_market_order,
+    thu hồi warrant và trả None (cùng hợp đồng với broker từ chối). Chưa kiểm tra TP hay SL đúng phía giá (ngoài phạm vi).
     """
+    sl = intent.sl
+    try:
+        sl_ok = sl is not None and not isinstance(sl, bool) and math.isfinite(float(sl)) and float(sl) > 0
+    except (TypeError, ValueError):
+        sl_ok = False
+    if not sl_ok:
+        logger.critical(
+            f"⛔ [HARD SL REQUIRED] {intent.state_id} {intent.action} {intent.volume}L {intent.symbol}: "
+            f"SL không hợp lệ ({sl!r}) -> TỪ CHỐI gửi lệnh, warrant bị thu hồi.")
+        intent.warrant.revoke(reason=f"Missing/invalid hard SL: {sl!r}")
+        return None
+
     client_order_id = generate_client_order_id(intent.state_id, intent.action)
     order_state = rt.mt5_mgr.state_machine.create_order(
         client_order_id=client_order_id,

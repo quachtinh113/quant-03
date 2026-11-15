@@ -1,4 +1,183 @@
 {
+ "adr5_sl_inf_rejected": {
+  "create_called": false,
+  "events": [
+   [
+    "revoke",
+    {
+     "reason": "Missing/invalid hard SL: inf"
+    }
+   ]
+  ],
+  "executed": [],
+  "logs": [
+   [
+    "CRITICAL",
+    "⛔ [HARD SL REQUIRED] STATE_01 BUY 0.07L EURUSDm: SL không hợp lệ (inf) -> TỪ CHỐI gửi lệnh, warrant bị thu hồi."
+   ]
+  ],
+  "raised": null
+ },
+ "adr5_sl_nan_rejected": {
+  "create_called": false,
+  "events": [
+   [
+    "revoke",
+    {
+     "reason": "Missing/invalid hard SL: nan"
+    }
+   ]
+  ],
+  "executed": [],
+  "logs": [
+   [
+    "CRITICAL",
+    "⛔ [HARD SL REQUIRED] STATE_01 BUY 0.07L EURUSDm: SL không hợp lệ (nan) -> TỪ CHỐI gửi lệnh, warrant bị thu hồi."
+   ]
+  ],
+  "raised": null
+ },
+ "adr5_sl_negative_rejected": {
+  "create_called": false,
+  "events": [
+   [
+    "revoke",
+    {
+     "reason": "Missing/invalid hard SL: -1.0"
+    }
+   ]
+  ],
+  "executed": [],
+  "logs": [
+   [
+    "CRITICAL",
+    "⛔ [HARD SL REQUIRED] STATE_01 BUY 0.07L EURUSDm: SL không hợp lệ (-1.0) -> TỪ CHỐI gửi lệnh, warrant bị thu hồi."
+   ]
+  ],
+  "raised": null
+ },
+ "adr5_sl_none_rejected": {
+  "create_called": false,
+  "events": [
+   [
+    "revoke",
+    {
+     "reason": "Missing/invalid hard SL: None"
+    }
+   ]
+  ],
+  "executed": [],
+  "logs": [
+   [
+    "CRITICAL",
+    "⛔ [HARD SL REQUIRED] STATE_01 BUY 0.07L EURUSDm: SL không hợp lệ (None) -> TỪ CHỐI gửi lệnh, warrant bị thu hồi."
+   ]
+  ],
+  "raised": null
+ },
+ "adr5_sl_sell_none_rejected": {
+  "create_called": false,
+  "events": [
+   [
+    "revoke",
+    {
+     "reason": "Missing/invalid hard SL: None"
+    }
+   ]
+  ],
+  "executed": [],
+  "logs": [
+   [
+    "CRITICAL",
+    "⛔ [HARD SL REQUIRED] STATE_01 SELL 0.07L EURUSDm: SL không hợp lệ (None) -> TỪ CHỐI gửi lệnh, warrant bị thu hồi."
+   ]
+  ],
+  "raised": null
+ },
+ "adr5_sl_valid_tiny_passes": {
+  "create_called": true,
+  "events": [
+   [
+    "create_order",
+    {
+     "client_order_id": "CLIENTID-STATE_01-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 260901,
+     "order_type": "MARKET",
+     "sl": 1e-05,
+     "symbol": "EURUSDm",
+     "tp": 1.11,
+     "volume": 0.07,
+     "warrant_id": "W-123"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_01:CLIENTID-STATE_0",
+     "direction": "BUY",
+     "magic": 260901,
+     "sl": 1e-05,
+     "symbol": "EURUSDm",
+     "tp": 1.11,
+     "volume": 0.07
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 555,
+     "fill_price": 1.1002,
+     "fill_volume": 0.07
+    }
+   ]
+  ],
+  "executed": [
+   {
+    "price": 1.1002,
+    "success": true,
+    "ticket": 555
+   }
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_01 (State of Test Pod): BUY 0.07L on EURUSDm | SL: 1e-05 | TP: 1.11 | Forecast: +12.35 | IDM: 1.23 | Policy: EASING | Warrant: W-123"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_01 #555 BUY 0.07L @ 1.1002"
+   ]
+  ],
+  "raised": null
+ },
+ "adr5_sl_zero_rejected": {
+  "create_called": false,
+  "events": [
+   [
+    "revoke",
+    {
+     "reason": "Missing/invalid hard SL: 0"
+    }
+   ]
+  ],
+  "executed": [],
+  "logs": [
+   [
+    "CRITICAL",
+    "⛔ [HARD SL REQUIRED] STATE_01 BUY 0.07L EURUSDm: SL không hợp lệ (0) -> TỪ CHỐI gửi lệnh, warrant bị thu hồi."
+   ]
+  ],
+  "raised": null
+ },
  "comment_truncation": {
   "create_called": true,
   "events": [
