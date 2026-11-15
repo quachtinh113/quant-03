@@ -39,7 +39,8 @@ import pandas as pd
 from dotenv import load_dotenv
 
 # Ensure root paths
-_DIR = Path(__file__).resolve().parent
+# Runner nằm trong Document/; _DIR luôn là thư mục gói us_federation_quant (nơi có logs/, .env, config/, data/).
+_DIR = Path(__file__).resolve().parent.parent
 _WORKSPACE = _DIR.parent
 
 _LOCK_FILE_PATH = _DIR / "us_federation_quant.lock"
@@ -113,14 +114,15 @@ except ImportError:
         from bots._shared.gemini_router import GeminiSmartRouter, TaskTier
 
 # Import Federation Components dynamically (handles numeric prefixes)
-_hub_mod = importlib.import_module("us_federation_quant.federation_hub")
+_hub_mod = importlib.import_module("us_federation_quant.Document.federation_hub")
 FederationHub = _hub_mod.FederationHub
 
 _titan_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 QuadTitanEngine = _titan_mod.QuadTitanEngine
 
-from us_federation_quant.contracts import CloseDirective, OrderIntent, RiskCheck  # noqa: E402
+from us_federation_quant.Document.contracts import CloseDirective, OrderIntent, RiskCheck  # noqa: E402
 from us_federation_quant.layers import l1_data as _l1  # noqa: E402
+from us_federation_quant.layers import l2_alpha as _l2  # noqa: E402
 from us_federation_quant.layers.l1_data import market_view as _market_view  # noqa: E402
 from us_federation_quant.layers import l4_risk as _l4_time  # noqa: E402
 from us_federation_quant.layers.l4_risk import evaluate_risk  # noqa: E402
@@ -338,11 +340,7 @@ class USFederationQuantRuntime:
         Khống chế mức lỗ tối đa tại SL không bao giờ vượt quá max_risk_usd ($15.00).
         Làm tròn xuống theo volume_step để đảm bảo toán học không bị làm tròn lên vượt trần rủi ro.
         """
-        import MetaTrader5 as mt5
-        sym_info = mt5.symbol_info(symbol)
-        if sym_info is None and hasattr(self, "mt5_mgr"):
-            resolved = self.mt5_mgr.resolve_symbol(symbol)
-            sym_info = mt5.symbol_info(resolved)
+        sym_info = _l1.symbol_spec(self, symbol).info
 
         if not sym_info or sl_distance_price <= 0:
             return sym_info.volume_min if sym_info else 0.01
@@ -390,17 +388,9 @@ class USFederationQuantRuntime:
         Cap Logic: Hard caps lot size between 0.01 and 0.03 for ["USTEC", "US30", "US100", "HK50"].
         Normalization: Rounds down (floor) to broker volume_step so expected loss never exceeds $15.00.
         """
-        import MetaTrader5 as mt5
-
-        # 1. Fetch live specifications from MT5 symbol_info
-        s_info = mt5.symbol_info(symbol)
-        if s_info is None and hasattr(self, "mt5_mgr"):
-            resolved = self.mt5_mgr.resolve_symbol(symbol)
-            s_info = mt5.symbol_info(resolved)
-        if s_info is None and not symbol.endswith("m"):
-            s_info = mt5.symbol_info(symbol + "m")
-        if s_info is None and symbol.endswith("m"):
-            s_info = mt5.symbol_info(symbol[:-1])
+        # 1. Fetch live specifications from MT5 symbol_info (L1 gateway)
+        spec_read = _l1.symbol_spec(self, symbol, suffix_fallback=True, mgr_fallback=True)
+        s_info = spec_read.info
 
         if s_info is not None:
             trade_tick_value = float(getattr(s_info, "trade_tick_value", 0.0) or 0.0)
@@ -410,7 +400,7 @@ class USFederationQuantRuntime:
             volume_max = float(getattr(s_info, "volume_max", 100.0) or 100.0)
             volume_step = float(getattr(s_info, "volume_step", 0.01) or 0.01)
         else:
-            spec = self.mt5_mgr.get_symbol_spec(symbol) if hasattr(self, "mt5_mgr") else {}
+            spec = spec_read.spec
             point = float(spec.get("point", 0.0001) or 0.0001)
             trade_tick_size = float(spec.get("tick_size", point) or point)
             trade_tick_value = float(spec.get("tick_value", 1.0) or 1.0)
@@ -769,7 +759,7 @@ class USFederationQuantRuntime:
                         continue
 
                     # Pre-Trade Factor Risk Gatekeeper (Quant Core V9: JPY/USD cluster risk check)
-                    from us_federation_quant.institutional_governance_rules import check_factor_limits
+                    from us_federation_quant.Document.institutional_governance_rules import check_factor_limits
                     if not check_factor_limits(actual_symbol, existing_positions):
                         logger.warning(
                             f"🛡️ [PRE-TRADE RISK GATEKEEPER] Rejected {pod.state_id} proposal on {actual_symbol}: "
@@ -1001,77 +991,22 @@ class USFederationQuantRuntime:
         Truy vấn trực tiếp mt5.history_deals_get trong 24h qua để đảm bảo tính stateless persistence
         kể cả khi khởi động lại bot.
         """
-        import MetaTrader5 as mt5
-        clean_sym = symbol.upper().replace("M", "")
-        dir_upper = direction.upper()
         cooldown_sec = getattr(self, "COOLDOWN_AFTER_EXIT_SEC", 900.0)
         lockout_sec = getattr(self, "DIRECTION_LOCKOUT_SEC", 7200.0)
 
-        # 1. Thử truy vấn deals từ MT5 trong 24h qua
+        # 1. Thử truy vấn deals từ MT5 trong 24h qua (L1 gateway)
         deals = None
         try:
-            from_t = datetime.fromtimestamp(current_ts - 86400, tz=timezone.utc)
-            to_t = datetime.fromtimestamp(current_ts + 60, tz=timezone.utc)
-            deals = mt5.history_deals_get(from_t, to_t)
+            deals = _l1.history_deals(current_ts - 86400, current_ts + 60)
         except Exception as e:
             logger.debug(f"history_deals_get error: {e}")
 
-        if deals is not None:
-            # Map position entry directions: DEAL_ENTRY_IN (0) has type 0 (BUY) or 1 (SELL)
-            pos_dirs = {}
-            for d in deals:
-                if getattr(d, 'entry', None) == 0:
-                    pos_dirs[d.position_id] = "BUY" if d.type == 0 else "SELL"
-
-            # Filter closed deals for this symbol (DEAL_ENTRY_OUT = 1, DEAL_ENTRY_INOUT = 3) up to current_ts
-            closed_deals = [
-                d for d in deals
-                if getattr(d, 'symbol', '').upper().replace("M", "") == clean_sym
-                and getattr(d, 'entry', None) in (1, 3)
-                and float(getattr(d, 'time', 0)) <= current_ts
-            ]
-            closed_deals.sort(key=lambda d: (float(d.time), int(d.ticket)))
-
-            # Check 1: Anti-Chasing Cooldown 15 phút (900s) sau khi đóng deal gần nhất
-            if closed_deals:
-                last_deal = closed_deals[-1]
-                time_since_exit = current_ts - float(last_deal.time)
-                if time_since_exit < cooldown_sec:
-                    rem = int(cooldown_sec - time_since_exit)
-                    return False, f"VETO_ANTI_CHASING_COOLDOWN: Cooldown còn {rem}s trên {clean_sym} (Chống fomo/đu đỉnh đáy sau đóng lệnh)"
-
-            # Check 2: Same-Direction 2-SL Lockout 2 giờ (7200s)
-            if len(closed_deals) >= 2:
-                d1 = closed_deals[-2]
-                d2 = closed_deals[-1]
-                p1 = float(getattr(d1, 'profit', 0.0))
-                p2 = float(getattr(d2, 'profit', 0.0))
-
-                # Xác định chiều của vị thế ban đầu
-                dir1 = pos_dirs.get(d1.position_id, "BUY" if d1.type == 1 else "SELL")
-                dir2 = pos_dirs.get(d2.position_id, "BUY" if d2.type == 1 else "SELL")
-
-                if p1 < 0 and p2 < 0 and dir1 == dir2 and dir1 == dir_upper:
-                    time_since_d2 = current_ts - float(d2.time)
-                    if time_since_d2 < lockout_sec:
-                        rem = int(lockout_sec - time_since_d2)
-                        return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều {dir1} trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
-        else:
-            # Fallback to in-memory symbol_state (cho offline tests / mock MT5)
-            st = self.symbol_state.get(clean_sym, {})
-            last_exit = st.get("last_exit_ts", 0.0)
-            if current_ts - last_exit < cooldown_sec:
-                rem = int(cooldown_sec - (current_ts - last_exit))
-                return False, f"VETO_ANTI_CHASING_COOLDOWN (VETO_ANTI_CHASING): Cooldown còn {rem}s trên {clean_sym}"
-
-            if dir_upper == "BUY" and current_ts < st.get("lock_buy_until", 0.0):
-                rem = int(st.get("lock_buy_until", 0.0) - current_ts)
-                return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều BUY trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
-            if dir_upper == "SELL" and current_ts < st.get("lock_sell_until", 0.0):
-                rem = int(st.get("lock_sell_until", 0.0) - current_ts)
-                return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều SELL trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
-
-        return True, "OK"
+        res = evaluate_risk(
+            RiskCheck.ENTRY_GATE, symbol=symbol,
+            params={"direction": direction, "current_ts": current_ts, "deals": deals,
+                    "symbol_state_fn": lambda: self.symbol_state,
+                    "cooldown_sec": cooldown_sec, "lockout_sec": lockout_sec})
+        return res.ready, res.reason
 
     def update_symbol_exit_tracking(self, now_ts: float):
         """
@@ -1081,74 +1016,23 @@ class USFederationQuantRuntime:
         - Khóa chiều thua 2 tiếng (7200s) nếu dính 2 SL liên tiếp cùng chiều để triệt hạ bẫy ngược xu hướng.
         """
         try:
-            import MetaTrader5 as mt5
             current_positions_list = self.mt5_mgr.get_positions()
             current_positions = {p["ticket"]: p for p in current_positions_list}
 
             if self._tracked_open_tickets:
-                for old_ticket, old_pos in self._tracked_open_tickets.items():
-                    if old_ticket not in current_positions:
-                        # Vị thế vừa được đóng
-                        symbol = old_pos.get("symbol", "")
-                        clean_sym = symbol.upper().replace("M", "")
-                        pos_type = old_pos.get("type", "BUY")
-
-                        # Tra cứu deal lịch sử để xem lý do đóng và PnL thực tế
-                        from_t = datetime.fromtimestamp(now_ts - 1800, tz=timezone.utc)
-                        to_t = datetime.fromtimestamp(now_ts + 60, tz=timezone.utc)
-                        deals = mt5.history_deals_get(from_t, to_t)
-                        deal_pnl = 0.0
-                        deal_comment = ""
-                        if deals:
-                            for d in deals:
-                                if getattr(d, "position_id", 0) == old_ticket and getattr(d, "entry", 0) == 1:
-                                    deal_pnl = float(d.profit + d.commission + d.swap)
-                                    deal_comment = str(d.comment)
-                                    break
-
-                        st = self.symbol_state.setdefault(
-                            clean_sym,
-                            {
-                                "last_exit_ts": now_ts,
-                                "consec_sl_buy": 0,
-                                "consec_sl_sell": 0,
-                                "lock_buy_until": 0.0,
-                                "lock_sell_until": 0.0,
-                            }
-                        )
-                        st["last_exit_ts"] = now_ts
-
-                        is_sl = ("sl" in deal_comment.lower()) or (deal_pnl < -0.5)
-                        lockout_dur = getattr(self, "DIRECTION_LOCKOUT_SEC", 7200.0)
-                        max_consec = getattr(self, "MAX_CONSECUTIVE_SL_SAME_DIR", 2)
-
-                        if is_sl:
-                            if pos_type in ["BUY", 0]:
-                                st["consec_sl_buy"] += 1
-                                st["consec_sl_sell"] = 0
-                                if st["consec_sl_buy"] >= max_consec:
-                                    st["lock_buy_until"] = now_ts + lockout_dur
-                                    logger.warning(
-                                        f"🛑 [SAME-DIRECTION SL LOCKOUT] {clean_sym} dính {st['consec_sl_buy']} SL liên tiếp chiều BUY. "
-                                        f"Khóa mở BUY trong {lockout_dur/3600:.1f} giờ để chống bắt dao rơi."
-                                    )
-                            elif pos_type in ["SELL", 1]:
-                                st["consec_sl_sell"] += 1
-                                st["consec_sl_buy"] = 0
-                                if st["consec_sl_sell"] >= max_consec:
-                                    st["lock_sell_until"] = now_ts + lockout_dur
-                                    logger.warning(
-                                        f"🛑 [SAME-DIRECTION SL LOCKOUT] {clean_sym} dính {st['consec_sl_sell']} SL liên tiếp chiều SELL. "
-                                        f"Khóa mở SELL trong {lockout_dur/3600:.1f} giờ để chống bán ngược xu hướng tăng (Anti-Trend Trap)."
-                                    )
-                        elif deal_pnl > 0.0:
-                            st["consec_sl_buy"] = 0
-                            st["consec_sl_sell"] = 0
-
-                        logger.info(
-                            f"🔔 [POSITION CLOSED DETECTED] Ticket #{old_ticket} ({symbol} {pos_type}): "
-                            f"PnL ${deal_pnl:+.2f} USD ({deal_comment}). Kích hoạt Anti-Chasing Cooldown 15m (đến {datetime.fromtimestamp(now_ts + self.COOLDOWN_AFTER_EXIT_SEC, tz=timezone.utc).strftime('%H:%M:%S')} UTC)."
-                        )
+                evaluate_risk(
+                    RiskCheck.EXIT_TRACKING, state=self.symbol_state,
+                    params={
+                        "now_ts": now_ts,
+                        "tracked_open": self._tracked_open_tickets,
+                        "current_positions": current_positions,
+                        # Tra cứu deal lịch sử (30 phút) để xem lý do đóng và PnL thực tế: MỘT lần cho MỖI vị thế vừa đóng
+                        "deals_lookup": lambda: _l1.history_deals(now_ts - 1800, now_ts + 60),
+                        "cooldown_sec": getattr(self, "COOLDOWN_AFTER_EXIT_SEC", 900.0),
+                        "lockout_dur": getattr(self, "DIRECTION_LOCKOUT_SEC", 7200.0),
+                        "max_consec": getattr(self, "MAX_CONSECUTIVE_SL_SAME_DIR", 2),
+                        "emit": lambda line: getattr(logger, line.level)(line.message),
+                    })
 
             self._tracked_open_tickets = current_positions
         except Exception as e:
@@ -1233,37 +1117,16 @@ class USFederationQuantRuntime:
             return True
 
         try:
-            import MetaTrader5 as mt5
             actual_sym = self.mt5_mgr.resolve_symbol(symbol)
-            rates_d1 = mt5.copy_rates_from_pos(actual_sym, mt5.TIMEFRAME_D1, 0, 200)
-            if rates_d1 is None or len(rates_d1) < 200:
-                rates_d1 = mt5.copy_rates_from_pos("EURGBP", mt5.TIMEFRAME_D1, 0, 200)
-
-            if rates_d1 is None or len(rates_d1) < 200:
-                df_d1 = self.mt5_mgr.get_rates(actual_sym, "D1", count=200)
-                if df_d1 is not None and len(df_d1) >= 200:
-                    rates_d1 = df_d1
-                else:
-                    logger.warning(f"⚠️ [D1 EMA200 FILTER] Không trích xuất đủ 200 nến D1 cho {symbol}, giữ nguyên lệnh.")
-                    return True
-
-            if isinstance(rates_d1, pd.DataFrame):
-                df_d1 = rates_d1
-            else:
-                df_d1 = pd.DataFrame(rates_d1)
-
-            ema200 = df_d1["close"].ewm(span=200, adjust=False).mean().iloc[-1]
-            allow_buy = current_h1_price >= ema200
-
-            if action.upper() == "BUY" and not allow_buy:
-                logger.info(
-                    f"🛡️ [STATE_31 D1 EMA200 GATEKEEPER] {symbol} BUY bị từ chối: "
-                    f"Giá H1 hiện tại ({current_h1_price:.5f}) nằm dưới D1 EMA200 ({ema200:.5f}) "
-                    f"-> allow_buy={allow_buy}. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng."
-                )
-                return False
-
-            return True
+            rates_d1 = _l1.bars_with_fallback(
+                self, [(actual_sym, "D1"), ("EURGBP", "D1")], retry_below=200, mgr_timeframe="D1", mgr_below=200)
+            if rates_d1 is None:
+                logger.warning(f"⚠️ [D1 EMA200 FILTER] Không trích xuất đủ 200 nến D1 cho {symbol}, giữ nguyên lệnh.")
+                return True
+            allow, log = _l2.eurgbp_d1_ema200_verdict(rates_d1, current_h1_price, action, symbol)
+            if log is not None:
+                getattr(logger, log.level)(log.message)
+            return allow
         except Exception as e:
             logger.warning(f"⚠️ Exception in check_eurgbp_d1_ema200_filter for {symbol}: {e}")
             return True
@@ -1286,42 +1149,15 @@ class USFederationQuantRuntime:
             return True
 
         try:
-            import MetaTrader5 as mt5
             actual_sym = self.mt5_mgr.resolve_symbol(symbol)
-            rates_h4 = mt5.copy_rates_from_pos(actual_sym, mt5.TIMEFRAME_H4, 0, 200)
-            if rates_h4 is None or len(rates_h4) < 50:
-                rates_h4 = mt5.copy_rates_from_pos(actual_sym, mt5.TIMEFRAME_D1, 0, 200)
-
-            if rates_h4 is None or len(rates_h4) < 30:
-                df_h4 = self.mt5_mgr.get_rates(actual_sym, "H4", count=200)
-                if df_h4 is not None and len(df_h4) >= 30:
-                    rates_h4 = df_h4
-                else:
-                    return True
-
-            if isinstance(rates_h4, pd.DataFrame):
-                df_rates = rates_h4
-            else:
-                df_rates = pd.DataFrame(rates_h4)
-
-            span_len = min(200, len(df_rates))
-            ema200 = df_rates["close"].ewm(span=span_len, adjust=False).mean().iloc[-1]
-            act_upper = action.upper()
-
-            if act_upper == "BUY" and current_price < ema200:
-                logger.info(
-                    f"🛡️ [VETO_JPY_COUNTER_TREND] {actual_sym} BUY bị từ chối: "
-                    f"Giá hiện tại ({current_price:.3f}) < EMA200 ({ema200:.3f}). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY."
-                )
-                return False
-            elif act_upper == "SELL" and current_price > ema200:
-                logger.info(
-                    f"🛡️ [VETO_JPY_COUNTER_TREND] {actual_sym} SELL bị từ chối: "
-                    f"Giá hiện tại ({current_price:.3f}) > EMA200 ({ema200:.3f}). Triệt tiêu bẫy bán khống ngược xu hướng tăng JPY."
-                )
-                return False
-
-            return True
+            rates_h4 = _l1.bars_with_fallback(
+                self, [(actual_sym, "H4"), (actual_sym, "D1")], retry_below=50, mgr_timeframe="H4", mgr_below=30)
+            if rates_h4 is None:
+                return True
+            allow, log = _l2.jpy_macro_trend_verdict(rates_h4, current_price, action, actual_sym)
+            if log is not None:
+                getattr(logger, log.level)(log.message)
+            return allow
         except Exception as e:
             logger.warning(f"⚠️ Exception in check_jpy_macro_trend_filter for {symbol}: {e}")
             return True
@@ -1548,7 +1384,7 @@ class USFederationQuantRuntime:
 
                     # LỆNH 4: BlackRock Aladdin 50% Profit Sweep into Hamilton Vault
                     try:
-                        from us_federation_quant.institutional_governance_rules import InstitutionalStatutoryRules
+                        from us_federation_quant.Document.institutional_governance_rules import InstitutionalStatutoryRules
                         swept, total_reserve = InstitutionalStatutoryRules.execute_blackrock_profit_sweep(current_equity=equity)
                         if swept > 0:
                             logger.info(f"🛡️ [LỆNH 4]: Đã quét ${swept:,.2f} USD vào ví lạnh Hamilton. Tổng dự trữ: ${total_reserve:,.2f} USD")

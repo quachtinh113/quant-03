@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
 GOLDEN_PATH = os.path.join(os.path.dirname(__file__), "golden", "l5_hard_caps.json")
 

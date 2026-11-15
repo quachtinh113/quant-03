@@ -3744,3 +3744,39 @@ class NowTradingMtfPod(BaseStatePod):
             is_valid=False,
             rejection_reason=rejection_reason
         )
+
+
+# ====================================================================================================
+# BỘ LỌC XU HƯỚNG THUẦN (từ live_federation_runner): quyết định EMA200 trên nến đã được L1 đọc sẵn
+# ====================================================================================================
+
+def eurgbp_d1_ema200_verdict(rates, current_h1_price, action, symbol):
+    """EURGBP D1 EMA200: chặn BUY khi giá H1 dưới EMA200. Trả về (allow, LogLine|None)."""
+    from us_federation_quant.Document.contracts import LogLine
+    df_d1 = rates if isinstance(rates, pd.DataFrame) else pd.DataFrame(rates)
+    ema200 = df_d1["close"].ewm(span=200, adjust=False).mean().iloc[-1]
+    allow_buy = current_h1_price >= ema200
+    if action.upper() == "BUY" and not allow_buy:
+        return False, LogLine("info",
+            f"🛡️ [STATE_31 D1 EMA200 GATEKEEPER] {symbol} BUY bị từ chối: "
+            f"Giá H1 hiện tại ({current_h1_price:.5f}) nằm dưới D1 EMA200 ({ema200:.5f}) "
+            f"-> allow_buy={allow_buy}. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng.")
+    return True, None
+
+
+def jpy_macro_trend_verdict(rates, current_price, action, actual_sym):
+    """JPY H4/D1 EMA200: chặn BUY dưới EMA200 và SELL trên EMA200. Trả về (allow, LogLine|None)."""
+    from us_federation_quant.Document.contracts import LogLine
+    df_rates = rates if isinstance(rates, pd.DataFrame) else pd.DataFrame(rates)
+    span_len = min(200, len(df_rates))
+    ema200 = df_rates["close"].ewm(span=span_len, adjust=False).mean().iloc[-1]
+    act_upper = action.upper()
+    if act_upper == "BUY" and current_price < ema200:
+        return False, LogLine("info",
+            f"🛡️ [VETO_JPY_COUNTER_TREND] {actual_sym} BUY bị từ chối: "
+            f"Giá hiện tại ({current_price:.3f}) < EMA200 ({ema200:.3f}). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY.")
+    elif act_upper == "SELL" and current_price > ema200:
+        return False, LogLine("info",
+            f"🛡️ [VETO_JPY_COUNTER_TREND] {actual_sym} SELL bị từ chối: "
+            f"Giá hiện tại ({current_price:.3f}) > EMA200 ({ema200:.3f}). Triệt tiêu bẫy bán khống ngược xu hướng tăng JPY.")
+    return True, None

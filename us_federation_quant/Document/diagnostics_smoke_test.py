@@ -13,7 +13,7 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-_DIR = Path(__file__).resolve().parent
+_DIR = Path(__file__).resolve().parent.parent  # gói us_federation_quant (file nằm trong Document/)
 _WORKSPACE = _DIR.parent
 for p in [str(_DIR), str(_WORKSPACE), str(_WORKSPACE / "All_Fleet_Bot"), str(_WORKSPACE / "ML_4_Bot")]:
     if p not in sys.path:
@@ -70,7 +70,7 @@ print(f"  ✅ Wall St Drawdown Defense Status: {audit_res['wall_street_defense']
 
 # 4. Check Federation Hub & Separation of Powers
 print("\n[4/6] Kiểm tra Tam Quyền Phân Lập (Hub -> Supreme Court -> Order Router)...")
-_hub_mod = importlib.import_module("us_federation_quant.federation_hub")
+_hub_mod = importlib.import_module("us_federation_quant.Document.federation_hub")
 hub = _hub_mod.FederationHub(secret_key="FEDERATION_SUPREME_SEAL")
 print("  ✅ Quốc hội Alpha Congress: Sẵn sàng")
 print("  ✅ Tòa án Tối cao Supreme Court: Sẵn sàng")

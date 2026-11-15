@@ -47,7 +47,7 @@ class TestRiskMitigationPatches(unittest.TestCase):
 
     def test_enforce_index_hard_stop_cap(self):
         """Test that Index Hard Stop Cap closes positions when loss <= -$60 USD."""
-        from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+        from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
         runner = USFederationQuantRuntime()
         runner.mt5_mgr = MagicMock()
@@ -67,7 +67,7 @@ class TestRiskMitigationPatches(unittest.TestCase):
 
     def test_two_tier_runner_trailing_lock_25usd(self):
         """Test that floating profit >= $40 USD locks in >= $25 USD profit."""
-        from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+        from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
         runner = USFederationQuantRuntime()
         runner.mt5_mgr = MagicMock()

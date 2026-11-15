@@ -1,0 +1,327 @@
+{
+ "cl_direct": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.05,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "cl_index_clip": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] USTECm: sl_points=50.0, trade_tick_value=0.01, tick_val_per_point=0.01000, max_risk=$15.00 -> raw=0.0300L, normalized=0.03L (Expected SL Loss: $0.01, Index Cap: True)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.03,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "USTECm"
+  ]
+ },
+ "cl_max_risk_over_universal": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.05,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "cl_mgr_spec_defaults": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] NOPE: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [
+   "NOPE"
+  ],
+  "result": 0.05,
+  "spec_calls": [
+   "NOPE"
+  ],
+  "symbol_info_calls": [
+   "NOPE",
+   "NOPE",
+   "NOPEm"
+  ]
+ },
+ "cl_mgr_spec_fallback": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] NOPE: sl_points=300.0, trade_tick_value=2.0, tick_val_per_point=2.00000, max_risk=$15.00 -> raw=0.0250L, normalized=0.02L (Expected SL Loss: $12.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [
+   "NOPE"
+  ],
+  "result": 0.02,
+  "spec_calls": [
+   "NOPE"
+  ],
+  "symbol_info_calls": [
+   "NOPE",
+   "NOPE",
+   "NOPEm"
+  ]
+ },
+ "cl_min_vol_clamp_reduces_step": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=10.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$1.00 -> raw=0.1000L, normalized=0.50L (Expected SL Loss: $5.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.5,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "cl_no_mgr_attr_raises": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] NOPE: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": null,
+  "result": 0.05,
+  "spec_calls": null,
+  "symbol_info_calls": [
+   "NOPE",
+   "NOPEm"
+  ]
+ },
+ "cl_point_zero": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.05,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "cl_sl_points_floor_10": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=10.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=1.5000L, normalized=1.50L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 1.5,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "cl_tick_size_zero": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.05,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "cl_via_plus_m": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSD: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [
+   "EURUSD"
+  ],
+  "result": 0.05,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSD",
+   "EURUSD",
+   "EURUSDm"
+  ]
+ },
+ "cl_via_resolve": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSD: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [
+   "EURUSD"
+  ],
+  "result": 0.05,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSD",
+   "EURUSDm"
+  ]
+ },
+ "cl_via_strip_m": {
+  "logs": [
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=300.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0500L, normalized=0.05L (Expected SL Loss: $15.00, Index Cap: False)"
+   ]
+  ],
+  "raised": null,
+  "resolve_calls": [
+   "EURUSDm"
+  ],
+  "result": 0.05,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm",
+   "EURUSDm",
+   "EURUSD"
+  ]
+ },
+ "hc_class_override": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.01,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "hc_index_cap60": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 2.0,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "USTECm"
+  ]
+ },
+ "hc_no_info_after_resolve": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [
+   "XYZ"
+  ],
+  "result": 0.01,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "XYZ",
+   "XYZm"
+  ]
+ },
+ "hc_no_mgr_attr": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": null,
+  "result": 0.01,
+  "spec_calls": null,
+  "symbol_info_calls": [
+   "EURUSD"
+  ]
+ },
+ "hc_normal": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.03,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "hc_resolve_path": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [
+   "EURUSD"
+  ],
+  "result": 0.03,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSD",
+   "EURUSDm"
+  ]
+ },
+ "hc_sl_zero_returns_vol_min": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.02,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "hc_step_0p1_and_vmax": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 1.5,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "hc_tick_size_zero_uses_point": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.3,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "hc_tick_value_zero_uses_one": {
+  "logs": [],
+  "raised": null,
+  "resolve_calls": [],
+  "result": 0.03,
+  "spec_calls": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ }
+}

@@ -24,7 +24,7 @@ echo.
 echo =======================================================
 echo  [STEP 1/2] Kiem tra va Hoi sinh MT5 GUI Process...
 echo =======================================================
-powershell -NoProfile -ExecutionPolicy Bypass -File "ensure_mt5_gui.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "Document\ensure_mt5_gui.ps1"
 if %ERRORLEVEL% NEQ 0 (
     echo [WARNING] ensure_mt5_gui returned non-zero code. Attempting to proceed...
 )
@@ -34,7 +34,7 @@ echo =======================================================
 echo  [STEP 2/2] Kich hoat US Federation Live Runner...
 echo  (Chu ky khoi chay #%RESTART_COUNT% luc %TIME%)
 echo =======================================================
-python live_federation_runner.py
+python Document\live_federation_runner.py
 
 :: Check exit code
 set EXIT_CODE=%ERRORLEVEL%

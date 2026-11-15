@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from us_federation_quant.live_federation_runner import USFederationQuantRuntime as RT
+from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime as RT
 
 GOLDEN = os.path.join(os.path.dirname(__file__), "golden", "stagnation_exit.json")
 UTC = timezone.utc

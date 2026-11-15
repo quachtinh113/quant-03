@@ -207,10 +207,10 @@ def test_router_generates_deterministic_client_order_ids():
     router = ExecutiveOrderRouter()
     warrant = DummyWarrant()
 
-    from us_federation_quant.institutional_governance_rules import StatutoryAuditResult
+    from us_federation_quant.Document.institutional_governance_rules import StatutoryAuditResult
     mock_audit = StatutoryAuditResult(is_compliant=True, statute_code="AUDIT", statute_name="PASS", details="Test ok")
 
-    with patch("us_federation_quant.institutional_governance_rules.InstitutionalStatutoryRules.check_rollover_curfew", return_value=mock_audit):
+    with patch("us_federation_quant.Document.institutional_governance_rules.InstitutionalStatutoryRules.check_rollover_curfew", return_value=mock_audit):
         slices = router.route_execution(
             warrant=warrant,
             market_mid_price=2650.0,

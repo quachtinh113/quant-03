@@ -1,0 +1,477 @@
+{
+ "eg_buy_above_ema": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_buy_below_ema_denied": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [STATE_31 D1 EMA200 GATEKEEPER] EURGBPm BUY bị từ chối: Giá H1 hiện tại (100.50000) nằm dưới D1 EMA200 (105.68347) -> allow_buy=False. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng."
+   ]
+  ],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_exception_keeps_trade": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "WARNING",
+    "⚠️ Exception in check_eurgbp_d1_ema200_filter for EURGBPm: ipc"
+   ]
+  ],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_mgr_fallback_ok": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ],
+   [
+    "EURGBP",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [
+   [
+    [
+     "EURGBPm",
+     "D1"
+    ],
+    {
+     "count": 200
+    }
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [STATE_31 D1 EMA200 GATEKEEPER] EURGBPm BUY bị từ chối: Giá H1 hiện tại (100.50000) nằm dưới D1 EMA200 (105.68347) -> allow_buy=False. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng."
+   ]
+  ],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_mgr_fallback_short_keeps_trade": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ],
+   [
+    "EURGBP",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [
+   [
+    [
+     "EURGBPm",
+     "D1"
+    ],
+    {
+     "count": 200
+    }
+   ]
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⚠️ [D1 EMA200 FILTER] Không trích xuất đủ 200 nến D1 cho EURGBPm, giữ nguyên lệnh."
+   ]
+  ],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_mgr_returns_none": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ],
+   [
+    "EURGBP",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [
+   [
+    [
+     "EURGBPm",
+     "D1"
+    ],
+    {
+     "count": 200
+    }
+   ]
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⚠️ [D1 EMA200 FILTER] Không trích xuất đủ 200 nến D1 cho EURGBPm, giữ nguyên lệnh."
+   ]
+  ],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_ndarray_rates": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [STATE_31 D1 EMA200 GATEKEEPER] EURGBPm BUY bị từ chối: Giá H1 hiện tại (100.50000) nằm dưới D1 EMA200 (105.68347) -> allow_buy=False. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng."
+   ]
+  ],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_not_eurgbp_no_calls": {
+  "allow": true,
+  "copy_calls": [],
+  "get_rates_calls": [],
+  "logs": [],
+  "resolve_calls": []
+ },
+ "eg_retry_literal_symbol": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ],
+   [
+    "EURGBP",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "eg_sell_always_allowed": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "EURGBPm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [],
+  "resolve_calls": [
+   "EURGBPm"
+  ]
+ },
+ "jp_buy_above_ok": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "USDJPYm",
+    "H4",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [],
+  "resolve_calls": [
+   "USDJPYm"
+  ]
+ },
+ "jp_buy_below_ema_denied": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "USDJPYm",
+    "H4",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [VETO_JPY_COUNTER_TREND] USDJPYm BUY bị từ chối: Giá hiện tại (100.500) < EMA200 (105.683). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY."
+   ]
+  ],
+  "resolve_calls": [
+   "USDJPYm"
+  ]
+ },
+ "jp_exception_keeps_trade": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "USDJPYm",
+    "H4",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "WARNING",
+    "⚠️ Exception in check_jpy_macro_trend_filter for USDJPYm: ipc"
+   ]
+  ],
+  "resolve_calls": [
+   "USDJPYm"
+  ]
+ },
+ "jp_h4_short_falls_to_d1": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "USDJPYm",
+    "H4",
+    0,
+    200
+   ],
+   [
+    "USDJPYm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [VETO_JPY_COUNTER_TREND] USDJPYm BUY bị từ chối: Giá hiện tại (100.500) < EMA200 (105.688). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY."
+   ]
+  ],
+  "resolve_calls": [
+   "USDJPYm"
+  ]
+ },
+ "jp_mgr_h4_fallback": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "EURJPYm",
+    "H4",
+    0,
+    200
+   ],
+   [
+    "EURJPYm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [
+   [
+    [
+     "EURJPYm",
+     "H4"
+    ],
+    {
+     "count": 200
+    }
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [VETO_JPY_COUNTER_TREND] EURJPYm BUY bị từ chối: Giá hiện tại (100.500) < EMA200 (105.716). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY."
+   ]
+  ],
+  "resolve_calls": [
+   "EURJPYm"
+  ]
+ },
+ "jp_mgr_too_short_keeps_trade": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "EURJPYm",
+    "H4",
+    0,
+    200
+   ],
+   [
+    "EURJPYm",
+    "D1",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [
+   [
+    [
+     "EURJPYm",
+     "H4"
+    ],
+    {
+     "count": 200
+    }
+   ]
+  ],
+  "logs": [],
+  "resolve_calls": [
+   "EURJPYm"
+  ]
+ },
+ "jp_ndarray_rates": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "USDJPYm",
+    "H4",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [VETO_JPY_COUNTER_TREND] USDJPYm BUY bị từ chối: Giá hiện tại (100.500) < EMA200 (105.683). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY."
+   ]
+  ],
+  "resolve_calls": [
+   "USDJPYm"
+  ]
+ },
+ "jp_not_jpy_no_calls": {
+  "allow": true,
+  "copy_calls": [],
+  "get_rates_calls": [],
+  "logs": [],
+  "resolve_calls": []
+ },
+ "jp_sell_above_ema_denied": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "USDJPYm",
+    "H4",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [VETO_JPY_COUNTER_TREND] USDJPYm SELL bị từ chối: Giá hiện tại (111.000) > EMA200 (105.683). Triệt tiêu bẫy bán khống ngược xu hướng tăng JPY."
+   ]
+  ],
+  "resolve_calls": [
+   "USDJPYm"
+  ]
+ },
+ "jp_sell_below_ok": {
+  "allow": true,
+  "copy_calls": [
+   [
+    "USDJPYm",
+    "H4",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [],
+  "resolve_calls": [
+   "USDJPYm"
+  ]
+ },
+ "jp_span_shrinks_short_df": {
+  "allow": false,
+  "copy_calls": [
+   [
+    "GBPJPYm",
+    "H4",
+    0,
+    200
+   ]
+  ],
+  "get_rates_calls": [],
+  "logs": [
+   [
+    "INFO",
+    "🛡️ [VETO_JPY_COUNTER_TREND] GBPJPYm BUY bị từ chối: Giá hiện tại (100.500) < EMA200 (105.699). Triệt tiêu bẫy bắt đáy ngược xu hướng giảm JPY."
+   ]
+  ],
+  "resolve_calls": [
+   "GBPJPYm"
+  ]
+ }
+}

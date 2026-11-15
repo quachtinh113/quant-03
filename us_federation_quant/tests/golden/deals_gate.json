@@ -1,0 +1,724 @@
+{
+ "gate_2sl_but_one_profit_ok": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_2sl_lockout_buy_allows_sell": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_2sl_lockout_buy_blocks_buy": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều BUY trên EURUSD do dính 2 SL liên tiếp (còn 6200s)"
+  ]
+ },
+ "gate_2sl_lockout_expired_ok": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_cooldown_boundary_900_ok": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_cooldown_veto": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_ANTI_CHASING_COOLDOWN: Cooldown còn 600s trên EURUSD (Chống fomo/đu đỉnh đáy sau đóng lệnh)"
+  ]
+ },
+ "gate_custom_cooldown_attr": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_deals_empty_ok": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_dir_fallback_from_close_type": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều SELL trên EURUSD do dính 2 SL liên tiếp (còn 6200s)"
+  ]
+ },
+ "gate_entry_in_not_closed": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_entry_inout_3_counts": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_ANTI_CHASING_COOLDOWN: Cooldown còn 800s trên EURUSD (Chống fomo/đu đỉnh đáy sau đóng lệnh)"
+  ]
+ },
+ "gate_fallback_exception_cooldown": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [
+   [
+    "DEBUG",
+    "history_deals_get error: ipc"
+   ]
+  ],
+  "result": [
+   false,
+   "VETO_ANTI_CHASING_COOLDOWN (VETO_ANTI_CHASING): Cooldown còn 600s trên EURUSD"
+  ]
+ },
+ "gate_fallback_lock_buy": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều BUY trên EURUSD do dính 2 SL liên tiếp (còn 500s)"
+  ]
+ },
+ "gate_fallback_lock_sell_allows_buy": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_fallback_lock_sell_blocks_sell": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều SELL trên EURUSD do dính 2 SL liên tiếp (còn 500s)"
+  ]
+ },
+ "gate_fallback_no_state_ok": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_fallback_none_cooldown": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_ANTI_CHASING_COOLDOWN (VETO_ANTI_CHASING): Cooldown còn 600s trên EURUSD"
+  ]
+ },
+ "gate_future_deal_ignored": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_other_symbol_ignored": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   true,
+   "OK"
+  ]
+ },
+ "gate_sort_by_time_then_ticket": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều BUY trên EURUSD do dính 2 SL liên tiếp (còn 6200s)"
+  ]
+ },
+ "gate_symbol_clean_match_no_m": {
+  "calls": [
+   [
+    1799913600.0,
+    1800000060.0,
+    "UTC",
+    "UTC"
+   ]
+  ],
+  "logs": [],
+  "result": [
+   false,
+   "VETO_ANTI_CHASING_COOLDOWN: Cooldown còn 800s trên EURUSD (Chống fomo/đu đỉnh đáy sau đóng lệnh)"
+  ]
+ },
+ "track_closed_sl_buy_first": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $-8.00 USD (sl 1.1). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 1,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_closed_two_sl_buy_locks": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ],
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $-8.00 USD (sl 1.1). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ],
+   [
+    "WARNING",
+    "🛑 [SAME-DIRECTION SL LOCKOUT] EURUSD dính 2 SL liên tiếp chiều BUY. Khóa mở BUY trong 2.0 giờ để chống bắt dao rơi."
+   ],
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #2 (EURUSDm BUY): PnL $-8.00 USD (sl 1.1). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 2,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 1800007200.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_closed_two_sl_sell_locks": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ],
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm SELL): PnL $-8.00 USD (sl 1.1). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ],
+   [
+    "WARNING",
+    "🛑 [SAME-DIRECTION SL LOCKOUT] EURUSD dính 2 SL liên tiếp chiều SELL. Khóa mở SELL trong 2.0 giờ để chống bán ngược xu hướng tăng (Anti-Trend Trap)."
+   ],
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #2 (EURUSDm SELL): PnL $-8.00 USD (sl 1.1). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 0,
+    "consec_sl_sell": 2,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 1800007200.0
+   }
+  },
+  "tracked": []
+ },
+ "track_comment_sl_even_if_small_loss": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $-0.10 USD ([sl]). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 1,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_commission_swap_included": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $-0.60 USD (x). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 1,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_custom_max_consec_1": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [SAME-DIRECTION SL LOCKOUT] EURUSD dính 1 SL liên tiếp chiều BUY. Khóa mở BUY trong 2.0 giờ để chống bắt dao rơi."
+   ],
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $-8.00 USD (sl 1.1). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 1,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 1800007200.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_deals_empty": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $+0.00 USD (). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 0,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_deals_none": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $+0.00 USD (). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 0,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_entry_not_out_ignored": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $+0.00 USD (). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 0,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_get_positions_raises": {
+  "calls": [],
+  "logs": [
+   [
+    "DEBUG",
+    "Error in update_symbol_exit_tracking: ipc"
+   ]
+  ],
+  "symbol_state": {},
+  "tracked": [
+   "1"
+  ]
+ },
+ "track_loss_over_half_dollar_is_sl": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $-0.60 USD (manual). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 1,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_new_tracked_replaced": {
+  "calls": [],
+  "logs": [],
+  "symbol_state": {},
+  "tracked": [
+   "1",
+   "7"
+  ]
+ },
+ "track_nothing_tracked": {
+  "calls": [],
+  "logs": [],
+  "symbol_state": {},
+  "tracked": [
+   "1"
+  ]
+ },
+ "track_profit_resets_counters": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $+9.00 USD (tp). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 0,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_small_loss_no_sl_word_not_sl": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $-0.40 USD (manual). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 0,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_still_open_no_deal_lookup": {
+  "calls": [],
+  "logs": [],
+  "symbol_state": {},
+  "tracked": [
+   "1"
+  ]
+ },
+ "track_type_int_zero_is_buy": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm 0): PnL $-8.00 USD (sl 1.1). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 1,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ },
+ "track_wrong_position_id": {
+  "calls": [
+   [
+    1799998200.0,
+    1800000060.0
+   ]
+  ],
+  "logs": [
+   [
+    "INFO",
+    "🔔 [POSITION CLOSED DETECTED] Ticket #1 (EURUSDm BUY): PnL $+0.00 USD (). Kích hoạt Anti-Chasing Cooldown 15m (đến 08:15:00 UTC)."
+   ]
+  ],
+  "symbol_state": {
+   "EURUSD": {
+    "consec_sl_buy": 0,
+    "consec_sl_sell": 0,
+    "last_exit_ts": 1800000000.0,
+    "lock_buy_until": 0.0,
+    "lock_sell_until": 0.0
+   }
+  },
+  "tracked": []
+ }
+}

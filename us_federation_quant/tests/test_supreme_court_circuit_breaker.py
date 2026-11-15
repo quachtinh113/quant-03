@@ -20,7 +20,7 @@ SupremeCourtCircuitBreakerManager = _sc_manager_mod.SupremeCourtCircuitBreakerMa
 PodQuarantineRecord = _sc_manager_mod.PodQuarantineRecord
 SystemCircuitBreakerSnapshot = _sc_manager_mod.SystemCircuitBreakerSnapshot
 
-from us_federation_quant.institutional_governance_rules import InstitutionalStatutoryRules
+from us_federation_quant.Document.institutional_governance_rules import InstitutionalStatutoryRules
 
 
 def test_pod_quarantine_ladder():

@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 
 # Add repo root to path
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # quant-03 (file nằm trong Document/)
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -43,7 +43,7 @@ _oracle_mod = importlib.import_module(
 GoldForecastResult = _oracle_mod.GoldForecastResult
 SovereignGoldOracleEngine = _oracle_mod.SovereignGoldOracleEngine
 
-from us_federation_quant.institutional_governance_rules import (
+from us_federation_quant.Document.institutional_governance_rules import (
     InstitutionalStatutoryRules,
     StatutoryAuditResult,
 )

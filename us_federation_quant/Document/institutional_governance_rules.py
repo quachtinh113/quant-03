@@ -28,7 +28,7 @@ import numpy as np
 
 logger = logging.getLogger("InstitutionalGovernance")
 
-_VAULT_LEDGER_PATH = Path(__file__).resolve().parent / "logs" / "hamilton_vault_ledger.json"
+_VAULT_LEDGER_PATH = Path(__file__).resolve().parent.parent / "logs" / "hamilton_vault_ledger.json"
 
 
 @dataclass

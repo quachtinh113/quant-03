@@ -3,12 +3,12 @@ import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
 
-from us_federation_quant.institutional_governance_rules import check_factor_limits
+from us_federation_quant.Document.institutional_governance_rules import check_factor_limits
 import importlib
 _ks_mod = importlib.import_module("us_federation_quant.layers.l4_risk")
 FederalMasterKillSwitch = _ks_mod.FederalMasterKillSwitch
 FederalCircuitBreakerActive = _ks_mod.FederalCircuitBreakerActive
-from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
 
 def test_check_factor_limits_jpy_cluster():

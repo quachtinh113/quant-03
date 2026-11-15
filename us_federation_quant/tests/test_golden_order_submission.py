@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from us_federation_quant.live_federation_runner import USFederationQuantRuntime as RT
+from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime as RT
 
 GOLDEN = os.path.join(os.path.dirname(__file__), "golden", "order_submission.json")
 
@@ -54,7 +54,7 @@ def _run(name, *, action="BUY", exec_result=None, exec_raises=None, create_raise
     lg.setLevel(logging.DEBUG)
     raised = None
     try:
-        with patch("us_federation_quant.live_federation_runner.generate_client_order_id",
+        with patch("us_federation_quant.Document.live_federation_runner.generate_client_order_id",
                    lambda sid, act: f"CLIENTID-{sid}-{act}-0123456789ABCDEF0123456789"), \
              patch("us_federation_quant.layers.l5_execution.generate_client_order_id",
                    lambda sid, act: f"CLIENTID-{sid}-{act}-0123456789ABCDEF0123456789"):

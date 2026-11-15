@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from us_federation_quant.live_federation_runner import USFederationQuantRuntime as RT
+from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime as RT
 
 GOLDEN_PATH = os.path.join(os.path.dirname(__file__), "golden", "l4_exits.json")
 UTC = timezone.utc

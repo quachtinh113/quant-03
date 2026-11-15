@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence
-from us_federation_quant.contracts import (
+from us_federation_quant.Document.contracts import (
     AlertDirective, CloseDirective, Directive, LockDirective, LogDirective, LogLine, ModifyDirective,
     RaiseDirective, ReopenPersistDirective, TwoTierStateDirective,
 )
@@ -2424,7 +2424,7 @@ class ExecutiveOrderRouter:
         # Statutory Institutional Governance Check
         try:
             import importlib
-            _inst_mod = importlib.import_module("us_federation_quant.institutional_governance_rules")
+            _inst_mod = importlib.import_module("us_federation_quant.Document.institutional_governance_rules")
             InstitutionalStatutoryRules = _inst_mod.InstitutionalStatutoryRules
             approved, final_lots, checks = InstitutionalStatutoryRules.audit_pre_order_routing(
                 target_asset=getattr(warrant, "target_asset", "UNKNOWN"),

@@ -6,7 +6,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).resolve().parent / ".env")
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 import MetaTrader5 as mt5
 

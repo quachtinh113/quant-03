@@ -17,7 +17,7 @@ for p in [str(_DIR), str(_DIR / "us_federation_quant"), str(_DIR / "All_Fleet_Bo
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from us_federation_quant.institutional_governance_rules import InstitutionalStatutoryRules, HamiltonColdVaultManager
+from us_federation_quant.Document.institutional_governance_rules import InstitutionalStatutoryRules, HamiltonColdVaultManager
 
 
 def test_lenh_01_rollover_curfew():

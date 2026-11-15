@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from us_federation_quant.federation_hub import FederationHub
+from us_federation_quant.Document.federation_hub import FederationHub
 import importlib
 
 _house_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")

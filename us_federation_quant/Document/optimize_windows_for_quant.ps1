@@ -118,12 +118,12 @@ $shortcutPath = Join-Path $startupPath "US_Federation_Quant.lnk"
 if (Test-Path $shortcutPath) {
     Write-Host "  ✅ Auto-Startup Shortcut confirmed in Startup Folder: $shortcutPath" -ForegroundColor Green
 } else {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Quant_03\us_federation_quant\create_startup_shortcut.ps1"
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Quant_03\us_federation_quant\Document\create_startup_shortcut.ps1"
 }
 
 # Register Task Scheduler Watchdog for system boot recovery
 try {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Quant_03\us_federation_quant\setup_windows_watchdog_task.ps1"
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Quant_03\us_federation_quant\Document\setup_windows_watchdog_task.ps1"
 } catch {
     Write-Host "  ⚠️ Task Scheduler notice: $_" -ForegroundColor DarkYellow
 }

@@ -8,7 +8,7 @@ import ast
 import glob
 import os
 
-from us_federation_quant.contracts import CloseDirective, MarketView, RiskCheck
+from us_federation_quant.Document.contracts import CloseDirective, MarketView, RiskCheck
 from us_federation_quant.layers.l4_risk import evaluate_risk
 
 _LAYERS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "layers")

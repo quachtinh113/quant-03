@@ -25,6 +25,8 @@ class RiskCheck(str, Enum):
     LIQUIDATION_READINESS = "liquidation_readiness"
     STAGNATION_EXIT = "stagnation_exit"
     EMERGENCY_SHUTDOWN = "emergency_shutdown"
+    ENTRY_GATE = "entry_gate"
+    EXIT_TRACKING = "exit_tracking"
 
 
 @dataclass(frozen=True)
@@ -113,6 +115,31 @@ class OrderIntent:
     idm: float
     policy: Any
     warrant: Any                # cần .warrant_id và .revoke(reason=...)
+
+
+@dataclass(frozen=True)
+class SymbolSpec:
+    """Kết quả đọc spec của một mã từ L1. `info` là đối tượng symbol_info THÔ của MT5 (giữ nguyên để các phép
+    getattr(..., mặc định) hiện có không đổi hành vi); `spec` là dict từ mgr.get_symbol_spec khi không có `info`."""
+    symbol: str
+    info: Any = None
+    spec: Optional[Mapping[str, Any]] = None
+
+
+@dataclass(frozen=True)
+class DealView:
+    """Một deal lịch sử MT5 đã chuẩn hóa (L1 đọc, L4 quyết định). Thuộc tính thiếu nhận giá trị mặc định
+    như các getattr(..., mặc định) của mã cũ."""
+    ticket: Any = 0
+    position_id: Any = 0
+    time: Any = 0
+    type: Any = None
+    entry: Any = None
+    symbol: str = ""
+    profit: Any = 0.0
+    commission: Any = 0.0
+    swap: Any = 0.0
+    comment: Any = ""
 
 
 @dataclass(frozen=True)

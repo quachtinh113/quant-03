@@ -18,7 +18,7 @@ sys.path.insert(0, str(_DIR))
 sys.path.insert(0, str(_DIR.parent))
 
 import MetaTrader5 as mt5
-from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
 
 def test_universal_hard_risk_cap_15usd():

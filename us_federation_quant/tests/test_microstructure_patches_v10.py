@@ -115,7 +115,7 @@ def test_stop_loss_floor_calculation():
 
 def test_toxic_hours_blacklist():
     """Verify Toxic Hours Blacklist {0, 6, 18, 23} UTC blocks new entries while allowing Trailing SL."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
     toxic_hours = {0, 6, 18, 23}
     assert USFederationQuantRuntime.TOXIC_HOURS == toxic_hours
@@ -144,7 +144,7 @@ def test_toxic_hours_blacklist():
 
 def test_eurgbp_d1_ema200_trend_filter():
     """Verify EURGBP State 31 Mean-Reversion blocks BUY when price is below D1 EMA200."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
     # Construct synthetic 200-bar D1 dataset where EMA200 is around 0.85497
     dates = pd.date_range("2026-01-01", periods=200, freq="D")
@@ -193,7 +193,7 @@ def test_eurgbp_d1_ema200_trend_filter():
 
 def test_friday_eod_flat_rule():
     """Verify Friday EOD Flat Rule (>= 20:30 UTC / 23:30 Server Time) and Weekend Hold Sweeper (Skill 07)."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
     # 1. Curfew & Flat window timestamp checks (Skill 07 Time Rule 23:30-23:45 Server Time = 20:30-20:45 UTC)
     friday_1959 = datetime(2026, 10, 30, 19, 59, 0, tzinfo=timezone.utc)
@@ -252,7 +252,7 @@ def test_friday_eod_flat_rule():
 
 def test_us_dst_server_time_adaptation():
     """Verify MT5 Server Time (23:30 Server Time) automatically adapts to Nov 1, 2026 US DST transition."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
     # Before Nov 1, 2026 (Summer EDT -> Server = UTC+3):
     # 20:30 UTC = 23:30 Server Time -> Flat window TRUE
@@ -276,7 +276,7 @@ def test_us_dst_server_time_adaptation():
 
 def test_per_symbol_tick_warmup_and_spread_guard():
     """Verify Per-Symbol Tick Freshness (<=60s), 10m Open Warmup, and Spread Guard on Sunday/Monday Reopen."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
     mock_runtime = MagicMock(spec=USFederationQuantRuntime)
     mock_runtime.check_symbol_liquidation_readiness = USFederationQuantRuntime.check_symbol_liquidation_readiness.__get__(mock_runtime)
@@ -343,7 +343,7 @@ def test_per_symbol_tick_warmup_and_spread_guard():
 def test_p0_sunday_open_no_self_liquidation_loop():
     """Regression (Audit 05/11/2026): lệnh mới mở tối Chủ Nhật sau giờ mở phiên KHÔNG được bị gắn cờ Weekend Hold.
     Sự cố 01/11/2026 22:09-22:45 UTC: 82 lệnh mở rồi bị 'Weekend Hold Flat' sau ~10s (-$158.72)."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime as R
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime as R
 
     sun_2210 = datetime(2026, 11, 1, 22, 10, tzinfo=timezone.utc)
     mon_0015 = datetime(2026, 11, 2, 0, 15, tzinfo=timezone.utc)
@@ -383,13 +383,13 @@ def test_p0_sunday_open_no_self_liquidation_loop():
 def test_p0_sweeper_default_warmup_applies_with_explicit_now():
     """Regression: vòng lặp live truyền now_utc -> warmup phải vẫn là 600s (trước đây = 0s)."""
     import inspect
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime as R
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime as R
     sig = inspect.signature(R.enforce_weekend_hold_sweeper)
     assert sig.parameters["open_warmup_sec"].default == 600.0
 
 def test_gbpchf_uk100_risk_cap_15usd():
     """Verify that all standard/forex pairs (including EURUSD, GBPCHF, UK100) are capped at universal max_risk_usd=15.0."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
     runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
 
     mock_info = MagicMock()
@@ -420,7 +420,7 @@ def test_gbpchf_uk100_risk_cap_15usd():
 
 def test_breakeven_lock_buffer_1_5_pips():
     """Verify that positions reaching >= 50% TP distance or >= $12.00 get SL advanced to Entry +/- 1.5 pips buffer."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
     runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
     runtime.mt5_mgr = MagicMock()
     runtime.mt5_mgr.modify_position_sltp.return_value = {"success": True}
@@ -465,7 +465,7 @@ def test_breakeven_lock_buffer_1_5_pips():
 
 def test_anti_chasing_cooldown_and_same_direction_lockout():
     """Verify Anti-Chasing 15-min cooldown and 2-consecutive SL lockout on same direction."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
     runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
 
     now_ts = 100_000.0
@@ -516,7 +516,7 @@ def test_anti_chasing_cooldown_and_same_direction_lockout():
 
 def test_enforce_gbpchf_uk100_hard_stop_cap():
     """Verify enforce_gbpchf_uk100_hard_stop_cap triggers emergency close at -$15.00 loss."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
     runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
     runtime.mt5_mgr = MagicMock()
     runtime.mt5_mgr.close_position.return_value = {"success": True}
@@ -540,7 +540,7 @@ def test_hk50_elimination_and_session_gate():
     reg_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
     ELITE_STATE_IDS = reg_mod.ELITE_STATE_IDS
     ELIMINATED_STATE_IDS = reg_mod.ELIMINATED_STATE_IDS
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
 
     # 1. State Pod Registry: STATE_17 must NOT be in elite states and MUST be in eliminated states
     assert "STATE_17" not in ELITE_STATE_IDS
@@ -570,7 +570,7 @@ def test_hk50_elimination_and_session_gate():
 
 def test_staged_friday_eod_flat_and_entry_lock():
     """Verify Staged Friday EOD Flat and Friday Entry Lock strictly prevents weekend hold."""
-    from us_federation_quant.live_federation_runner import USFederationQuantRuntime
+    from us_federation_quant.Document.live_federation_runner import USFederationQuantRuntime
     runtime = USFederationQuantRuntime(initial_capital_usd=10_000.0)
 
     # 1. Friday 20:16 UTC in Winter (Nov 6, 2026): Server is UTC+2 (22:16 Server Time)

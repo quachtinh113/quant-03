@@ -19,7 +19,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-_DIR = Path(__file__).resolve().parent
+_DIR = Path(__file__).resolve().parent.parent  # gói us_federation_quant (file nằm trong Document/)
 _WORKSPACE = _DIR.parent
 for p in [str(_DIR), str(_WORKSPACE)]:
     if p not in sys.path:

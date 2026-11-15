@@ -26,7 +26,7 @@ FederalCircuitBreakerActive = _fe_mod.FederalCircuitBreakerActive
 CentralRiskDesk = _fe_mod.CentralRiskDesk
 CentralRiskAuditReport = _fe_mod.CentralRiskAuditReport
 
-from us_federation_quant.federation_hub import FederationHub
+from us_federation_quant.Document.federation_hub import FederationHub
 
 
 def test_parametric_var():

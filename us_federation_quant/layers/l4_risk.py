@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
-from us_federation_quant.contracts import (
+from us_federation_quant.Document.contracts import (
     AlertDirective,
     CloseDirective,
     Directive,
@@ -907,6 +907,130 @@ def _legacy_inline_execute(directives, broker_connector):
     return captured
 
 
+def evaluate_entry_gate(symbol, direction, current_ts, deals, symbol_state_fn, cooldown_sec, lockout_sec):
+    """Gate vào lệnh THUẦN: Anti-Chasing Cooldown + Same-Direction 2-SL Lockout. Trả về (allowed, reason).
+
+    `deals` là tuple[DealView] từ L1 (None => dùng trạng thái bộ nhớ qua symbol_state_fn(), chỉ gọi khi cần).
+    """
+    clean_sym = symbol.upper().replace("M", "")
+    dir_upper = direction.upper()
+
+    if deals is not None:
+        pos_dirs = {}
+        for d in deals:
+            if d.entry == 0:
+                pos_dirs[d.position_id] = "BUY" if d.type == 0 else "SELL"
+
+        closed_deals = [
+            d for d in deals
+            if (d.symbol or "").upper().replace("M", "") == clean_sym
+            and d.entry in (1, 3)
+            and float(d.time) <= current_ts
+        ]
+        closed_deals.sort(key=lambda d: (float(d.time), int(d.ticket)))
+
+        if closed_deals:
+            last_deal = closed_deals[-1]
+            time_since_exit = current_ts - float(last_deal.time)
+            if time_since_exit < cooldown_sec:
+                rem = int(cooldown_sec - time_since_exit)
+                return False, f"VETO_ANTI_CHASING_COOLDOWN: Cooldown còn {rem}s trên {clean_sym} (Chống fomo/đu đỉnh đáy sau đóng lệnh)"
+
+        if len(closed_deals) >= 2:
+            d1 = closed_deals[-2]
+            d2 = closed_deals[-1]
+            p1 = float(d1.profit)
+            p2 = float(d2.profit)
+
+            dir1 = pos_dirs.get(d1.position_id, "BUY" if d1.type == 1 else "SELL")
+            dir2 = pos_dirs.get(d2.position_id, "BUY" if d2.type == 1 else "SELL")
+
+            if p1 < 0 and p2 < 0 and dir1 == dir2 and dir1 == dir_upper:
+                time_since_d2 = current_ts - float(d2.time)
+                if time_since_d2 < lockout_sec:
+                    rem = int(lockout_sec - time_since_d2)
+                    return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều {dir1} trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
+    else:
+        st = symbol_state_fn().get(clean_sym, {})
+        last_exit = st.get("last_exit_ts", 0.0)
+        if current_ts - last_exit < cooldown_sec:
+            rem = int(cooldown_sec - (current_ts - last_exit))
+            return False, f"VETO_ANTI_CHASING_COOLDOWN (VETO_ANTI_CHASING): Cooldown còn {rem}s trên {clean_sym}"
+
+        if dir_upper == "BUY" and current_ts < st.get("lock_buy_until", 0.0):
+            rem = int(st.get("lock_buy_until", 0.0) - current_ts)
+            return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều BUY trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
+        if dir_upper == "SELL" and current_ts < st.get("lock_sell_until", 0.0):
+            rem = int(st.get("lock_sell_until", 0.0) - current_ts)
+            return False, f"VETO_2SL_DIRECTION_LOCKOUT (VETO_TREND_TRAP): Đang khóa chiều SELL trên {clean_sym} do dính 2 SL liên tiếp (còn {rem}s)"
+
+    return True, "OK"
+
+
+def evaluate_exit_tracking(now_ts, tracked_open, current_positions, deals_lookup, symbol_state,
+                           cooldown_sec, lockout_dur, max_consec, emit):
+    """Theo dõi vị thế vừa đóng: cập nhật symbol_state (last_exit_ts, đếm SL liên tiếp, khóa chiều) TẠI CHỖ.
+
+    deals_lookup() -> tuple[DealView]|None (L1, gọi MỘT LẦN cho MỖI vị thế vừa đóng như bản cũ);
+    emit(LogLine) ghi log ngay theo đúng thứ tự (kể cả khi có ngoại lệ giữa chừng).
+    """
+    for old_ticket, old_pos in tracked_open.items():
+        if old_ticket not in current_positions:
+            symbol = old_pos.get("symbol", "")
+            clean_sym = symbol.upper().replace("M", "")
+            pos_type = old_pos.get("type", "BUY")
+
+            deals = deals_lookup()
+            deal_pnl = 0.0
+            deal_comment = ""
+            if deals:
+                for d in deals:
+                    if d.position_id == old_ticket and d.entry == 1:
+                        deal_pnl = float(d.profit + d.commission + d.swap)
+                        deal_comment = str(d.comment)
+                        break
+
+            st = symbol_state.setdefault(
+                clean_sym,
+                {
+                    "last_exit_ts": now_ts,
+                    "consec_sl_buy": 0,
+                    "consec_sl_sell": 0,
+                    "lock_buy_until": 0.0,
+                    "lock_sell_until": 0.0,
+                }
+            )
+            st["last_exit_ts"] = now_ts
+
+            is_sl = ("sl" in deal_comment.lower()) or (deal_pnl < -0.5)
+
+            if is_sl:
+                if pos_type in ["BUY", 0]:
+                    st["consec_sl_buy"] += 1
+                    st["consec_sl_sell"] = 0
+                    if st["consec_sl_buy"] >= max_consec:
+                        st["lock_buy_until"] = now_ts + lockout_dur
+                        emit(LogLine("warning",
+                            f"🛑 [SAME-DIRECTION SL LOCKOUT] {clean_sym} dính {st['consec_sl_buy']} SL liên tiếp chiều BUY. "
+                            f"Khóa mở BUY trong {lockout_dur/3600:.1f} giờ để chống bắt dao rơi."))
+                elif pos_type in ["SELL", 1]:
+                    st["consec_sl_sell"] += 1
+                    st["consec_sl_buy"] = 0
+                    if st["consec_sl_sell"] >= max_consec:
+                        st["lock_sell_until"] = now_ts + lockout_dur
+                        emit(LogLine("warning",
+                            f"🛑 [SAME-DIRECTION SL LOCKOUT] {clean_sym} dính {st['consec_sl_sell']} SL liên tiếp chiều SELL. "
+                            f"Khóa mở SELL trong {lockout_dur/3600:.1f} giờ để chống bán ngược xu hướng tăng (Anti-Trend Trap)."))
+            elif deal_pnl > 0.0:
+                st["consec_sl_buy"] = 0
+                st["consec_sl_sell"] = 0
+
+            emit(LogLine("info",
+                f"🔔 [POSITION CLOSED DETECTED] Ticket #{old_ticket} ({symbol} {pos_type}): "
+                f"PnL ${deal_pnl:+.2f} USD ({deal_comment}). Kích hoạt Anti-Chasing Cooldown 15m "
+                f"(đến {datetime.fromtimestamp(now_ts + cooldown_sec, tz=timezone.utc).strftime('%H:%M:%S')} UTC)."))
+
+
 def evaluate_risk(
     check: RiskCheck,
     *,
@@ -944,6 +1068,16 @@ def evaluate_risk(
         st = state or {}
         return evaluate_stagnation_exit(
             positions, market, now_utc, st.get("ladder_locked", ()), st.get("tier2_locked", ()))
+    if check is RiskCheck.ENTRY_GATE:
+        ok, reason = evaluate_entry_gate(
+            symbol, params["direction"], params["current_ts"], params["deals"], params["symbol_state_fn"],
+            params["cooldown_sec"], params["lockout_sec"])
+        return RiskEvaluationResult(ready=ok, reason=reason)
+    if check is RiskCheck.EXIT_TRACKING:
+        evaluate_exit_tracking(
+            params["now_ts"], params["tracked_open"], params["current_positions"], params["deals_lookup"],
+            state, params["cooldown_sec"], params["lockout_dur"], params["max_consec"], params["emit"])
+        return RiskEvaluationResult()
     raise ValueError(f"RiskCheck không được hỗ trợ: {check}")
 
 
@@ -2272,7 +2406,7 @@ for p in [str(_DIR), str(_WORKSPACE)]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from us_federation_quant.institutional_governance_rules import (
+from us_federation_quant.Document.institutional_governance_rules import (
     InstitutionalStatutoryRules,
     StatutoryAuditResult,
 )
