@@ -2639,3 +2639,51 @@ def submit_order_intent(rt, intent):
     else:
         logger.warning(f"❌ [EXECUTION FAILED] {intent.state_id} order failed: {err} -> Warrant revoked.")
     return None
+
+
+# ====================================================================================================
+# VÒNG ĐỜI KẾT NỐI (từ live_federation_runner.ensure_mt5_connected)
+# ====================================================================================================
+
+def reset_mt5_connection() -> None:
+    """Dọn kết nối MT5 THÔ trước khi kết nối lại: mt5.shutdown(), nuốt mọi lỗi.
+
+    Cố ý KHÔNG dùng MT5ConnectionManager.shutdown() (chỉ chạy khi self.connected và đặt cờ connected=False):
+    vòng retry cũ gọi shutdown thô vô điều kiện và không đụng cờ.
+    """
+    try:
+        import MetaTrader5 as _mt5
+        _mt5.shutdown()
+    except Exception:
+        pass
+
+
+def ensure_connected_with_retry(mgr, max_retries: int = 10, delay: float = 15.0, keep_running=lambda: True) -> bool:
+    """Tự khôi phục kết nối khi sàn bảo trì: kiểm tra sức khỏe, rồi retry (shutdown thô -> sleep -> connect).
+
+    keep_running() cho phép tiến trình ngoài (runner) dừng vòng retry khi đang thoát. Hết số lần thử thì ghi log critical,
+    ngủ 60s và trả False. golden: tests/test_golden_reconnect.py.
+    """
+    if mgr.ensure_connected():
+        return True
+
+    retries = 0
+    while retries < max_retries and keep_running():
+        retries += 1
+        logger.warning(f"⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần {retries}/{max_retries} sau {delay:.0f}s...")
+        reset_mt5_connection()
+        time.sleep(delay)
+
+        try:
+            if mgr.connect():
+                logger.info("✅ [RECONNECT] Khôi phục kết nối MT5 thành công.")
+                return True
+        except Exception as e:
+            logger.warning(f"⚠️ [RECONNECT] Thử kết nối lại thất bại: {e}")
+
+    logger.critical(
+        f"🚨 [RECONNECT] Vượt quá {max_retries} lần thử kết nối. "
+        "Có thể sàn đang bảo trì cuối tuần/nghỉ lễ. Chờ 60s trước chu kỳ quét kế tiếp..."
+    )
+    time.sleep(60.0)
+    return False

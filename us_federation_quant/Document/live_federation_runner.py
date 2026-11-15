@@ -126,7 +126,9 @@ from us_federation_quant.layers import l2_alpha as _l2  # noqa: E402
 from us_federation_quant.layers.l1_data import market_view as _market_view  # noqa: E402
 from us_federation_quant.layers import l4_risk as _l4_time  # noqa: E402
 from us_federation_quant.layers.l4_risk import evaluate_risk  # noqa: E402
-from us_federation_quant.layers.l5_execution import ExecutionOutcome, execute_directives, submit_order_intent  # noqa: E402
+from us_federation_quant.layers.l5_execution import (  # noqa: E402
+    ExecutionOutcome, ensure_connected_with_retry, execute_directives, submit_order_intent,
+)
 
 _states_reg_mod = importlib.import_module("us_federation_quant.layers.l2_alpha")
 ELITE_STATE_IDS = getattr(_states_reg_mod, "ELITE_STATE_IDS", [])
@@ -194,6 +196,14 @@ def _run_hard_cap(rt, check: RiskCheck, max_loss_usd: float) -> List[Dict[str, A
     positions = rt.mt5_mgr.get_positions()
     res = evaluate_risk(check, positions=positions, params={"max_loss_usd": max_loss_usd})
     return execute_directives(rt, res.directives).get("closed")
+
+
+_UNSET = _l1.UNSET
+
+
+def _symbol_trade_gate(actual_symbol):
+    """Gate phiên/ngày lễ: trả về (skip, sym_info|_UNSET). Logic ở layers/l1_data.trade_mode_gate."""
+    return _l1.trade_mode_gate(actual_symbol)
 
 
 class USFederationQuantRuntime:
@@ -574,13 +584,11 @@ class USFederationQuantRuntime:
                 continue
 
             # 0. Market Session & Holiday Gatekeeper (skip closed markets, holiday sessions, and weekend hours)
-            try:
-                import MetaTrader5 as mt5
-                sym_info = mt5.symbol_info(actual_symbol)
-                if sym_info is None or getattr(sym_info, "trade_mode", None) != mt5.SYMBOL_TRADE_MODE_FULL:
-                    continue
-            except Exception:
-                pass
+            skip_pod, gate_info = _symbol_trade_gate(actual_symbol)
+            if skip_pod:
+                continue
+            if gate_info is not _UNSET:
+                sym_info = gate_info  # giữ nguyên ngữ nghĩa cũ: nếu MT5 ném lỗi thì sym_info giữ giá trị của vòng lặp trước
 
             if not self.mt5_mgr.is_market_open(actual_symbol):
                 continue
@@ -1067,33 +1075,7 @@ class USFederationQuantRuntime:
         Tự động khôi phục kết nối nếu server MT5 hoặc broker bảo trì.
         Kiên nhẫn retry và bảo toàn trạng thái in-memory thay vì thoát tiến trình khi sàn bảo trì cuối tuần.
         """
-        if self.mt5_mgr.ensure_connected():
-            return True
-
-        retries = 0
-        while retries < max_retries and _running:
-            retries += 1
-            logger.warning(f"⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần {retries}/{max_retries} sau {delay:.0f}s...")
-            try:
-                import MetaTrader5 as mt5
-                mt5.shutdown()
-            except Exception:
-                pass
-            time.sleep(delay)
-
-            try:
-                if self.mt5_mgr.connect():
-                    logger.info("✅ [RECONNECT] Khôi phục kết nối MT5 thành công.")
-                    return True
-            except Exception as e:
-                logger.warning(f"⚠️ [RECONNECT] Thử kết nối lại thất bại: {e}")
-
-        logger.critical(
-            f"🚨 [RECONNECT] Vượt quá {max_retries} lần thử kết nối. "
-            "Có thể sàn đang bảo trì cuối tuần/nghỉ lễ. Chờ 60s trước chu kỳ quét kế tiếp..."
-        )
-        time.sleep(60.0)
-        return False
+        return ensure_connected_with_retry(self.mt5_mgr, max_retries, delay, keep_running=lambda: _running)
 
     @classmethod
     def is_toxic_hour(cls, hour_utc: Optional[int] = None) -> bool:
@@ -1198,13 +1180,9 @@ class USFederationQuantRuntime:
         """
         outcome = ExecutionOutcome()
         try:
-            import MetaTrader5 as mt5
-            positions = mt5.positions_get()
+            positions = _l1.open_positions(self)
             if not positions:
-                mgr_positions = self.mt5_mgr.get_positions()
-                if not mgr_positions:
-                    return 0
-                positions = mgr_positions
+                return 0
             res = evaluate_risk(RiskCheck.FRIDAY_EOD_FLAT, positions=positions, now_utc=now_utc)
             execute_directives(self, res.directives, outcome=outcome)
         except Exception as e:

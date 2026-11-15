@@ -1,0 +1,285 @@
+{
+ "already_connected": {
+  "events": [
+   "ensure_connected"
+  ],
+  "logs": [],
+  "result": true
+ },
+ "connect_raises_each_time": {
+  "events": [
+   "ensure_connected",
+   "shutdown",
+   [
+    "sleep",
+    1.0
+   ],
+   "connect",
+   "shutdown",
+   [
+    "sleep",
+    1.0
+   ],
+   "connect",
+   [
+    "sleep",
+    60.0
+   ]
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 1/2 sau 1s..."
+   ],
+   [
+    "WARNING",
+    "⚠️ [RECONNECT] Thử kết nối lại thất bại: a"
+   ],
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 2/2 sau 1s..."
+   ],
+   [
+    "WARNING",
+    "⚠️ [RECONNECT] Thử kết nối lại thất bại: b"
+   ],
+   [
+    "CRITICAL",
+    "🚨 [RECONNECT] Vượt quá 2 lần thử kết nối. Có thể sàn đang bảo trì cuối tuần/nghỉ lễ. Chờ 60s trước chu kỳ quét kế tiếp..."
+   ]
+  ],
+  "result": false
+ },
+ "connect_raises_then_ok": {
+  "events": [
+   "ensure_connected",
+   "shutdown",
+   [
+    "sleep",
+    2.0
+   ],
+   "connect",
+   "shutdown",
+   [
+    "sleep",
+    2.0
+   ],
+   "connect"
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 1/5 sau 2s..."
+   ],
+   [
+    "WARNING",
+    "⚠️ [RECONNECT] Thử kết nối lại thất bại: a"
+   ],
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 2/5 sau 2s..."
+   ],
+   [
+    "INFO",
+    "✅ [RECONNECT] Khôi phục kết nối MT5 thành công."
+   ]
+  ],
+  "result": true
+ },
+ "custom_delay_and_default_args": {
+  "events": [
+   "ensure_connected",
+   "shutdown",
+   [
+    "sleep",
+    5.0
+   ],
+   "connect",
+   "shutdown",
+   [
+    "sleep",
+    5.0
+   ],
+   "connect"
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 1/10 sau 5s..."
+   ],
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 2/10 sau 5s..."
+   ],
+   [
+    "INFO",
+    "✅ [RECONNECT] Khôi phục kết nối MT5 thành công."
+   ]
+  ],
+  "result": true
+ },
+ "exhausted_returns_false": {
+  "events": [
+   "ensure_connected",
+   "shutdown",
+   [
+    "sleep",
+    15.0
+   ],
+   "connect",
+   "shutdown",
+   [
+    "sleep",
+    15.0
+   ],
+   "connect",
+   "shutdown",
+   [
+    "sleep",
+    15.0
+   ],
+   "connect",
+   [
+    "sleep",
+    60.0
+   ]
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 1/3 sau 15s..."
+   ],
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 2/3 sau 15s..."
+   ],
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 3/3 sau 15s..."
+   ],
+   [
+    "CRITICAL",
+    "🚨 [RECONNECT] Vượt quá 3 lần thử kết nối. Có thể sàn đang bảo trì cuối tuần/nghỉ lễ. Chờ 60s trước chu kỳ quét kế tiếp..."
+   ]
+  ],
+  "result": false
+ },
+ "max_retries_zero": {
+  "events": [
+   "ensure_connected",
+   [
+    "sleep",
+    60.0
+   ]
+  ],
+  "logs": [
+   [
+    "CRITICAL",
+    "🚨 [RECONNECT] Vượt quá 0 lần thử kết nối. Có thể sàn đang bảo trì cuối tuần/nghỉ lễ. Chờ 60s trước chu kỳ quét kế tiếp..."
+   ]
+  ],
+  "result": false
+ },
+ "reconnect_first_try": {
+  "events": [
+   "ensure_connected",
+   "shutdown",
+   [
+    "sleep",
+    15.0
+   ],
+   "connect"
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 1/5 sau 15s..."
+   ],
+   [
+    "INFO",
+    "✅ [RECONNECT] Khôi phục kết nối MT5 thành công."
+   ]
+  ],
+  "result": true
+ },
+ "reconnect_third_try": {
+  "events": [
+   "ensure_connected",
+   "shutdown",
+   [
+    "sleep",
+    15.0
+   ],
+   "connect",
+   "shutdown",
+   [
+    "sleep",
+    15.0
+   ],
+   "connect",
+   "shutdown",
+   [
+    "sleep",
+    15.0
+   ],
+   "connect"
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 1/5 sau 15s..."
+   ],
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 2/5 sau 15s..."
+   ],
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 3/5 sau 15s..."
+   ],
+   [
+    "INFO",
+    "✅ [RECONNECT] Khôi phục kết nối MT5 thành công."
+   ]
+  ],
+  "result": true
+ },
+ "running_false_skips_loop": {
+  "events": [
+   "ensure_connected",
+   [
+    "sleep",
+    60.0
+   ]
+  ],
+  "logs": [
+   [
+    "CRITICAL",
+    "🚨 [RECONNECT] Vượt quá 3 lần thử kết nối. Có thể sàn đang bảo trì cuối tuần/nghỉ lễ. Chờ 60s trước chu kỳ quét kế tiếp..."
+   ]
+  ],
+  "result": false
+ },
+ "shutdown_raises_swallowed": {
+  "events": [
+   "ensure_connected",
+   "shutdown",
+   [
+    "sleep",
+    3.0
+   ],
+   "connect"
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "⏳ [RECONNECT] Mất kết nối MT5. Đang thử lại lần 1/3 sau 3s..."
+   ],
+   [
+    "INFO",
+    "✅ [RECONNECT] Khôi phục kết nối MT5 thành công."
+   ]
+  ],
+  "result": true
+ }
+}

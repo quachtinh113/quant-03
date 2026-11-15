@@ -1,0 +1,70 @@
+{
+ "scan_gate_blocks_info_none": {
+  "get_rates_calls": 0,
+  "is_market_open_calls": [],
+  "result": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "scan_gate_blocks_not_full": {
+  "get_rates_calls": 0,
+  "is_market_open_calls": [],
+  "result": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "scan_gate_passes_full_reaches_market_open": {
+  "get_rates_calls": 0,
+  "is_market_open_calls": [
+   "EURUSDm"
+  ],
+  "result": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "unit_closeonly_skips": {
+  "info": "obj(trade_mode=3)",
+  "skip": true,
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "unit_full_const_missing_passes_with_info": {
+  "info": "obj(trade_mode=4)",
+  "skip": false,
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "unit_full_passes": {
+  "info": "obj(trade_mode=4)",
+  "skip": false,
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "unit_info_none_skips": {
+  "info": "None",
+  "skip": true,
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "unit_missing_trade_mode_skips": {
+  "info": "obj(trade_mode=MISSING)",
+  "skip": true,
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
+ "unit_symbol_info_raises_unset": {
+  "info": "UNSET",
+  "skip": false,
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ }
+}

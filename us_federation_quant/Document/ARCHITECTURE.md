@@ -60,3 +60,7 @@ Các mục dưới đây là hành vi được GIỮ NGUYÊN trong lúc tái c�
    rơi xuống khóa lãi và không ghi state. (golden: `tests/test_golden_l4_exits.py`.)
 4. **Chưa có chốt SL/TP bắt buộc ở L5** (`submit_order_intent`); `fleet_guard` được khởi tạo nhưng không ai gọi.
 5. **`scan_and_route_state_proposals` (~480 dòng) chưa có golden**; test hiện có của nó fail từ baseline.
+6. **`scan_and_route_state_proposals` dùng lại `sym_info` của pod vòng lặp trước khi `mt5.symbol_info` ném ngoại lệ.** Gate `trade_mode`
+   nuốt ngoại lệ và không gán `sym_info`; các bước sau (`point`, `trade_stops_level`, `spread`, `digits`) dùng giá trị còn sót từ pod
+   trước (hoặc `NameError` nếu là pod đầu tiên), có thể đặt lệnh với `digits` của mã khác. Đang được giữ nguyên bằng giá trị đánh dấu
+   `l1_data.UNSET`. (golden: `tests/test_golden_trade_mode_gate.py`.)

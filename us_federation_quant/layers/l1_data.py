@@ -68,7 +68,8 @@ def is_hk50_session_open(dt_utc: Optional[datetime] = None) -> bool:
 # phụ trợ của runtime) để chạy được với runtime dạng MagicMock(spec=...).
 # ----------------------------------------------------------------------------------------------------
 
-def symbol_spec(rt, symbol: str, *, suffix_fallback: bool = False, mgr_fallback: bool = False) -> SymbolSpec:
+def symbol_spec(rt, symbol: str, *, suffix_fallback: bool = False, mgr_fallback: bool = False,
+                resolve: bool = True) -> SymbolSpec:
     """Đọc spec mã: symbol_info(symbol) -> (resolve qua mgr nếu có) -> [thử hậu tố 'm' / bỏ 'm'] -> [spec dict của mgr].
 
     Thứ tự các lần gọi giữ đúng như enforce_hard_risk_cap / calculate_risk_adjusted_lot cũ (golden:
@@ -76,7 +77,7 @@ def symbol_spec(rt, symbol: str, *, suffix_fallback: bool = False, mgr_fallback:
     """
     import MetaTrader5 as mt5
     info = mt5.symbol_info(symbol)
-    if info is None and hasattr(rt, "mt5_mgr"):
+    if resolve and info is None and hasattr(rt, "mt5_mgr"):
         resolved = rt.mt5_mgr.resolve_symbol(symbol)
         info = mt5.symbol_info(resolved)
     if suffix_fallback:
@@ -134,3 +135,45 @@ def history_deals(from_ts: float, to_ts: float):
     if raw is None:
         return None
     return tuple(_deal_view(d) for d in raw)
+
+
+def open_positions(rt):
+    """Vị thế đang mở: mt5.positions_get() (đối tượng thô) -> nếu rỗng thì dự phòng rt.mt5_mgr.get_positions() (dict).
+
+    Trả về vị thế THÔ (L4 xử lý cả đối tượng lẫn dict); rỗng/None khi cả hai nguồn đều rỗng. Giữ đúng thứ tự gọi của
+    enforce_friday_eod_flat cũ (golden: tests/test_golden_friday_positions_read.py). Chuẩn hóa PositionView để sau.
+    """
+    import MetaTrader5 as mt5
+    positions = mt5.positions_get()
+    if not positions:
+        mgr_positions = rt.mt5_mgr.get_positions()
+        if not mgr_positions:
+            return mgr_positions
+        positions = mgr_positions
+    return positions
+
+
+UNSET = object()  # đánh dấu "chưa đọc được symbol_info vì MT5 ném lỗi" (khác với None = MT5 trả None)
+
+
+def is_full_trade_mode(info) -> bool:
+    """symbol_info.trade_mode == SYMBOL_TRADE_MODE_FULL (thiếu thuộc tính trade_mode => False)."""
+    import MetaTrader5 as mt5
+    return getattr(info, "trade_mode", None) == mt5.SYMBOL_TRADE_MODE_FULL
+
+
+def trade_mode_gate(symbol: str):
+    """Gate phiên/ngày lễ trước khi xét proposal: trả về (skip, info).
+
+    skip=True khi không có symbol_info hoặc trade_mode khác FULL. Mọi ngoại lệ bị nuốt như bản cũ (gate coi như qua);
+    nếu MT5 ném lỗi TRƯỚC khi đọc được info thì info = UNSET để caller giữ nguyên giá trị cũ của nó. Không resolve tên
+    (symbol đã được resolve ở caller). golden: tests/test_golden_trade_mode_gate.py.
+    """
+    info = UNSET
+    try:
+        info = symbol_spec(None, symbol, resolve=False).info
+        if info is None or not is_full_trade_mode(info):
+            return True, info
+    except Exception:
+        pass
+    return False, info

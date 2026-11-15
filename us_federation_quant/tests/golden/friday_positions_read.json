@@ -1,0 +1,190 @@
+{
+ "both_empty_returns_zero": {
+  "closed": [],
+  "logs": [],
+  "mgr_get_positions_calls": 1,
+  "positions_get_calls": 1,
+  "result": 0
+ },
+ "both_none_returns_zero": {
+  "closed": [],
+  "logs": [],
+  "mgr_get_positions_calls": 1,
+  "positions_get_calls": 1,
+  "result": 0
+ },
+ "friday_2145_all": {
+  "closed": [
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 11
+   },
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 12
+   }
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 20:30 UTC (Time Rule 23:30-23:45 Server Time). Phát hiện 2 vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #11 (EURUSDm) | Floating PnL: $+1.50 USD (Zero Weekend Hold Enforced)."
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #12 (UK100m) | Floating PnL: $-2.00 USD (Zero Weekend Hold Enforced)."
+   ]
+  ],
+  "mgr_get_positions_calls": 0,
+  "positions_get_calls": 1,
+  "result": 2
+ },
+ "mgr_positions_close_fail_counts": {
+  "closed": [
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 5
+   },
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 6
+   }
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 20:30 UTC (Time Rule 23:30-23:45 Server Time). Phát hiện 2 vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #5 (EURUSDm) | Floating PnL: $+1.00 USD (Zero Weekend Hold Enforced)."
+   ],
+   [
+    "ERROR",
+    "❌ Lỗi thanh lý Thứ Sáu Ticket #5: x"
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #6 (EURUSDm) | Floating PnL: $+1.00 USD (Zero Weekend Hold Enforced)."
+   ]
+  ],
+  "mgr_get_positions_calls": 1,
+  "positions_get_calls": 1,
+  "result": 1
+ },
+ "mt5_empty_list_mgr_used": {
+  "closed": [
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 3
+   }
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 20:30 UTC (Time Rule 23:30-23:45 Server Time). Phát hiện 1 vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #3 (EURUSDm) | Floating PnL: $+1.00 USD (Zero Weekend Hold Enforced)."
+   ]
+  ],
+  "mgr_get_positions_calls": 1,
+  "positions_get_calls": 1,
+  "result": 1
+ },
+ "mt5_none_mgr_used": {
+  "closed": [
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 1
+   },
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 2
+   }
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 20:30 UTC (Time Rule 23:30-23:45 Server Time). Phát hiện 2 vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #1 (EURUSDm) | Floating PnL: $+1.00 USD (Zero Weekend Hold Enforced)."
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #2 (XAUUSDm) | Floating PnL: $+1.00 USD (Zero Weekend Hold Enforced)."
+   ]
+  ],
+  "mgr_get_positions_calls": 1,
+  "positions_get_calls": 1,
+  "result": 2
+ },
+ "mt5_nonempty_skips_mgr": {
+  "closed": [
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 11
+   },
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 12
+   }
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 20:30 UTC (Time Rule 23:30-23:45 Server Time). Phát hiện 2 vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #11 (EURUSDm) | Floating PnL: $+1.50 USD (Zero Weekend Hold Enforced)."
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #12 (UK100m) | Floating PnL: $-2.00 USD (Zero Weekend Hold Enforced)."
+   ]
+  ],
+  "mgr_get_positions_calls": 0,
+  "positions_get_calls": 1,
+  "result": 2
+ },
+ "mt5_objects_with_now_tiering": {
+  "closed": [
+   {
+    "comment": "Friday EOD Flat",
+    "ticket": 12
+   }
+  ],
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [FRIDAY EOD FLAT RULE KÍCH HOẠT] Thứ Sáu >= 20:30 UTC (Time Rule 23:30-23:45 Server Time). Phát hiện 2 vị thế đang mở. Bắn lệnh thị trường đối ứng dọn sạch danh mục!"
+   ],
+   [
+    "WARNING",
+    "🧹 [FRIDAY REAL-TIME LIQUIDATION] Thanh lý bắt buộc Ticket #12 (UK100m) | Floating PnL: $-2.00 USD (Zero Weekend Hold Enforced)."
+   ]
+  ],
+  "mgr_get_positions_calls": 0,
+  "positions_get_calls": 1,
+  "result": 1
+ },
+ "mt5_raises_logged_returns_zero": {
+  "closed": [],
+  "logs": [
+   [
+    "ERROR",
+    "⚠️ Exception in enforce_friday_eod_flat: ipc down"
+   ]
+  ],
+  "mgr_get_positions_calls": 0,
+  "positions_get_calls": 1,
+  "result": 0
+ }
+}
