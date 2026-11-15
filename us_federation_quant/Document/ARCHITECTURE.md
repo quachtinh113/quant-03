@@ -7,7 +7,7 @@ Luồng chạy: `L1 Data → L2 Alpha → L3 Sizing → L4 Risk → L5 Execution
 
 | Tầng | File | Nội dung chính |
 |---|---|---|
-| L1 Data | `layers/l1_data.py` | adapter MT5 → `MarketView`; bộ lọc phiên (HK50, giờ độc hại) |
+| L1 Data | `layers/l1_data.py` | cổng đọc dữ liệu: `symbol_spec`, `bars_with_fallback`, `history_deals` (→ `SymbolSpec`/`DealView`); adapter `MarketView`; bộ lọc phiên (HK50, giờ độc hại) |
 | L2 Alpha | `layers/l2_alpha.py` | ML meta-labeling, formulaic alphas, MIT/Dalio, Congress/Senate/House, combined arms, **registry + pod chiến lược** |
 | L3 Sizing | `layers/l3_sizing.py` | allocator QE/QT (Carver), ma trận lãi suất, Quad-Titan, quỹ thanh khoản |
 | L4 Risk | `layers/l4_risk.py` | **cổng `evaluate_risk(...)`** (trần lỗ, breakeven, profit ladder, two-tier, EOD, sweeper), Central Risk Desk + kill switch, VaR/CVaR, warrant/Supreme Court, HWM, fleet guard |
@@ -16,6 +16,13 @@ Luồng chạy: `L1 Data → L2 Alpha → L3 Sizing → L4 Risk → L5 Execution
 
 L4 chỉ SINH chỉ thị (`CloseDirective`, `ModifyDirective`, …); L5 thực thi và áp nhánh `on_success`/`on_failure`.
 Phụ thuộc chéo duy nhất: L4 và L5 import `get_logger` từ L6 (logging là đáy của mọi tầng).
+
+## Bố cục thư mục
+- `Document/`: các module gốc của gói (`contracts.py`, `federation_hub.py`, `live_federation_runner.py`, `institutional_governance_rules.py`,
+  script audit/vận hành, `.ps1`/`.bat`, `.env.example`, `requirements.txt`, tài liệu này). Import theo `us_federation_quant.Document.<module>`.
+- `layers/`, `config/`, `data/`, `logs/`, `deploy/`, `research/`, `tests/` nằm ở `us_federation_quant/`; `start_bot.bat` vẫn ở gốc gói.
+- Khởi chạy: `python Document\live_federation_runner.py` (trong `start_bot.bat`) hoặc `python3 Document/live_federation_runner.py` (service).
+- Runner tính `_DIR` là thư mục `us_federation_quant/` (không phải `Document/`): `.env`, `logs/` (HWM, state), `config/`, `data/` giữ nguyên vị trí.
 
 ## Config & dữ liệu
 - `config/constitution/*.yaml`, `config/macro_calendar_cache.json`: config gốc, nội dung không đổi (kiểm bằng SHA-256).

@@ -1,8 +1,12 @@
-"""L1 Dữ liệu: adapter dữ liệu thị trường (MT5 -> MarketView) và các bộ lọc phiên thuần.
+"""L1 Dữ liệu: cổng đọc dữ liệu thị trường chuẩn hóa + adapter MarketView + bộ lọc phiên thuần.
 
-L4 Rủi ro không import MT5; nó nhận `MarketView` do hàm `market_view(runtime)` ở đây dựng.
-Việc kéo giá/nến từ MT5 hiện vẫn nằm trong MT5ConnectionManager (l5_execution) vì lớp đó trộn
-dữ liệu và gửi lệnh trong cùng một class; tách riêng là việc của một lát sau (cần golden test).
+- symbol_spec: spec mã (symbol_info + chuỗi dự phòng resolve / hậu tố 'm' / spec của mgr).
+- bars_with_fallback: nến (copy_rates_from_pos -> mgr.get_rates) theo chuỗi dự phòng.
+- history_deals: lịch sử deal đã chuẩn hóa thành DealView (None khác tuple rỗng).
+- market_view: adapter MT5 -> MarketView cho L4 (L4 không import MT5).
+`import MetaTrader5` luôn được thực hiện LƯỜI tại lúc gọi. Các hàm đọc của MT5ConnectionManager (get_rates,
+get_positions...) vẫn ở l5 vì dùng chung trạng thái kết nối; gateway chỉ bọc chúng.
+Còn lại ngoài L1: gate trade_mode trong scan_and_route (4d) và vòng đời kết nối ensure_mt5_connected (4e).
 """
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional, Sequence, Tuple
