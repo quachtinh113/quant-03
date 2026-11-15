@@ -1,0 +1,35 @@
+# Bí mật — không bao giờ commit, không bao giờ đóng gói, không bao giờ đánh chỉ mục.
+.env
+.env.*
+!.env.example
+*credential*
+*secret*
+*.pem
+*.key
+*.p12
+
+# Gói triển khai
+*.zip
+
+# Sinh ra lúc chạy
+logs/*
+!logs/.gitkeep
+*.log
+*.lock
+*.db
+two_tier_exit_state.json
+sweeper_reopen_state.json
+heartbeat_*.json
+high_water_mark_*.json
+fleet_audit.jsonl
+gemini_token_budget.json
+hamilton_vault_ledger.json
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Dữ liệu giá thật kéo từ MT5 — sinh lại bằng:
+#   python research/backtest_real_data.py --fetch
+research/real_data/

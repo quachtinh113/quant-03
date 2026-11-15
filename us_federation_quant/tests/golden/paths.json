@@ -1,0 +1,56 @@
+{
+ "config_files_exist": {
+  "configs/constitution/article_1_max_drawdown.yaml": true,
+  "configs/constitution/article_2_var_limits.yaml": true,
+  "data/macro_calendar_cache.json": true
+ },
+ "constructor_defaults": {
+  "gov.HamiltonColdVaultManager.ledger_path": "us_federation_quant/logs/hamilton_vault_ledger.json",
+  "l4.ColdStorageOOSVault.vault_dir": "us_federation_quant/data/vault_data",
+  "l4.HighWaterMarkTracker.state_file": "us_federation_quant/logs/high_water_mark_b.json",
+  "l4.HighWaterMarkTracker.state_file(logs_dir=LOG_DIR)": "us_federation_quant/logs/high_water_mark_b.json",
+  "l4.IdempotencyRegistry.db_path(default)": "us_federation_quant/logs/idempotency_store.db",
+  "l4.ImmutableTrialLedger.ledger_file_path": "us_federation_quant/data/trial_ledger.jsonl",
+  "l4.SupremeCourtCircuitBreakerManager.registry_path": "us_federation_quant/logs/supreme_court_quarantine_registry.json",
+  "l6.FleetHeartbeat(LOG_DIR).audit_log_file": "us_federation_quant/logs/fleet_audit.jsonl",
+  "l6.FleetHeartbeat(LOG_DIR).heartbeat_file": "us_federation_quant/logs/heartbeat_b.json",
+  "l6.FleetHeartbeat(default).audit_log_file": "us_federation_quant/logs/fleet_audit.jsonl",
+  "l6.FleetHeartbeat(default).heartbeat_file": "us_federation_quant/logs/heartbeat_b.json",
+  "l6.GeminiSmartRouter.budget_tracker.budget_file": "us_federation_quant/logs/gemini_token_budget.json"
+ },
+ "data_dir_exists": {
+  "data": true,
+  "data/vault_data": true
+ },
+ "entrypoints": {
+  "scripts/deploy/us_federation_quant.service": [
+   "EnvironmentFile=/home/quant/Quant_03/us_federation_quant/.env",
+   "ExecStart=/home/quant/Quant_03/venv/bin/python3 core/live_federation_runner.py"
+  ],
+  "scripts/ops_windows/create_startup_shortcut.ps1": [
+   "$sc.TargetPath = \"C:\\Quant_03\\us_federation_quant\\start_bot.bat\""
+  ],
+  "scripts/ops_windows/run_as_admin_optimize.bat": [],
+  "scripts/ops_windows/setup_windows_watchdog_task.ps1": [
+   "[string]$BotPath = \"C:\\Quant_03\\us_federation_quant\\start_bot.bat\""
+  ],
+  "start_bot.bat": [
+   "powershell -NoProfile -ExecutionPolicy Bypass -File \"scripts\\ops_windows\\ensure_mt5_gui.ps1\"",
+   "echo [WARNING] ensure_mt5_gui returned non-zero code. Attempting to proceed...",
+   "python core\\live_federation_runner.py"
+  ]
+ },
+ "gov._VAULT_LEDGER_PATH": "us_federation_quant/logs/hamilton_vault_ledger.json",
+ "l3.workspace(parent^3 of l3_sizing.py)": ".",
+ "l4.LOG_DIR": "us_federation_quant/logs",
+ "l4._DIR": "us_federation_quant",
+ "l4._QUARANTINE_REGISTRY_PATH": "us_federation_quant/logs/supreme_court_quarantine_registry.json",
+ "l6.setup_logger(default).log_file": [
+  "us_federation_quant/logs/us_federation_quant.log"
+ ],
+ "runner.LOG_DIR": "us_federation_quant/logs",
+ "runner._DIR": "us_federation_quant",
+ "runner._LOCK_FILE_PATH": "us_federation_quant/logs/us_federation_quant.lock",
+ "runner._WORKSPACE": ".",
+ "runner.dotenv_path(_DIR/.env)": "us_federation_quant/.env"
+}
