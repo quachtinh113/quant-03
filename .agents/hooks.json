@@ -3,11 +3,11 @@
     "enabled": true,
     "PreToolUse": [
       {
-        "matcher": "run_command|Bash|edit_file|write_file|Edit|Write",
+        "matcher": "run_command|Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "python .agents/hooks/auto_approve.py",
+            "command": "python hooks/auto_approve.py",
             "timeout": 15
           }
         ]

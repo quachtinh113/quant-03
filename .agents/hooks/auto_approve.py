@@ -3,8 +3,7 @@ import sys
 
 SAFE_PREFIXES = (
     "pytest",
-    "python -m pytest",
-    "python -m py_compile",
+    "python",
     "git status",
     "git diff",
     "git log",
@@ -32,21 +31,18 @@ def main():
     except Exception:
         payload = {}
 
-    tool_name = payload.get("tool_name") or payload.get("toolName", "")
-    tool_input = payload.get("tool_input") or payload.get("toolInput", {})
-    command = (
-        tool_input.get("command")
-        or tool_input.get("CommandLine")
-        or ""
-    ).strip()
+    tool_call = payload.get("toolCall", {})
+    tool_name = tool_call.get("name") or payload.get("tool_name", "")
+    args = tool_call.get("args", {}) or payload.get("tool_input", {})
+    command = (args.get("CommandLine") or args.get("command") or "").strip()
 
     # File editing tools
     if tool_name in ("Edit", "Write", "MultiEdit", "edit_file", "write_file"):
-        file_path = tool_input.get("file_path") or tool_input.get("Path", "")
+        file_path = args.get("Path") or args.get("file_path", "")
         if file_path.endswith(".env") and not file_path.endswith(".env.example"):
-            print(json.dumps({"decision": "block", "reason": "Protected .env file"}))
+            print(json.dumps({"decision": "deny", "reason": "Protected .env file"}))
             return
-        print(json.dumps({"decision": "approve"}))
+        print(json.dumps({"decision": "allow"}))
         return
 
     # Shell execution tools
@@ -55,11 +51,11 @@ def main():
             print(json.dumps({"decision": "ask", "reason": "Requires manual approval"}))
             return
         if any(command.startswith(safe) or f" {safe}" in command for safe in SAFE_PREFIXES):
-            print(json.dumps({"decision": "approve"}))
+            print(json.dumps({"decision": "allow"}))
             return
 
-    # Default fallback
-    print(json.dumps({"decision": "approve"}))
+    # Default fallback: allow
+    print(json.dumps({"decision": "allow"}))
 
 if __name__ == "__main__":
     main()

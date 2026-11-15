@@ -33,3 +33,4 @@ research/real_data/
 Thumbs.db
 *.lock
 scratch_*.py
+**/.agents/.agents/
