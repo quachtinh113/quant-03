@@ -153,9 +153,6 @@ def open_positions(rt):
     return positions
 
 
-UNSET = object()  # đánh dấu "chưa đọc được symbol_info vì MT5 ném lỗi" (khác với None = MT5 trả None)
-
-
 def is_full_trade_mode(info) -> bool:
     """symbol_info.trade_mode == SYMBOL_TRADE_MODE_FULL (thiếu thuộc tính trade_mode => False)."""
     import MetaTrader5 as mt5
@@ -165,15 +162,14 @@ def is_full_trade_mode(info) -> bool:
 def trade_mode_gate(symbol: str):
     """Gate phiên/ngày lễ trước khi xét proposal: trả về (skip, info).
 
-    skip=True khi không có symbol_info hoặc trade_mode khác FULL. Mọi ngoại lệ bị nuốt như bản cũ (gate coi như qua);
-    nếu MT5 ném lỗi TRƯỚC khi đọc được info thì info = UNSET để caller giữ nguyên giá trị cũ của nó. Không resolve tên
-    (symbol đã được resolve ở caller). golden: tests/test_golden_trade_mode_gate.py.
+    FAIL-CLOSED (ADR-004): skip=True khi không có symbol_info, trade_mode khác FULL, hoặc BẤT KỲ ngoại lệ nào (khi đó info=None);
+    caller bỏ qua pod ngay, không bao giờ dùng lại sym_info của pod trước. Không resolve tên (symbol đã được resolve ở caller).
+    golden: tests/test_golden_trade_mode_gate.py.
     """
-    info = UNSET
     try:
         info = symbol_spec(None, symbol, resolve=False).info
         if info is None or not is_full_trade_mode(info):
             return True, info
     except Exception:
-        pass
+        return True, None
     return False, info

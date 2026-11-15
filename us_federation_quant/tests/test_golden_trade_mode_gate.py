@@ -1,10 +1,11 @@
 """Golden test (Phần 3, Bước 4): gate trade_mode (symbol_info + SYMBOL_TRADE_MODE_FULL) ở đầu vòng pod của scan_and_route.
 
 Hai lớp:
-  * đơn vị: _symbol_trade_gate(actual_symbol) -> (skip, sym_info|_UNSET) trên nhiều dạng symbol_info / lỗi MT5;
+  * đơn vị: _symbol_trade_gate(actual_symbol) -> (skip, sym_info) trên nhiều dạng symbol_info / lỗi MT5;
   * xuyên scan_and_route_state_proposals (đồng hồ cố định Thứ Tư 14:00 UTC, 1 pod giả, dừng ngay sau gate bằng
     is_market_open=False): gate chặn thì KHÔNG gọi is_market_open; gate qua thì gọi đúng 1 lần; get_rates không bao giờ được gọi.
-Sinh fixture từ mã TRƯỚC khi chuyển sang L1:  GENERATE_GOLDEN=1 python -m pytest us_federation_quant/tests/test_golden_trade_mode_gate.py
+ADR-004 (fail-closed): ngoại lệ MT5 => skip=True, info=None; không còn kế thừa sym_info của pod trước.
+Sinh fixture từ mã TRƯỚC khi chuyển sang L1 (đã sinh lại sau ADR-004 chỉ cho 2 kịch bản đổi + 1 kịch bản mới):  GENERATE_GOLDEN=1 python -m pytest us_federation_quant/tests/test_golden_trade_mode_gate.py
 Chỉ dùng test double; không gửi lệnh thật.
 """
 import json
@@ -25,8 +26,6 @@ FULL = _mt5.SYMBOL_TRADE_MODE_FULL
 
 
 def _label(info):
-    if info is runner_mod._UNSET:
-        return "UNSET"
     if info is None:
         return "None"
     return f"obj(trade_mode={getattr(info, 'trade_mode', 'MISSING')})"
@@ -92,11 +91,12 @@ def _current():
         "unit_full_passes": _gate(full),
         "unit_closeonly_skips": _gate(closeonly),
         "unit_missing_trade_mode_skips": _gate(notmode),
-        "unit_symbol_info_raises_unset": _gate(None, raises=RuntimeError("ipc")),
-        "unit_full_const_missing_passes_with_info": _gate(full, delete_full_const=True),
+        "unit_symbol_info_raises_fail_closed": _gate(None, raises=RuntimeError("ipc")),
+        "unit_full_const_missing_fail_closed": _gate(full, delete_full_const=True),
         "scan_gate_blocks_info_none": _scan(None),
         "scan_gate_blocks_not_full": _scan(closeonly),
         "scan_gate_passes_full_reaches_market_open": _scan(full),
+        "scan_gate_blocks_when_symbol_info_raises": _scan(None, raises=RuntimeError("ipc")),
     }
 
 

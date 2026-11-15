@@ -200,11 +200,8 @@ def _run_hard_cap(rt, check: RiskCheck, max_loss_usd: float) -> List[Dict[str, A
     return execute_directives(rt, res.directives).get("closed")
 
 
-_UNSET = _l1.UNSET
-
-
 def _symbol_trade_gate(actual_symbol):
-    """Gate phiên/ngày lễ: trả về (skip, sym_info|_UNSET). Logic ở layers/l1_data.trade_mode_gate."""
+    """Gate phiên/ngày lễ: trả về (skip, sym_info). Logic ở layers/l1_data.trade_mode_gate."""
     return _l1.trade_mode_gate(actual_symbol)
 
 
@@ -492,11 +489,9 @@ class USFederationQuantRuntime:
                 continue
 
             # 0. Market Session & Holiday Gatekeeper (skip closed markets, holiday sessions, and weekend hours)
-            skip_pod, gate_info = _symbol_trade_gate(actual_symbol)
+            skip_pod, sym_info = _symbol_trade_gate(actual_symbol)
             if skip_pod:
-                continue
-            if gate_info is not _UNSET:
-                sym_info = gate_info  # giữ nguyên ngữ nghĩa cũ: nếu MT5 ném lỗi thì sym_info giữ giá trị của vòng lặp trước
+                continue  # ADR-004: fail-closed, lỗi/None/không FULL -> bỏ pod, không kế thừa sym_info của pod trước
 
             if not self.mt5_mgr.is_market_open(actual_symbol):
                 continue

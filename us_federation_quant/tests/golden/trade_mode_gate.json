@@ -15,6 +15,14 @@
    "EURUSDm"
   ]
  },
+ "scan_gate_blocks_when_symbol_info_raises": {
+  "get_rates_calls": 0,
+  "is_market_open_calls": [],
+  "result": [],
+  "symbol_info_calls": [
+   "EURUSDm"
+  ]
+ },
  "scan_gate_passes_full_reaches_market_open": {
   "get_rates_calls": 0,
   "is_market_open_calls": [
@@ -32,9 +40,9 @@
    "EURUSDm"
   ]
  },
- "unit_full_const_missing_passes_with_info": {
-  "info": "obj(trade_mode=4)",
-  "skip": false,
+ "unit_full_const_missing_fail_closed": {
+  "info": "None",
+  "skip": true,
   "symbol_info_calls": [
    "EURUSDm"
   ]
@@ -60,9 +68,9 @@
    "EURUSDm"
   ]
  },
- "unit_symbol_info_raises_unset": {
-  "info": "UNSET",
-  "skip": false,
+ "unit_symbol_info_raises_fail_closed": {
+  "info": "None",
+  "skip": true,
   "symbol_info_calls": [
    "EURUSDm"
   ]
