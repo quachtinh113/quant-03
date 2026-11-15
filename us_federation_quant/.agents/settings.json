@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "pytest*",
+      "python*",
+      "git status*",
+      "git diff*",
+      "git log*",
+      "git add*",
+      "git mv*",
+      "git commit*",
+      "git push*",
+      "Get-ChildItem*",
+      "Select-String*"
+    ],
+    "deny": [
+      "git reset --hard*",
+      "git push --force*",
+      "git push -f*",
+      "rm -rf*",
+      "*live_federation_runner.py*"
+    ]
+  }
+}
