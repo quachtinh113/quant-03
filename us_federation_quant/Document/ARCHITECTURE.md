@@ -9,7 +9,7 @@ Luồng chạy: `L1 Data → L2 Alpha → L3 Sizing → L4 Risk → L5 Execution
 |---|---|---|
 | L1 Data | `layers/l1_data.py` | cổng đọc dữ liệu: `symbol_spec`, `bars_with_fallback`, `history_deals` (→ `SymbolSpec`/`DealView`); adapter `MarketView`; bộ lọc phiên (HK50, giờ độc hại) |
 | L2 Alpha | `layers/l2_alpha.py` | ML meta-labeling, formulaic alphas, MIT/Dalio, Congress/Senate/House, combined arms, **registry + pod chiến lược** |
-| L3 Sizing | `layers/l3_sizing.py` | allocator QE/QT (Carver), ma trận lãi suất, Quad-Titan, quỹ thanh khoản |
+| L3 Sizing | `layers/l3_sizing.py` | allocator QE/QT (Carver), ma trận lãi suất, Quad-Titan, quỹ thanh khoản; toán lot (`hard_risk_cap_lot`, `risk_adjusted_lot`); sizing lệnh vào hai giai đoạn (`size_entry` trước risk desk, `finalize_entry` sau risk desk) |
 | L4 Risk | `layers/l4_risk.py` | **cổng `evaluate_risk(...)`** (trần lỗ, breakeven, profit ladder, two-tier, EOD, sweeper), Central Risk Desk + kill switch, VaR/CVaR, warrant/Supreme Court, HWM, fleet guard |
 | L5 Execution | `layers/l5_execution.py` | `execute_directives`, `MT5ConnectionManager`, order state machine, trailing stop, router + thuật toán thực thi, MT5 live connector, TCA |
 | L6 Telemetry | `layers/l6_telemetry.py` | audit logger, telemetry/heartbeat, Gemini router |
@@ -20,6 +20,8 @@ Phụ thuộc chéo duy nhất: L4 và L5 import `get_logger` từ L6 (logging l
 ## Bố cục thư mục
 - `Document/`: các module gốc của gói (`contracts.py`, `federation_hub.py`, `live_federation_runner.py`, `institutional_governance_rules.py`,
   script audit/vận hành, `.ps1`/`.bat`, `.env.example`, `requirements.txt`, tài liệu này). Import theo `us_federation_quant.Document.<module>`.
+- `Document/pipeline.py`: bản đồ điều phối một trang `run_one_cycle(rt, st, now_utc)` (đọc từ trên xuống qua 6 tầng; `CycleState`/`CycleResult` ở `contracts.py`).
+  Vòng `while _running`, xử lý lỗi và `sleep` nằm ở `USFederationQuantRuntime.run()`.
 - `layers/`, `config/`, `data/`, `logs/`, `deploy/`, `research/`, `tests/` nằm ở `us_federation_quant/`; `start_bot.bat` vẫn ở gốc gói.
 - Khởi chạy: `python Document\live_federation_runner.py` (trong `start_bot.bat`) hoặc `python3 Document/live_federation_runner.py` (service).
 - Runner tính `_DIR` là thư mục `us_federation_quant/` (không phải `Document/`): `.env`, `logs/` (HWM, state), `config/`, `data/` giữ nguyên vị trí.
@@ -64,3 +66,7 @@ Các mục dưới đây là hành vi được GIỮ NGUYÊN trong lúc tái c�
    nuốt ngoại lệ và không gán `sym_info`; các bước sau (`point`, `trade_stops_level`, `spread`, `digits`) dùng giá trị còn sót từ pod
    trước (hoặc `NameError` nếu là pod đầu tiên), có thể đặt lệnh với `digits` của mã khác. Đang được giữ nguyên bằng giá trị đánh dấu
    `l1_data.UNSET`. (golden: `tests/test_golden_trade_mode_gate.py`.)
+7. **Phân bổ Carver trong `scan_and_route_state_proposals` dùng lợi suất giả ngẫu nhiên** (`np.random.normal`, 40 nến, mỗi lần quét): quota/IDM
+   thay đổi không tất định giữa các lần quét. Golden phải cố định seed. (golden: `tests/test_golden_scan_pipeline.py`.)
+8. **Gate giờ độc hại ngay trước khi gửi lệnh gần như không thể chạm tới**: vòng quét đã `return` sớm ở cùng tập `TOXIC_HOURS`; chỉ khác khi
+   giờ UTC chuyển qua mốc 0/6/18/23 giữa chừng một lần quét.

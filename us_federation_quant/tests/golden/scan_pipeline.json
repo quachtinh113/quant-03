@@ -1,0 +1,3122 @@
+{
+ "e_broker_market_closed_10018": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "REJECTED",
+    {
+     "reason": "closed"
+    }
+   ],
+   [
+    "revoke",
+    {
+     "reason": "Broker execution failed: closed"
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "ℹ️ [MARKET_CLOSED] STATE_21 (EURUSDm): Thị trường đóng cửa / nghỉ lễ (10018) -> Tạm bỏ qua an toàn."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "e_broker_rejects": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "REJECTED",
+    {
+     "reason": "No money"
+    }
+   ],
+   [
+    "revoke",
+    {
+     "reason": "Broker execution failed: No money"
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "WARNING",
+    "❌ [EXECUTION FAILED] STATE_21 order failed: No money -> Warrant revoked."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "e_open_order_raises": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "WARNING",
+    "⚠️ Error processing proposal for STATE_21: ipc down"
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "f_blacklist_equity": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_buffered": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [CARVER BUFFER ACTIVE] STATE_21 (Pod STATE_21): Target lot 0.1L within buffer of current pos (+0.00L) -> No rebalance churn."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_cooldown_veto": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [COOLDOWN/TREND-LOCK VETO] STATE_21 (EURUSDm BUY): VETO_ANTI_CHASING_COOLDOWN (VETO_ANTI_CHASING): Cooldown còn 800s trên EURUSD"
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_dedup_same_direction": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "WARNING",
+    "[DEDUP_FILTER] Rejected signal for EURUSDm: Existing open position #4 in same direction (BUY)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "f_df_none": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_df_too_short": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_eliminated_pod": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_equity_low_conviction": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "AAPLm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [EQUITY CONVICTION GATEKEEPER] STATE_21 (AAPL): Forecast +5.00 below minimum conviction (|F| >= 10.0)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_equity_opening_bell": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [EQUITY TIME GATEKEEPER] STATE_21 (AAPL): Blocked in first 30m of NYSE open (13:40 UTC) to avoid spread/gap risk."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_equity_trend_filter_buy": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "AAPLm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [EQUITY TREND FILTER] AAPL BUY rejected: Price 1.10 below EMA20 1.10."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_eurgbp_filter_denies": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURGBPm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_existing_position_skips": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_factor_limit_usd": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "WARNING",
+    "🛡️ [PRE-TRADE RISK GATEKEEPER] Rejected STATE_21 proposal on EURUSDm: Breaches currency factor limit (JPY max 1, USD max 2)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "f_gbp_cluster_cap": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_hk50_skipped": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_hold_action": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_index_cap_reached": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "US30m",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [INDEX CAP ACTIVE] STATE_21 (Pod STATE_21): BUY proposal on US30m held back: Directional index exposure already at 0.50L (Cap: 0.50L)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_index_nyse_blackout_1430": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [VETO_NYSE_OPEN_BLACKOUT] STATE_21 (USTECm): Cấm mở lệnh chỉ số trong 20 phút mở cửa NYSE (14:30:00 UTC) để tránh giãn spread và săn thanh khoản (Opening Bell Stop-Hunt)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_index_outside_session": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [INDEX SESSION GATE] STATE_21 (USTECm): Bỏ qua tín hiệu ngoài phiên New York (12:00 UTC). Chỉ cho phép mở lệnh chỉ số từ 13:00 đến 21:00 UTC."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_invalid_proposal": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_jpy_filter_denies": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "USDJPYm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_market_closed": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "f_ml_veto": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🧠 [ML META-LABELING VETO] STATE_21 (EURUSDm BUY) vetoed: Win Prob 30.0% < 48.0% (Kelly Mult: 0.50)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "f_scotus_veto": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "WARNING",
+    "⚖️ [SCOTUS VETO] Invalid cryptographic warrant for STATE_21"
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "f_zero_target_lots": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "pre_account_drawdown_breaker": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [CIRCUIT BREAKER CẤP ĐỘ 2 KÍCH HOẠT] Sụt giảm trong phiên chạm 3.00% (Ngưỡng: -2.0%). Tạm ngắt toàn bộ lệnh mở mới trong ngày để bảo toàn vốn!"
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "pre_friday_lock_1930": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-06] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [FRIDAY ZERO-WEEKEND-HOLD CURFEW] Thứ Sáu 19:30 UTC: Khóa hoàn toàn việc mở vị thế mới từ 19:00 UTC Thứ Sáu để đảm bảo 100% tiền mặt cuối tuần (Skill 07)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "pre_monday_open_curfew": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-09] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [MONDAY OPEN CURFEW] Thứ Hai 00:30 UTC: Tạm ngắt mở vị thế mới trong 60 phút đầu tuần để né giãn spread và trượt giá."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "pre_no_active_states": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "pre_pod_loss_breaker": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "WARNING",
+    "🛑 [CIRCUIT BREAKER CẤP ĐỘ 1] Tiểu bang STATE_21 (EURUSD) đã lỗ -$200.00 USD (chạm ngưỡng -1.5%). Tạm dừng 24h."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "pre_toxic_hour_23": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [TOXIC HOURS ACTIVE] Khung giờ 23:00 UTC nằm trong TOXIC_HOURS {0, 18, 6, 23}. Từ chối mở vị thế mới để tránh trượt giá và suy giảm thanh khoản (vẫn duy trì Trailing Stop)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "pre_weekend_curfew_saturday": {
+  "events": [],
+  "generate_calls": 0,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-07] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "🛡️ [FRIDAY EOD & WEEKEND CURFEW] 2026-11-07 12:00 UTC: Tạm ngắt mở vị thế mới từ 20:00 UTC Thứ Sáu xuyên suốt cuối tuần để bảo toàn 100% tiền mặt (Skill 07 Time Rule 23:45)."
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 0
+ },
+ "s_atr_nan_short_window": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_atr_zero_fallback_pct": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.011052,
+     "order_lots": 0.01
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.01
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.09525,
+     "symbol": "EURUSDm",
+     "tp": 1.12012,
+     "volume": 0.01,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.09525,
+     "symbol": "EURUSDm",
+     "tp": 1.12012,
+     "volume": 0.01
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.01
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=994.7, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0151L, normalized=0.01L (Expected SL Loss: $9.95, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.01L on EURUSDm | SL: 1.09525 | TP: 1.12012 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.01L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_attrs_override_caps": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.011052,
+     "order_lots": 0.01
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.01
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.01,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.01
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.01
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$5.00 -> raw=0.0139L, normalized=0.01L (Expected SL Loss: $3.60, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.01L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.01L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_custom_digits_info": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.11052000000000001,
+     "order_lots": 0.1
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.1
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 0.955,
+     "symbol": "EURUSDm",
+     "tp": 1.33,
+     "volume": 0.1,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 0.955,
+     "symbol": "EURUSDm",
+     "tp": 1.33,
+     "volume": 0.1
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.1
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=150.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.1000L, normalized=0.10L (Expected SL Loss: $15.00, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.1L on EURUSDm | SL: 0.955 | TP: 1.33 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.1L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_elite_booster_gbpusd": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "GBPUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "GBPUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "GBPUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "GBPUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "GBPUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "GBPUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] GBPUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [ALPHA BOOSTER] GBPUSDm thuộc nhóm Elite Alpha -> Áp dụng x1.6 đòn bẩy: 0.06L -> Capped: 0.04L (Trần rủi ro <= $15.00)."
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on GBPUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_elite_us30_is_index_no_booster": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "US30m",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "US30m"
+    }
+   ],
+   [
+    "get_tick",
+    "US30m"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 600.3,
+     "order_lots": 0.03
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "US30m",
+     0.03
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 19944.0,
+     "symbol": "US30m",
+     "tp": 20109.0,
+     "volume": 0.03,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 19944.0,
+     "symbol": "US30m",
+     "tp": 20109.0,
+     "volume": 0.03
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.03
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] US30m: sl_points=6600.0, trade_tick_value=0.01, tick_val_per_point=0.01000, max_risk=$15.00 -> raw=0.0300L, normalized=0.03L (Expected SL Loss: $1.98, Index Cap: True)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.03L on US30m | SL: 19944.0 | TP: 20109.0 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.03L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_fx_buy_tick_ask": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_fx_sell_tick_bid": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "SELL",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.0442,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-SELL-0123456789ABCDEF0123456789",
+     "direction": "SELL",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1086,
+     "symbol": "EURUSDm",
+     "tp": 1.0996,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-SEL",
+     "direction": "SELL",
+     "magic": 777,
+     "sl": 1.1086,
+     "symbol": "EURUSDm",
+     "tp": 1.0996,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): SELL 0.04L on EURUSDm | SL: 1.1086 | TP: 1.0996 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 SELL 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_index_ustec_cap60_clip": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "USTECm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "USTECm"
+    }
+   ],
+   [
+    "get_tick",
+    "USTECm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 600.3,
+     "order_lots": 0.03
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "USTECm",
+     0.03
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 19944.0,
+     "symbol": "USTECm",
+     "tp": 20109.0,
+     "volume": 0.03,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 19944.0,
+     "symbol": "USTECm",
+     "tp": 20109.0,
+     "volume": 0.03
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.03
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] USTECm: sl_points=6600.0, trade_tick_value=0.01, tick_val_per_point=0.01000, max_risk=$15.00 -> raw=0.0300L, normalized=0.03L (Expected SL Loss: $1.98, Index Cap: True)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.03L on USTECm | SL: 19944.0 | TP: 20109.0 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.03L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_ml_exception_skipped": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "DEBUG",
+    "ML inference evaluation skipped: ml down"
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_ml_kelly_zero_no_scale": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_ml_scale_down_clamped_0p70": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.033156,
+     "order_lots": 0.03
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.03
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.03,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.03
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.03
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.03L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.03L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_ml_scale_up_clamped_1p25": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_normalize_lot_changes": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.02,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.02
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.02
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.02L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.02L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_price_from_close_no_tick": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.0444,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1064,
+     "symbol": "EURUSDm",
+     "tp": 1.1154,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1064,
+     "symbol": "EURUSDm",
+     "tp": 1.1154,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1064 | TP: 1.1154 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_price_from_close_zero_ask": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.0444,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.04
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1064,
+     "symbol": "EURUSDm",
+     "tp": 1.1154,
+     "volume": 0.04,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1064,
+     "symbol": "EURUSDm",
+     "tp": 1.1154,
+     "volume": 0.04
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.04L on EURUSDm | SL: 1.1064 | TP: 1.1154 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.04L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_risk_desk_raises": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "WARNING",
+    "⚠️ Error processing proposal for STATE_21: risk desk veto"
+   ]
+  ],
+  "result": [],
+  "verify_warrant_calls": 1
+ },
+ "s_risk_desk_scales_half": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.044208,
+     "order_lots": 0.04
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.02
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.02,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.1016,
+     "symbol": "EURUSDm",
+     "tp": 1.1106,
+     "volume": 0.02
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.02
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=360.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0417L, normalized=0.04L (Expected SL Loss: $14.40, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.02L on EURUSDm | SL: 1.1016 | TP: 1.1106 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.02L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ },
+ "s_sl_floor_150_points_wide_stops": {
+  "events": [
+   [
+    "get_rates",
+    [
+     "EURUSDm",
+     "H1",
+     50
+    ]
+   ],
+   [
+    "issue_warrant",
+    {
+     "action": "BUY",
+     "authorized_lots": 0.1,
+     "bill_id": "BILL_STATE_21_1794411000",
+     "dsr": 0.95,
+     "metadata": {
+      "forecast": 12.0,
+      "rationale": "why",
+      "state_id": "STATE_21"
+     },
+     "psr": 0.95,
+     "target_asset": "EURUSDm"
+    }
+   ],
+   [
+    "get_tick",
+    "EURUSDm"
+   ],
+   [
+    "clearance",
+    {
+     "asset_notional": 0.022104,
+     "order_lots": 0.02
+    }
+   ],
+   [
+    "normalize_lot",
+    [
+     "EURUSDm",
+     0.02
+    ]
+   ],
+   [
+    "create_order",
+    {
+     "client_order_id": "CID-STATE_21-BUY-0123456789ABCDEF0123456789",
+     "direction": "BUY",
+     "magic": 777,
+     "order_type": "MARKET",
+     "sl": 1.09915,
+     "symbol": "EURUSDm",
+     "tp": 1.11427,
+     "volume": 0.02,
+     "warrant_id": "W-1"
+    }
+   ],
+   [
+    "transition",
+    "SUBMITTED",
+    {
+     "reason": "Submitted to MT5 bridge"
+    }
+   ],
+   [
+    "open_market_order",
+    {
+     "comment": "STATE_21:CID-STATE_21-BUY",
+     "direction": "BUY",
+     "magic": 777,
+     "sl": 1.09915,
+     "symbol": "EURUSDm",
+     "tp": 1.11427,
+     "volume": 0.02
+    }
+   ],
+   [
+    "transition",
+    "FILLED",
+    {
+     "broker_order_id": 9001,
+     "fill_price": 1.1053,
+     "fill_volume": 0.02
+    }
+   ]
+  ],
+  "generate_calls": 1,
+  "logs": [
+   [
+    "INFO",
+    "🌅 [PHIÊN MỚI 2026-11-11] Benchmark Equity: $10,000.00 USD | Mục tiêu lợi nhuận: +$100.00 USD/ngày (~1.0% NAV) | Ngưỡng Circuit Breaker Level 2: -2.0%."
+   ],
+   [
+    "INFO",
+    "📐 [VOLATILITY ATR SIZING] EURUSDm: sl_points=605.0, trade_tick_value=1.0, tick_val_per_point=1.00000, max_risk=$15.00 -> raw=0.0248L, normalized=0.02L (Expected SL Loss: $12.10, Index Cap: False)"
+   ],
+   [
+    "INFO",
+    "🚀 [PROPOSAL APPROVED] STATE_21 (Pod STATE_21): BUY 0.02L on EURUSDm | SL: 1.09915 | TP: 1.11427 | Forecast: +12.00 | IDM: 1.20 | Policy: EASING | Warrant: W-1"
+   ],
+   [
+    "INFO",
+    "✅ [EXECUTION SUCCESS] STATE_21 #9001 BUY 0.02L @ 1.1053"
+   ]
+  ],
+  "result": [
+   {
+    "price": 1.1053,
+    "success": true,
+    "ticket": 9001
+   }
+  ],
+  "verify_warrant_calls": 1
+ }
+}

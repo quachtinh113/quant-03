@@ -143,6 +143,27 @@ class DealView:
 
 
 @dataclass(frozen=True)
+class SizingPlan:
+    """Kết quả sizing giai đoạn A (L3): giá vào, ATR14, khoảng SL/TP và lot ĐÃ tính (trước risk desk của L4)."""
+    current_price: float
+    atr_14: float
+    sl_dist: float
+    tp_dist: float
+    sl_points: float
+    symbol_max_risk: float
+    is_index: bool
+    lots: float
+
+
+@dataclass(frozen=True)
+class EntryLevels:
+    """Kết quả sizing giai đoạn B (L3): lot cuối (đã chuẩn hóa + cap) và mức SL/TP tuyệt đối."""
+    lots: float
+    sl: float
+    tp: float
+
+
+@dataclass(frozen=True)
 class MarketView:
     """Dữ liệu thị trường được TIÊM vào L4 (adapter MT5 do runner/L1 dựng); L4 không import MT5."""
     symbol_info: Callable[[str], Any]
@@ -160,3 +181,17 @@ class RiskEvaluationResult:
     delegate: Optional[str] = None   # "friday_eod_flat": sweeper giao lại cho enforce_friday_eod_flat
     ready: Optional[bool] = None     # chỉ dùng cho LIQUIDATION_READINESS
     reason: Optional[str] = None
+
+
+@dataclass
+class CycleState:
+    """Trạng thái giữa các vòng lặp của pipeline.run_one_cycle (CÓ THỂ ĐỔI: last_quad_time được cập nhật mỗi vòng chậm)."""
+    last_quad_time: float
+    synthetic_weights: Any
+    returns_history: Any
+
+
+@dataclass(frozen=True)
+class CycleResult:
+    """Kết quả một vòng: số giây caller phải ngủ (0 = thử lại ngay, như `continue` cũ)."""
+    sleep_s: float

@@ -120,9 +120,11 @@ FederationHub = _hub_mod.FederationHub
 _titan_mod = importlib.import_module("us_federation_quant.layers.l3_sizing")
 QuadTitanEngine = _titan_mod.QuadTitanEngine
 
-from us_federation_quant.Document.contracts import CloseDirective, OrderIntent, RiskCheck  # noqa: E402
+from us_federation_quant.Document.contracts import CloseDirective, CycleState, OrderIntent, RiskCheck  # noqa: E402
+from us_federation_quant.Document.pipeline import run_one_cycle  # noqa: E402
 from us_federation_quant.layers import l1_data as _l1  # noqa: E402
 from us_federation_quant.layers import l2_alpha as _l2  # noqa: E402
+from us_federation_quant.layers import l3_sizing as _l3  # noqa: E402
 from us_federation_quant.layers.l1_data import market_view as _market_view  # noqa: E402
 from us_federation_quant.layers import l4_risk as _l4_time  # noqa: E402
 from us_federation_quant.layers.l4_risk import evaluate_risk  # noqa: E402
@@ -351,42 +353,10 @@ class USFederationQuantRuntime:
         Làm tròn xuống theo volume_step để đảm bảo toán học không bị làm tròn lên vượt trần rủi ro.
         """
         sym_info = _l1.symbol_spec(self, symbol).info
-
-        if not sym_info or sl_distance_price <= 0:
-            return sym_info.volume_min if sym_info else 0.01
-
-        trade_tick_size = float(getattr(sym_info, "trade_tick_size", 0.0) or 0.0)
-        trade_tick_value = float(getattr(sym_info, "trade_tick_value", 0.0) or 0.0)
-        volume_step = float(getattr(sym_info, "volume_step", 0.01) or 0.01)
-        volume_min = float(getattr(sym_info, "volume_min", 0.01) or 0.01)
-        volume_max = float(getattr(sym_info, "volume_max", 100.0) or 100.0)
-
-        if trade_tick_size <= 0:
-            trade_tick_size = getattr(sym_info, "point", 0.0001) or 0.0001
-        if trade_tick_value <= 0:
-            trade_tick_value = 1.0
-
-        ticks_in_sl = sl_distance_price / trade_tick_size
-        loss_per_lot = ticks_in_sl * trade_tick_value
-        if loss_per_lot <= 0:
-            return volume_min
-
-        sym_clean = symbol.upper().replace("M", "")
-        is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
-        cap_limit = getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0) if is_index else getattr(self, "MAX_HARD_RISK_USD", 15.0)
-        target_cap = min(max_risk_usd, cap_limit)
-        max_allowed_lot = target_cap / loss_per_lot
-        capped_lot = min(raw_lot, max_allowed_lot)
-
-        # Làm tròn xuống theo volume_step để không bao giờ vượt cap
-        if volume_step > 0:
-            step_count = int(round(capped_lot / volume_step, 6))
-            final_lot = step_count * volume_step
-        else:
-            final_lot = capped_lot
-
-        final_lot = max(volume_min, min(round(final_lot, 2), volume_max))
-        return final_lot
+        return _l3.hard_risk_cap_lot(
+            sym_info, symbol, raw_lot, sl_distance_price, max_risk_usd,
+            index_cap_usd=getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0),
+            universal_cap_usd=getattr(self, "MAX_HARD_RISK_USD", 15.0))
 
     def calculate_risk_adjusted_lot(self, symbol: str, sl_points: float, max_risk_usd: float = 15.0) -> float:
         """
@@ -398,75 +368,13 @@ class USFederationQuantRuntime:
         Cap Logic: Hard caps lot size between 0.01 and 0.03 for ["USTEC", "US30", "US100", "HK50"].
         Normalization: Rounds down (floor) to broker volume_step so expected loss never exceeds $15.00.
         """
-        # 1. Fetch live specifications from MT5 symbol_info (L1 gateway)
+        # 1. Đọc spec (L1) -> 2. toán lot thuần (L3) -> 3. ghi log
         spec_read = _l1.symbol_spec(self, symbol, suffix_fallback=True, mgr_fallback=True)
-        s_info = spec_read.info
-
-        if s_info is not None:
-            trade_tick_value = float(getattr(s_info, "trade_tick_value", 0.0) or 0.0)
-            trade_tick_size = float(getattr(s_info, "trade_tick_size", 0.0) or 0.0)
-            point = float(getattr(s_info, "point", 0.0) or 0.0)
-            volume_min = float(getattr(s_info, "volume_min", 0.01) or 0.01)
-            volume_max = float(getattr(s_info, "volume_max", 100.0) or 100.0)
-            volume_step = float(getattr(s_info, "volume_step", 0.01) or 0.01)
-        else:
-            spec = spec_read.spec
-            point = float(spec.get("point", 0.0001) or 0.0001)
-            trade_tick_size = float(spec.get("tick_size", point) or point)
-            trade_tick_value = float(spec.get("tick_value", 1.0) or 1.0)
-            volume_min = float(spec.get("volume_min", 0.01) or 0.01)
-            volume_max = float(spec.get("volume_max", 100.0) or 100.0)
-            volume_step = float(spec.get("volume_step", 0.01) or 0.01)
-
-        # 2. Derive tick_value_per_point
-        # trade_tick_value is profit for 1 lot when price moves by trade_tick_size.
-        if trade_tick_size > 0 and point > 0:
-            tick_value_per_point = trade_tick_value * (point / trade_tick_size)
-        else:
-            tick_value_per_point = trade_tick_value
-
-        if tick_value_per_point <= 0:
-            tick_value_per_point = 1.0
-
-        # 3. Dynamic Lot Calculation with Universal Hard Risk Cap ($15.00)
-        sym_clean = symbol.upper().replace("M", "")
-        # Apply $15 cap as default fallback across all symbols (can be smaller, but never exceeds $15)
-        universal_cap = getattr(self, "MAX_HARD_RISK_USD", 15.0)
-        effective_risk_usd = min(float(max_risk_usd), universal_cap)
-
-        safe_sl_points = max(float(sl_points), 10.0)
-        dollar_risk_per_lot = safe_sl_points * tick_value_per_point
-        raw_lot = effective_risk_usd / max(dollar_risk_per_lot, 1e-6)
-
-        # 4. Cap logic: Hard cap lot size between 0.01 and 0.03 for indices
-        is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "HK50"])
-        if is_index:
-            raw_lot = float(np.clip(raw_lot, 0.01, 0.03))
-
-        # 5. Normalization: Floor round to broker volume_step to NEVER exceed effective_risk_usd
-        if volume_step > 0:
-            steps = int(round(raw_lot / volume_step, 6))
-            normalized_lot = steps * volume_step
-        else:
-            normalized_lot = raw_lot
-
-        # Clamp within broker allowed limits
-        normalized_lot = max(volume_min, min(normalized_lot, volume_max))
-        normalized_lot = round(normalized_lot, 2)
-
-        # Safety Check: If dollar risk exceeds effective_risk_usd due to minimum volume clamp, reduce 1 step if possible
-        expected_sl_loss = dollar_risk_per_lot * normalized_lot
-        if expected_sl_loss > effective_risk_usd and normalized_lot > volume_min:
-            normalized_lot = max(volume_min, round(normalized_lot - volume_step, 2))
-            expected_sl_loss = dollar_risk_per_lot * normalized_lot
-
-        logger.info(
-            f"📐 [VOLATILITY ATR SIZING] {symbol}: sl_points={safe_sl_points:.1f}, "
-            f"trade_tick_value={trade_tick_value}, tick_val_per_point={tick_value_per_point:.5f}, "
-            f"max_risk=${effective_risk_usd:.2f} -> raw={raw_lot:.4f}L, normalized={normalized_lot:.2f}L "
-            f"(Expected SL Loss: ${expected_sl_loss:.2f}, Index Cap: {is_index})"
-        )
-        return normalized_lot
+        lot, log = _l3.risk_adjusted_lot(
+            symbol, sl_points, max_risk_usd, spec_read,
+            universal_cap_usd=getattr(self, "MAX_HARD_RISK_USD", 15.0))
+        getattr(logger, log.level)(log.message)
+        return lot
 
     def scan_and_route_state_proposals(self, account_equity: float) -> List[Dict[str, Any]]:
         """
@@ -795,91 +703,28 @@ class USFederationQuantRuntime:
                         except Exception as e:
                             logger.debug(f"ML inference evaluation skipped: {e}")
 
-                    # 2. Dynamic Volatility ATR Dollar Sizing (Quant Core V9: max_risk_usd=35.0)
+                    # 2. Sizing giai đoạn A (L3): giá vào, ATR14, SL/TP, lot (Alpha Booster + ML), chưa qua risk desk
                     tick = self.mt5_mgr.get_tick(actual_symbol) if hasattr(self, "mt5_mgr") else None
-                    if tick and tick.get("ask") and tick.get("bid"):
-                        current_price = float(tick["ask"] if proposal.action == "BUY" else tick["bid"])
-                    else:
-                        current_price = float(market_df["close"].iloc[-1])
+                    plan = _l3.size_entry(
+                        action=proposal.action, market_df=market_df, tick=tick, sym_info=sym_info, symbol=actual_symbol,
+                        ml_scale=ml_scale,
+                        max_index_risk_usd=getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0),
+                        max_hard_risk_usd=getattr(self, "MAX_HARD_RISK_USD", 15.0),
+                        elite_symbols=getattr(self, "ELITE_ALPHA_SYMBOLS", {"GBPCHF", "EURAUD", "GBPUSD", "USDCHF", "US30"}),
+                        booster_multiplier=getattr(self, "ALPHA_BOOSTER_MULTIPLIER", 1.6),
+                        lot_fn=self.calculate_risk_adjusted_lot, cap_fn=self.enforce_hard_risk_cap,
+                        emit=lambda line: getattr(logger, line.level)(line.message))
+                    current_price = plan.current_price
 
-                    tr = np.maximum(
-                        market_df["high"] - market_df["low"],
-                        np.maximum(
-                            abs(market_df["high"] - market_df["close"].shift(1)),
-                            abs(market_df["low"] - market_df["close"].shift(1))
-                        )
-                    )
-                    atr_14 = float(tr.rolling(14).mean().iloc[-1])
-                    if np.isnan(atr_14) or atr_14 <= 0:
-                        atr_14 = float(market_df["high"].iloc[-1] - market_df["low"].iloc[-1])
-                    if atr_14 <= 0:
-                        atr_14 = current_price * 0.005
-
-                    pt = getattr(sym_info, "point", 0.0001) or 0.0001
-                    stops_level = getattr(sym_info, "trade_stops_level", 0) or 0
-                    spread = getattr(sym_info, "spread", 0) or 0
-                    min_stop_dist = (stops_level + spread + 5) * pt
-                    min_point_floor = 150.0 * pt
-
-                    # Trụ cột 3: Dynamic ATR Buffer cho Chỉ số Mỹ (>= 2.2 * ATR14 M15)
-                    # Nới rộng khoảng cách SL TRƯỚC hàm tính Lot để Lot tự động giảm, giữ nguyên Hard Risk Cap ($60 Index / $15 FX)
-                    actual_sym_clean = actual_symbol.upper().replace("M", "")
-                    is_index = any(idx in actual_sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
-
-                    if is_index:
-                        sl_dist = max(2.2 * atr_14, min_point_floor, min_stop_dist)
-                    else:
-                        sl_dist = max(1.8 * atr_14, min_point_floor, min_stop_dist)
-
-                    tp_dist = max(2.5 * atr_14, sl_dist * 1.5)
-                    sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
-
-                    symbol_max_risk = getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0) if is_index else getattr(self, "MAX_HARD_RISK_USD", 15.0)
-                    risk_adjusted_lots = self.calculate_risk_adjusted_lot(
-                        symbol=actual_symbol,
-                        sl_points=sl_points,
-                        max_risk_usd=symbol_max_risk,
-                    )
-
-                    # TASK 3: Carver Tier-A Elite Alpha Booster (Hệ số x1.6 cho nhóm Alpha chủ lực)
-                    is_elite = any(actual_sym_clean == elite or actual_sym_clean.startswith(elite) for elite in getattr(self, "ELITE_ALPHA_SYMBOLS", {"GBPCHF", "EURAUD", "GBPUSD", "USDCHF", "US30"}))
-                    if is_elite and not is_index:
-                        booster = getattr(self, "ALPHA_BOOSTER_MULTIPLIER", 1.6)
-                        boosted_lot = round(risk_adjusted_lots * booster, 2)
-                        # Ràng buộc an toàn tuyệt đối (Invariant): Luôn chặn trên bởi Universal Hard Risk Cap <= $15.00
-                        risk_adjusted_lots = self.enforce_hard_risk_cap(
-                            actual_symbol, boosted_lot, sl_dist, max_risk_usd=symbol_max_risk
-                        )
-                        logger.info(
-                            f"🚀 [ALPHA BOOSTER] {actual_symbol} thuộc nhóm Elite Alpha -> "
-                            f"Áp dụng x{booster} đòn bẩy: {boosted_lot}L -> Capped: {risk_adjusted_lots}L (Trần rủi ro <= ${symbol_max_risk:.2f})."
-                        )
-
-                    if ml_scale != 1.0:
-                        risk_adjusted_lots = round(risk_adjusted_lots * ml_scale, 2)
-                        # Re-enforce hard cap after ML Kelly scaling
-                        risk_adjusted_lots = self.enforce_hard_risk_cap(
-                            actual_symbol, risk_adjusted_lots, sl_dist, max_risk_usd=symbol_max_risk
-                        )
-
-                    # Central Risk Desk clearance & broker lot normalization
+                    # Central Risk Desk clearance (L4), rồi sizing giai đoạn B (L3): chuẩn hóa lot broker, cap cuối, SL/TP
                     cleared_lots = self.hub.central_risk_desk.verify_order_clearance(
-                        order_lots=risk_adjusted_lots,
-                        asset_notional=risk_adjusted_lots * current_price,
+                        order_lots=plan.lots,
+                        asset_notional=plan.lots * current_price,
                     )
-                    cleared_lots = self.mt5_mgr.normalize_lot(actual_symbol, cleared_lots)
-                    # Skill 07: Re-enforce Universal Hard Risk Cap $15 on final cleared lots
-                    cleared_lots = self.enforce_hard_risk_cap(
-                        actual_symbol, cleared_lots, sl_dist, max_risk_usd=symbol_max_risk
-                    )
-
-                    digits = getattr(sym_info, "digits", 2) or 2
-                    if proposal.action == "BUY":
-                        target_sl = round(current_price - sl_dist, digits)
-                        target_tp = round(current_price + tp_dist, digits)
-                    else:
-                        target_sl = round(current_price + sl_dist, digits)
-                        target_tp = round(current_price - tp_dist, digits)
+                    levels = _l3.finalize_entry(
+                        plan, symbol=actual_symbol, lots_cleared=cleared_lots, sym_info=sym_info, action=proposal.action,
+                        normalize_fn=self.mt5_mgr.normalize_lot, cap_fn=self.enforce_hard_risk_cap)
+                    cleared_lots, target_sl, target_tp = levels.lots, levels.sl, levels.tp
 
                     # Pre-Trade Factor Gatekeeper: Ma trận chặn khung giờ tử thần (Toxic Hours Blacklist) ngay trước OrderSend
                     exec_hour_utc = datetime.now(timezone.utc).hour
@@ -1273,121 +1118,12 @@ class USFederationQuantRuntime:
         logger.info("🏛️ Entering Constitutional Governance Loop (Continuous Timeline Scan)...")
         reconnect_fail_count = 0
 
+        cycle = CycleState(last_quad_time=last_quad_time, synthetic_weights=synthetic_weights, returns_history=returns_history)
         while _running:
             try:
-                now_utc = datetime.now(timezone.utc)
-
-                # MT5 Auto-Reconnect Loop (Resilient against Broker Weekend Maintenance & IPC Disconnects)
-                if not self.ensure_mt5_connected(max_retries=10, delay=15.0):
-                    continue
-
-                account_info = self.mt5_mgr.get_account_info()
-                if not account_info:
-                    time.sleep(5)
-                    continue
-
-                equity = float(account_info.get("equity", 10_000.0))
-                balance = float(account_info.get("balance", 10_000.0))
-
-                hwm_state = self.hwm.update(current_equity=equity, current_balance=balance)
-                drawdown = hwm_state.drawdown_fraction
-                floating_pnl = equity - balance
-
-                # =========================================================================
-                # 🚀 FAST REAL-TIME ORDER & RISK ENGINE (Runs every 3 seconds)
-                # =========================================================================
-                # 0. Symbol Exit & Cooldown Tracking (Anti-Chasing & Same-Direction SL Lockout)
-                self.update_symbol_exit_tracking(time.time())
-
-                # 1. Zero Weekend Hold Enforcer & Friday Staged EOD Flat
-                self.enforce_weekend_hold_sweeper(now_utc)
-
-                # 2. Hard Stop Caps (Sub-second emergency loss limiters)
-                self.enforce_gbpchf_uk100_hard_stop_cap(max_loss_usd=15.0)
-                self.enforce_forex_portfolio_hard_stop_cap(max_loss_usd=15.0)
-                self.enforce_index_hard_stop_cap(max_loss_usd=60.0)
-                self.enforce_xauusd_hard_stop_cap(max_loss_usd=75.0)
-
-                # 3. Multi-Tier Profit Ladder (Tầng 1 Breakeven+ >= +$4, Tầng 2 Runner >= +$8, Tầng 3 SuperTrend >= +$15)
-                try:
-                    self.manage_multi_tier_profit_ladder()
-                except Exception as e:
-                    logger.debug(f"Multi-Tier Profit Ladder Routine Error: {e}")
-
-                # 4. Two-Tier Exit Engine (Immediate +$25 profit capture & BE advancement)
-                self.enforce_two_tier_exit_engine(min_partial_profit_usd=25.0)
-
-                # 4. Dynamic Trailing Stop Chandelier Exit
-                try:
-                    self.ts_manager.update_trailing_stops()
-                except Exception as e:
-                    logger.debug(f"Trailing Stop Routine Error: {e}")
-
-                # 5. Mandatory SL Safeguard on naked orders
-                self.mt5_mgr.enforce_mandatory_sl_protection(default_sl_pct=0.015)
-
-                # 6. Tactical Index Over-exposure De-risking
-                self.reconcile_index_duplicate_derisking()
-
-                # 7. TASK 2: Smart Selective Stagnation Exit (8.0h Window & Absolute Profit Immunity)
-                positions = self.mt5_mgr.get_positions()
-                if self.enforce_stagnation_exit(positions, now_utc):
-                    positions = self.mt5_mgr.get_positions()
-
-                # =========================================================================
-                # 🏛️ SLOW ALLOCATION & PROPOSAL ENGINE (Runs every 60 seconds)
-                # =========================================================================
-                if time.time() - last_quad_time >= 60.0:
-                    last_quad_time = time.time()
-                    titan_audit = self.quad_titans.execute_quad_audit(
-                        current_equity=equity,
-                        portfolio_drawdown=drawdown,
-                        current_weights=synthetic_weights,
-                        returns_history=returns_history,
-                    )
-
-                    # Check Nuclear Kill-Switch
-                    if titan_audit.get("nuclear_football_triggered"):
-                        logger.critical("🚨 NUCLEAR FOOTBALL TRIGGERED! Initiating emergency federation liquidation...")
-                        self.hub.central_risk_desk.kill_switch.manual_emergency_shutdown(
-                            reason=f"Drawdown ladder exceeded -12.0% federal boundary (Drawdown: {drawdown * 100:.2f}%)",
-                            broker_connector=self.mt5_mgr,
-                            executor=lambda dirs: execute_directives(self, dirs).captured,
-                        )
-                        self.telemetry.broadcast_critical_alert(
-                            subject="NUCLEAR FOOTBALL ACTIVATED",
-                            body=f"Federation liquidated to preserve capital! Equity: ${equity:,.2f}",
-                        )
-                        sys.exit(99)
-
-                    # LỆNH 4: BlackRock Aladdin 50% Profit Sweep into Hamilton Vault
-                    try:
-                        from us_federation_quant.Document.institutional_governance_rules import InstitutionalStatutoryRules
-                        swept, total_reserve = InstitutionalStatutoryRules.execute_blackrock_profit_sweep(current_equity=equity)
-                        if swept > 0:
-                            logger.info(f"🛡️ [LỆNH 4]: Đã quét ${swept:,.2f} USD vào ví lạnh Hamilton. Tổng dự trữ: ${total_reserve:,.2f} USD")
-                    except Exception as e:
-                        logger.warning(f"Vault sweep check notice: {e}")
-
-                    # Scan & Execute 50 State Pod Proposals
-                    self.scan_and_route_state_proposals(account_equity=equity)
-
-                    latency = self.heartbeat.measure_socket_latency()
-                    active_states = len([s for s in self.hub.states_registry.states.values() if s.is_active])
-                    positions = self.mt5_mgr.get_positions()
-
-                    # In log Timeline Vào Lệnh đơn thay vì lặp lại bảng điều khiển 2-3-4-5 lần
-                    self.log_timeline_status(account_info, titan_audit, active_states, latency, hwm_state, positions)
-
-                    self.heartbeat.beat(
-                        status="CONSTITUTIONAL_HEALTHY",
-                        symbol="FEDERATION_50",
-                        action="CYCLE_CHECK",
-                        pnl=floating_pnl,
-                        open_positions=len(positions),
-                    )
-
-                time.sleep(3.0)
+                result = run_one_cycle(self, cycle, datetime.now(timezone.utc))
+                if result.sleep_s:
+                    time.sleep(result.sleep_s)
 
 
             except Exception as e:

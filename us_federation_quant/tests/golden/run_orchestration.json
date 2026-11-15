@@ -1,0 +1,5738 @@
+{
+ "body_exception_logged_sleep5": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "sleep",
+    5
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000005.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "sleep",
+    5
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "ladder_exception_swallowed": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "no_account_info_sleeps_5": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 10000.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 10000.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {},
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "sleep",
+    5
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000005.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "nuclear_football_exits_99": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.13,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": true
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.13
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.13,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "kill.manual_emergency_shutdown",
+    [],
+    {
+     "broker_connector": "<Spy:mgr>",
+     "executor": "<callable>",
+     "reason": "Drawdown ladder exceeded -12.0% federal boundary (Drawdown: 13.00%)"
+    }
+   ],
+   [
+    "tel.broadcast_critical_alert",
+    [],
+    {
+     "body": "Federation liquidated to preserve capital! Equity: $9,900.00",
+     "subject": "NUCLEAR FOOTBALL ACTIVATED"
+    }
+   ]
+  ],
+  "exit_code": 99
+ },
+ "periodic_60s_cycle": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000003.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000006.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000009.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000012.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000015.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000018.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000021.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000024.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000027.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000030.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000033.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000036.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000039.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000042.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000045.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000048.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000051.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000054.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000057.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000060.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000063.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "reconnect_fails_then_ok": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "scan_exception_logged_sleep5": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "sleep",
+    5
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "stagnation_closes_refetches_positions": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "startup_account_none_uses_defaults": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "trailing_exception_swallowed": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "two_iterations_slow_then_fast": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000003.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "vault_sweep_positive": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ },
+ "vault_sweep_raises_swallowed": {
+  "events": [
+   [
+    "mgr.connect",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All 50 States & Quad-Titan Quantitative Foundation (MIT - Wall St - Dalio - BlackRock) Initialized.",
+     "title": "🦅 US Federation Quant Online"
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "print_constitutional_dashboard",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     }
+    ],
+    {}
+   ],
+   [
+    "ensure_mt5_connected",
+    [],
+    {
+     "delay": 15.0,
+     "max_retries": 10
+    }
+   ],
+   [
+    "mgr.get_account_info",
+    [],
+    {}
+   ],
+   [
+    "hwm.update",
+    [],
+    {
+     "current_balance": 10000.0,
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "update_symbol_exit_tracking",
+    [
+     1800000000.0
+    ],
+    {}
+   ],
+   [
+    "enforce_weekend_hold_sweeper",
+    [
+     "2026-11-11T15:30:00+00:00"
+    ],
+    {}
+   ],
+   [
+    "enforce_gbpchf_uk100_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_forex_portfolio_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 15.0
+    }
+   ],
+   [
+    "enforce_index_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 60.0
+    }
+   ],
+   [
+    "enforce_xauusd_hard_stop_cap",
+    [],
+    {
+     "max_loss_usd": 75.0
+    }
+   ],
+   [
+    "manage_multi_tier_profit_ladder",
+    [],
+    {}
+   ],
+   [
+    "enforce_two_tier_exit_engine",
+    [],
+    {
+     "min_partial_profit_usd": 25.0
+    }
+   ],
+   [
+    "ts.update_trailing_stops",
+    [],
+    {}
+   ],
+   [
+    "mgr.enforce_mandatory_sl_protection",
+    [],
+    {
+     "default_sl_pct": 0.015
+    }
+   ],
+   [
+    "reconcile_index_duplicate_derisking",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "enforce_stagnation_exit",
+    [
+     {
+      "ticket": 1
+     }
+    ],
+    "2026-11-11T15:30:00+00:00"
+   ],
+   [
+    "titans.execute_quad_audit",
+    [],
+    {
+     "current_equity": 9900.0,
+     "current_weights": [
+      "ndarray",
+      [
+       5
+      ]
+     ],
+     "portfolio_drawdown": 0.012,
+     "returns_history": [
+      "ndarray",
+      [
+       60,
+       5
+      ]
+     ]
+    }
+   ],
+   [
+    "vault_sweep",
+    {
+     "current_equity": 9900.0
+    }
+   ],
+   [
+    "scan_and_route_state_proposals",
+    [],
+    {
+     "account_equity": 9900.0
+    }
+   ],
+   [
+    "hb.measure_socket_latency",
+    [],
+    {}
+   ],
+   [
+    "mgr.get_positions",
+    [],
+    {}
+   ],
+   [
+    "log_timeline_status",
+    [
+     {
+      "balance": 10000.0,
+      "equity": 9900.0
+     },
+     {
+      "nuclear_football_triggered": false
+     },
+     2,
+     12.5,
+     {
+      "drawdown_fraction": 0.012
+     },
+     [
+      {
+       "ticket": 1
+      }
+     ]
+    ],
+    {}
+   ],
+   [
+    "hb.beat",
+    [],
+    {
+     "action": "CYCLE_CHECK",
+     "open_positions": 1,
+     "pnl": -100.0,
+     "status": "CONSTITUTIONAL_HEALTHY",
+     "symbol": "FEDERATION_50"
+    }
+   ],
+   [
+    "sleep",
+    3.0
+   ],
+   [
+    "mgr.shutdown",
+    [],
+    {}
+   ],
+   [
+    "tel.send_discord",
+    [],
+    {
+     "description": "All pods safely parked.",
+     "title": "🛑 US Federation Quant Offline"
+    }
+   ]
+  ],
+  "exit_code": null
+ }
+}

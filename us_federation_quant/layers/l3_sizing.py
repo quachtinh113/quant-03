@@ -731,3 +731,192 @@ class QuadTitanEngine:
                 "neutralized_weights": mit_state.neutralized_weights.tolist(),
             },
         }
+
+
+# ====================================================================================================
+# TOÁN LOT THUẦN (từ live_federation_runner): trần rủi ro cứng + ATR dollar sizing
+# Nhận spec đã đọc bởi L1 (SymbolSpec / symbol_info thô); không gọi MT5. golden: tests/test_golden_symbol_spec_sizing.py
+# ====================================================================================================
+
+def hard_risk_cap_lot(sym_info, symbol, raw_lot, sl_distance_price, max_risk_usd, *, index_cap_usd, universal_cap_usd):
+    """Khống chế mức lỗ tối đa tại SL không vượt max_risk_usd; làm tròn XUỐNG theo volume_step."""
+    if not sym_info or sl_distance_price <= 0:
+        return sym_info.volume_min if sym_info else 0.01
+
+    trade_tick_size = float(getattr(sym_info, "trade_tick_size", 0.0) or 0.0)
+    trade_tick_value = float(getattr(sym_info, "trade_tick_value", 0.0) or 0.0)
+    volume_step = float(getattr(sym_info, "volume_step", 0.01) or 0.01)
+    volume_min = float(getattr(sym_info, "volume_min", 0.01) or 0.01)
+    volume_max = float(getattr(sym_info, "volume_max", 100.0) or 100.0)
+
+    if trade_tick_size <= 0:
+        trade_tick_size = getattr(sym_info, "point", 0.0001) or 0.0001
+    if trade_tick_value <= 0:
+        trade_tick_value = 1.0
+
+    ticks_in_sl = sl_distance_price / trade_tick_size
+    loss_per_lot = ticks_in_sl * trade_tick_value
+    if loss_per_lot <= 0:
+        return volume_min
+
+    sym_clean = symbol.upper().replace("M", "")
+    is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
+    cap_limit = index_cap_usd if is_index else universal_cap_usd
+    target_cap = min(max_risk_usd, cap_limit)
+    max_allowed_lot = target_cap / loss_per_lot
+    capped_lot = min(raw_lot, max_allowed_lot)
+
+    if volume_step > 0:
+        step_count = int(round(capped_lot / volume_step, 6))
+        final_lot = step_count * volume_step
+    else:
+        final_lot = capped_lot
+
+    final_lot = max(volume_min, min(round(final_lot, 2), volume_max))
+    return final_lot
+
+
+def risk_adjusted_lot(symbol, sl_points, max_risk_usd, spec_read, *, universal_cap_usd):
+    """ATR Dollar Sizing với Hard Risk Cap. spec_read: SymbolSpec (info thô hoặc spec dict của mgr).
+
+    Trả về (lot, LogLine) để caller ghi log đúng như bản cũ.
+    """
+    from us_federation_quant.Document.contracts import LogLine
+    s_info = spec_read.info
+
+    if s_info is not None:
+        trade_tick_value = float(getattr(s_info, "trade_tick_value", 0.0) or 0.0)
+        trade_tick_size = float(getattr(s_info, "trade_tick_size", 0.0) or 0.0)
+        point = float(getattr(s_info, "point", 0.0) or 0.0)
+        volume_min = float(getattr(s_info, "volume_min", 0.01) or 0.01)
+        volume_max = float(getattr(s_info, "volume_max", 100.0) or 100.0)
+        volume_step = float(getattr(s_info, "volume_step", 0.01) or 0.01)
+    else:
+        spec = spec_read.spec
+        point = float(spec.get("point", 0.0001) or 0.0001)
+        trade_tick_size = float(spec.get("tick_size", point) or point)
+        trade_tick_value = float(spec.get("tick_value", 1.0) or 1.0)
+        volume_min = float(spec.get("volume_min", 0.01) or 0.01)
+        volume_max = float(spec.get("volume_max", 100.0) or 100.0)
+        volume_step = float(spec.get("volume_step", 0.01) or 0.01)
+
+    if trade_tick_size > 0 and point > 0:
+        tick_value_per_point = trade_tick_value * (point / trade_tick_size)
+    else:
+        tick_value_per_point = trade_tick_value
+
+    if tick_value_per_point <= 0:
+        tick_value_per_point = 1.0
+
+    sym_clean = symbol.upper().replace("M", "")
+    effective_risk_usd = min(float(max_risk_usd), universal_cap_usd)
+
+    safe_sl_points = max(float(sl_points), 10.0)
+    dollar_risk_per_lot = safe_sl_points * tick_value_per_point
+    raw_lot = effective_risk_usd / max(dollar_risk_per_lot, 1e-6)
+
+    is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "HK50"])
+    if is_index:
+        raw_lot = float(np.clip(raw_lot, 0.01, 0.03))
+
+    if volume_step > 0:
+        steps = int(round(raw_lot / volume_step, 6))
+        normalized_lot = steps * volume_step
+    else:
+        normalized_lot = raw_lot
+
+    normalized_lot = max(volume_min, min(normalized_lot, volume_max))
+    normalized_lot = round(normalized_lot, 2)
+
+    expected_sl_loss = dollar_risk_per_lot * normalized_lot
+    if expected_sl_loss > effective_risk_usd and normalized_lot > volume_min:
+        normalized_lot = max(volume_min, round(normalized_lot - volume_step, 2))
+        expected_sl_loss = dollar_risk_per_lot * normalized_lot
+
+    return normalized_lot, LogLine("info",
+        f"📐 [VOLATILITY ATR SIZING] {symbol}: sl_points={safe_sl_points:.1f}, "
+        f"trade_tick_value={trade_tick_value}, tick_val_per_point={tick_value_per_point:.5f}, "
+        f"max_risk=${effective_risk_usd:.2f} -> raw={raw_lot:.4f}L, normalized={normalized_lot:.2f}L "
+        f"(Expected SL Loss: ${expected_sl_loss:.2f}, Index Cap: {is_index})")
+
+
+# ====================================================================================================
+# SIZING LỆNH VÀO, HAI GIAI ĐOẠN (từ scan_and_route_state_proposals). Risk desk (L4) chen giữa hai giai đoạn.
+# Đọc dữ liệu (tick) và các hàm đọc spec (lot_fn/cap_fn) được TIÊM vào; L3 không gọi MT5. golden: tests/test_golden_scan_pipeline.py
+# ====================================================================================================
+
+def size_entry(*, action, market_df, tick, sym_info, symbol, ml_scale, max_index_risk_usd, max_hard_risk_usd,
+               elite_symbols, booster_multiplier, lot_fn, cap_fn, emit):
+    """Giai đoạn A: giá vào, ATR14, SL/TP, lot (Alpha Booster rồi ML scale, mỗi bước cap lại). Trả về SizingPlan."""
+    from us_federation_quant.Document.contracts import LogLine, SizingPlan
+    if tick and tick.get("ask") and tick.get("bid"):
+        current_price = float(tick["ask"] if action == "BUY" else tick["bid"])
+    else:
+        current_price = float(market_df["close"].iloc[-1])
+
+    tr = np.maximum(
+        market_df["high"] - market_df["low"],
+        np.maximum(
+            abs(market_df["high"] - market_df["close"].shift(1)),
+            abs(market_df["low"] - market_df["close"].shift(1))
+        )
+    )
+    atr_14 = float(tr.rolling(14).mean().iloc[-1])
+    if np.isnan(atr_14) or atr_14 <= 0:
+        atr_14 = float(market_df["high"].iloc[-1] - market_df["low"].iloc[-1])
+    if atr_14 <= 0:
+        atr_14 = current_price * 0.005
+
+    pt = getattr(sym_info, "point", 0.0001) or 0.0001
+    stops_level = getattr(sym_info, "trade_stops_level", 0) or 0
+    spread = getattr(sym_info, "spread", 0) or 0
+    min_stop_dist = (stops_level + spread + 5) * pt
+    min_point_floor = 150.0 * pt
+
+    # Dynamic ATR Buffer cho Chỉ số Mỹ (>= 2.2 * ATR14): nới SL TRƯỚC hàm tính lot để lot tự giảm, giữ Hard Risk Cap
+    actual_sym_clean = symbol.upper().replace("M", "")
+    is_index = any(idx in actual_sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
+
+    if is_index:
+        sl_dist = max(2.2 * atr_14, min_point_floor, min_stop_dist)
+    else:
+        sl_dist = max(1.8 * atr_14, min_point_floor, min_stop_dist)
+
+    tp_dist = max(2.5 * atr_14, sl_dist * 1.5)
+    sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
+
+    symbol_max_risk = max_index_risk_usd if is_index else max_hard_risk_usd
+    lots = lot_fn(symbol=symbol, sl_points=sl_points, max_risk_usd=symbol_max_risk)
+
+    # Carver Tier-A Elite Alpha Booster (x1.6): luôn chặn trên bởi Universal Hard Risk Cap
+    is_elite = any(actual_sym_clean == elite or actual_sym_clean.startswith(elite) for elite in elite_symbols)
+    if is_elite and not is_index:
+        booster = booster_multiplier
+        boosted_lot = round(lots * booster, 2)
+        lots = cap_fn(symbol, boosted_lot, sl_dist, max_risk_usd=symbol_max_risk)
+        emit(LogLine("info",
+            f"🚀 [ALPHA BOOSTER] {symbol} thuộc nhóm Elite Alpha -> "
+            f"Áp dụng x{booster} đòn bẩy: {boosted_lot}L -> Capped: {lots}L (Trần rủi ro <= ${symbol_max_risk:.2f})."))
+
+    if ml_scale != 1.0:
+        lots = round(lots * ml_scale, 2)
+        lots = cap_fn(symbol, lots, sl_dist, max_risk_usd=symbol_max_risk)
+
+    return SizingPlan(current_price=current_price, atr_14=atr_14, sl_dist=sl_dist, tp_dist=tp_dist,
+                      sl_points=sl_points, symbol_max_risk=symbol_max_risk, is_index=is_index, lots=lots)
+
+
+def finalize_entry(plan, *, symbol, lots_cleared, sym_info, action, normalize_fn, cap_fn):
+    """Giai đoạn B (sau risk desk): chuẩn hóa lot theo broker, cap cuối $15/$60, rồi mức SL/TP tuyệt đối."""
+    from us_federation_quant.Document.contracts import EntryLevels
+    lots = normalize_fn(symbol, lots_cleared)
+    lots = cap_fn(symbol, lots, plan.sl_dist, max_risk_usd=plan.symbol_max_risk)
+
+    digits = getattr(sym_info, "digits", 2) or 2
+    if action == "BUY":
+        target_sl = round(plan.current_price - plan.sl_dist, digits)
+        target_tp = round(plan.current_price + plan.tp_dist, digits)
+    else:
+        target_sl = round(plan.current_price + plan.sl_dist, digits)
+        target_tp = round(plan.current_price - plan.tp_dist, digits)
+    return EntryLevels(lots=lots, sl=target_sl, tp=target_tp)
