@@ -55,11 +55,11 @@ def test_calculate_risk_adjusted_lot():
     mock_eurusd.volume_step = 0.01
 
     with patch("MetaTrader5.symbol_info", return_value=mock_eurusd):
-        # sl_points = 300 (30 pips). Risk = $35.
+        # sl_points = 300 (30 pips). Risk capped at $14.50 (Universal Hard Risk Cap).
         # Dollar risk per lot = 300 * 1.0 = $300.
-        # Raw lot = 35 / 300 = 0.1166... -> rounded to 0.12
+        # Raw lot = 14.50 / 300 = 0.0483... -> floor/step count to 0.04
         lot = runtime.calculate_risk_adjusted_lot("EURUSD", sl_points=300.0, max_risk_usd=35.0)
-        assert lot == 0.12
+        assert lot == 0.04
 
     # Mock mt5.symbol_info for USTEC (Index hard cap between 0.01 and 0.03)
     mock_ustec = MagicMock()
