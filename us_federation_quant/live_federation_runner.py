@@ -223,7 +223,7 @@ class USFederationQuantRuntime:
         self.TOXIC_HOURS = self.__class__.TOXIC_HOURS
 
         # 8b. Institutional Risk, Cooldown & Anti-Chasing / Anti-Trend-Trap State (Skill 07 Enhanced)
-        self.MAX_HARD_RISK_USD: float = 15.0          # Universal Fallback Cap for ALL Standard Trades
+        self.MAX_HARD_RISK_USD: float = 14.50         # Universal Hard Risk Cap <= $14.50 USD for ALL Standard Trades
         self.MAX_INDEX_HARD_RISK_USD: float = 60.0    # Institutional Risk Cap for US Indices (USTEC/US30/US100/US500)
         self.COOLDOWN_AFTER_EXIT_SEC: float = 900.0   # 15 phút khóa sau khi đóng bất kỳ lệnh nào (3 nến M5)
         self.MAX_CONSECUTIVE_SL_SAME_DIR: int = 2     # Tối đa 2 lệnh SL liên tiếp cùng chiều
@@ -232,8 +232,8 @@ class USFederationQuantRuntime:
         self._tracked_open_tickets: Dict[int, Dict[str, Any]] = {}
         self._tier2_locked_tickets: Set[int] = set()  # Trụ cột 4: Miễn nhiễm Stagnation Exit 4h cho các vị thế đã khóa lãi +5$ USD
         self._profit_ladder_locked_tickets: Set[int] = set()  # Bậc thang Khóa Lãi 3 Tầng: Miễn nhiễm Stagnation tuyệt đối
-        self.ELITE_ALPHA_SYMBOLS: Set[str] = {"GBPCHF", "EURAUD", "GBPUSD", "USDCHF", "US30"}
-        self.ALPHA_BOOSTER_MULTIPLIER: float = 1.6    # Hệ số đòn bẩy Alpha cho nhóm Elite under $15 Cap
+        self.ELITE_ALPHA_SYMBOLS: Set[str] = {"USDCHF", "AUDUSD", "NZDUSD", "EURAUD", "EURJPY", "UK100"}
+        self.ALPHA_BOOSTER_MULTIPLIER: float = 1.6    # Hệ số đòn bẩy Alpha cho nhóm Elite under $14.50 Cap
 
         # 8. Financial ML Engine: Marcos López de Prado Meta-Labeling Inference Service
         try:
@@ -318,9 +318,9 @@ class USFederationQuantRuntime:
         else:
             logger.info("  🔍 [TIMELINE SCAN] 50/50 Tiểu bang Sẵn sàng | Đang quét tín hiệu vào lệnh (XAUUSDm, US30, USDJPY, BTC...)")
 
-    def enforce_hard_risk_cap(self, symbol: str, raw_lot: float, sl_distance_price: float, max_risk_usd: float = 15.0) -> float:
+    def enforce_hard_risk_cap(self, symbol: str, raw_lot: float, sl_distance_price: float, max_risk_usd: float = 14.50) -> float:
         """
-        Khống chế mức lỗ tối đa tại SL không bao giờ vượt quá max_risk_usd ($15.00).
+        Khống chế mức lỗ tối đa tại SL không bao giờ vượt quá max_risk_usd ($14.50).
         Làm tròn xuống theo volume_step để đảm bảo toán học không bị làm tròn lên vượt trần rủi ro.
         """
         import MetaTrader5 as mt5
@@ -349,8 +349,7 @@ class USFederationQuantRuntime:
             return volume_min
 
         sym_clean = symbol.upper().replace("M", "")
-        is_index = any(idx in sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
-        cap_limit = getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0) if is_index else getattr(self, "MAX_HARD_RISK_USD", 15.0)
+        cap_limit = getattr(self, "MAX_HARD_RISK_USD", 14.50)
         target_cap = min(max_risk_usd, cap_limit)
         max_allowed_lot = target_cap / loss_per_lot
         capped_lot = min(raw_lot, max_allowed_lot)
@@ -365,15 +364,15 @@ class USFederationQuantRuntime:
         final_lot = max(volume_min, min(round(final_lot, 2), volume_max))
         return final_lot
 
-    def calculate_risk_adjusted_lot(self, symbol: str, sl_points: float, max_risk_usd: float = 15.0) -> float:
+    def calculate_risk_adjusted_lot(self, symbol: str, sl_points: float, max_risk_usd: float = 14.50) -> float:
         """
-        Quant Core V9 & Skill 07: Volatility ATR Dollar Sizing với Hard Risk Cap $15 Mặc định Toàn Cầu.
-        Dynamically calculates lot size such that hitting Stop Loss risks at most max_risk_usd ($15.00 default).
+        Quant Core V9 & Skill 07: Volatility ATR Dollar Sizing với Hard Risk Cap $14.50 Mặc định Toàn Cầu.
+        Dynamically calculates lot size such that hitting Stop Loss risks at most max_risk_usd ($14.50 default).
 
         Formula: raw_lot = max_risk_usd / (sl_points * tick_value_per_point)
         Live MT5 Integration: Fetches trade_tick_value, trade_tick_size, point, volume_step via mt5.symbol_info().
-        Cap Logic: Hard caps lot size between 0.01 and 0.03 for ["USTEC", "US30", "US100", "HK50"].
-        Normalization: Rounds down (floor) to broker volume_step so expected loss never exceeds $15.00.
+        Cap Logic: Hard caps lot size between 0.01 and 0.05 for ["USTEC", "US30", "US100", "HK50"].
+        Normalization: Rounds down (floor) to broker volume_step so expected loss never exceeds $14.50.
         """
         import MetaTrader5 as mt5
 
@@ -413,10 +412,10 @@ class USFederationQuantRuntime:
         if tick_value_per_point <= 0:
             tick_value_per_point = 1.0
 
-        # 3. Dynamic Lot Calculation with Universal Hard Risk Cap ($15.00)
+        # 3. Dynamic Lot Calculation with Universal Hard Risk Cap ($14.50)
         sym_clean = symbol.upper().replace("M", "")
-        # Apply $15 cap as default fallback across all symbols (can be smaller, but never exceeds $15)
-        universal_cap = getattr(self, "MAX_HARD_RISK_USD", 15.0)
+        # Apply $14.50 cap as default fallback across all symbols (can be smaller, but never exceeds $14.50)
+        universal_cap = getattr(self, "MAX_HARD_RISK_USD", 14.50)
         effective_risk_usd = min(float(max_risk_usd), universal_cap)
 
         safe_sl_points = max(float(sl_points), 10.0)
@@ -808,38 +807,51 @@ class USFederationQuantRuntime:
                     min_stop_dist = (stops_level + spread + 5) * pt
                     min_point_floor = 150.0 * pt
 
-                    # Trụ cột 3: Dynamic ATR Buffer cho Chỉ số Mỹ (>= 2.2 * ATR14 M15)
-                    # Nới rộng khoảng cách SL TRƯỚC hàm tính Lot để Lot tự động giảm, giữ nguyên Hard Risk Cap ($60 Index / $15 FX)
+                    # Trụ cột 3: Dynamic ATR Buffer & SL Calculation
                     actual_sym_clean = actual_symbol.upper().replace("M", "")
                     is_index = any(idx in actual_sym_clean for idx in ["USTEC", "US30", "US100", "US500", "HK50"])
+                    is_major_fx = any(actual_sym_clean == fx or actual_sym_clean.startswith(fx) for fx in ["AUDUSD", "NZDUSD", "USDCHF", "EURUSD"])
+                    is_elite = any(actual_sym_clean == elite or actual_sym_clean.startswith(elite) for elite in getattr(self, "ELITE_ALPHA_SYMBOLS", {"USDCHF", "AUDUSD", "NZDUSD", "EURAUD", "EURJPY", "UK100"}))
+
+                    digits = getattr(sym_info, "digits", 2) or 2
+                    pip_unit = pt * 10.0 if digits in (3, 5) else pt
 
                     if is_index:
                         sl_dist = max(2.2 * atr_14, min_point_floor, min_stop_dist)
                     else:
                         sl_dist = max(1.8 * atr_14, min_point_floor, min_stop_dist)
 
+                    # CHỈ THỊ 1: Với các cặp FX chính (AUDUSD, NZDUSD, USDCHF, EURUSD),
+                    # nếu khoảng cách SL tính theo ATR lớn hơn 28.0 pips, giới hạn ở 28.0 pips
+                    # để raw_lot đạt đúng 0.03L - 0.04L mà không bị chia nhỏ làm tròn sàn.
+                    if is_major_fx and sl_dist > (28.0 * pip_unit):
+                        sl_dist = max(28.0 * pip_unit, min_stop_dist)
+
                     tp_dist = max(2.5 * atr_14, sl_dist * 1.5)
                     sl_points = max(sl_dist / max(pt, 1e-6), 10.0)
 
-                    symbol_max_risk = getattr(self, "MAX_INDEX_HARD_RISK_USD", 60.0) if is_index else getattr(self, "MAX_HARD_RISK_USD", 15.0)
+                    # Ngân sách rủi ro: $11.25 cho Elite Alpha, $7.50 cho base FX, trần $14.50
+                    if is_index:
+                        symbol_max_risk = getattr(self, "MAX_HARD_RISK_USD", 14.50)
+                    elif is_elite:
+                        symbol_max_risk = 11.25
+                    else:
+                        symbol_max_risk = 7.50
+
                     risk_adjusted_lots = self.calculate_risk_adjusted_lot(
                         symbol=actual_symbol,
                         sl_points=sl_points,
                         max_risk_usd=symbol_max_risk,
                     )
 
-                    # TASK 3: Carver Tier-A Elite Alpha Booster (Hệ số x1.6 cho nhóm Alpha chủ lực)
-                    is_elite = any(actual_sym_clean == elite or actual_sym_clean.startswith(elite) for elite in getattr(self, "ELITE_ALPHA_SYMBOLS", {"GBPCHF", "EURAUD", "GBPUSD", "USDCHF", "US30"}))
+                    # Carver Tier-A Elite Alpha Sizing under Hard Risk Cap <= $14.50
                     if is_elite and not is_index:
-                        booster = getattr(self, "ALPHA_BOOSTER_MULTIPLIER", 1.6)
-                        boosted_lot = round(risk_adjusted_lots * booster, 2)
-                        # Ràng buộc an toàn tuyệt đối (Invariant): Luôn chặn trên bởi Universal Hard Risk Cap <= $15.00
                         risk_adjusted_lots = self.enforce_hard_risk_cap(
-                            actual_symbol, boosted_lot, sl_dist, max_risk_usd=symbol_max_risk
+                            actual_symbol, risk_adjusted_lots, sl_dist, max_risk_usd=getattr(self, "MAX_HARD_RISK_USD", 14.50)
                         )
                         logger.info(
-                            f"🚀 [ALPHA BOOSTER] {actual_symbol} thuộc nhóm Elite Alpha -> "
-                            f"Áp dụng x{booster} đòn bẩy: {boosted_lot}L -> Capped: {risk_adjusted_lots}L (Trần rủi ro <= ${symbol_max_risk:.2f})."
+                            f"🚀 [ELITE ALPHA SIZING] {actual_symbol}: "
+                            f"Khối lượng {risk_adjusted_lots}L (Ngân sách ${symbol_max_risk:.2f}, SL dist {sl_dist / pip_unit:.1f} pips, Trần rủi ro <= ${getattr(self, 'MAX_HARD_RISK_USD', 14.50):.2f})."
                         )
 
                     if ml_scale != 1.0:
@@ -855,18 +867,43 @@ class USFederationQuantRuntime:
                         asset_notional=risk_adjusted_lots * current_price,
                     )
                     cleared_lots = self.mt5_mgr.normalize_lot(actual_symbol, cleared_lots)
-                    # Skill 07: Re-enforce Universal Hard Risk Cap $15 on final cleared lots
+                    # Re-enforce Universal Hard Risk Cap $14.50 on final cleared lots
                     cleared_lots = self.enforce_hard_risk_cap(
                         actual_symbol, cleared_lots, sl_dist, max_risk_usd=symbol_max_risk
                     )
 
-                    digits = getattr(sym_info, "digits", 2) or 2
                     if proposal.action == "BUY":
                         target_sl = round(current_price - sl_dist, digits)
                         target_tp = round(current_price + tp_dist, digits)
                     else:
                         target_sl = round(current_price + sl_dist, digits)
                         target_tp = round(current_price - tp_dist, digits)
+
+                    # CHỈ THỊ 1: Chốt chặn Broker Hard SL Cap <= $14.50 USD:
+                    # Trước khi gửi lệnh mở mới, kiểm tra nếu (abs(entry - sl) / tick_size) * tick_value * lot > 14.50
+                    # thì tự động kéo sl sát lại để mức lỗ tối đa tại Hard SL không bao giờ vượt -$14.50 USD.
+                    tick_sz = float(getattr(sym_info, "trade_tick_size", 0.0) or 0.0)
+                    if tick_sz <= 0:
+                        tick_sz = getattr(sym_info, "point", 0.0001) or 0.0001
+                    tick_val = float(getattr(sym_info, "trade_tick_value", 0.0) or 0.0)
+                    if tick_val <= 0:
+                        tick_val = 1.0
+
+                    hard_cap_usd = getattr(self, "MAX_HARD_RISK_USD", 14.50)
+                    if cleared_lots > 0:
+                        val_per_price_move = (tick_val / tick_sz) * cleared_lots
+                        expected_sl_loss = abs(current_price - target_sl) * val_per_price_move
+                        if expected_sl_loss > hard_cap_usd and val_per_price_move > 0:
+                            max_allowed_dist = (hard_cap_usd / val_per_price_move)
+                            if proposal.action == "BUY":
+                                target_sl = round(current_price - max_allowed_dist, digits)
+                            else:
+                                target_sl = round(current_price + max_allowed_dist, digits)
+                            logger.info(
+                                f"🛡️ [BROKER HARD SL CAP <= ${hard_cap_usd:.2f}] {actual_symbol} {proposal.action} {cleared_lots}L: "
+                                f"SL ban đầu rủi ro ${expected_sl_loss:.2f} > ${hard_cap_usd:.2f}. "
+                                f"Đã tự động kéo SL về {target_sl} để giữ mức lỗ tối đa đúng ${hard_cap_usd:.2f} USD."
+                            )
 
                     # Pre-Trade Factor Gatekeeper: Ma trận chặn khung giờ tử thần (Toxic Hours Blacklist) ngay trước OrderSend
                     exec_hour_utc = datetime.now(timezone.utc).hour
@@ -1043,11 +1080,11 @@ class USFederationQuantRuntime:
                         )
         return closed_positions
 
-    def enforce_gbpchf_uk100_hard_stop_cap(self, max_loss_usd: float = 15.0) -> List[Dict[str, Any]]:
+    def enforce_gbpchf_uk100_hard_stop_cap(self, max_loss_usd: float = 14.50) -> List[Dict[str, Any]]:
         """
-        Hard Stop Circuit Breaker for GBPCHF and UK100 (Cap: -$15 USD).
+        Hard Stop Circuit Breaker for GBPCHF and UK100 (Cap: -$14.50 USD).
         Continuously monitors open GBPCHF and UK100 positions.
-        If floating loss reaches or breaches -$15.00 USD (including commission & swap),
+        If floating loss reaches or breaches -$14.50 USD (including commission & swap),
         triggers an immediate emergency Market Close to protect capital.
         """
         positions = self.mt5_mgr.get_positions()
@@ -1077,10 +1114,10 @@ class USFederationQuantRuntime:
                         )
         return closed_positions
 
-    def enforce_forex_portfolio_hard_stop_cap(self, max_loss_usd: float = 15.0) -> List[Dict[str, Any]]:
+    def enforce_forex_portfolio_hard_stop_cap(self, max_loss_usd: float = 14.50) -> List[Dict[str, Any]]:
         """
-        Portfolio Hard Stop Cap: Khống chế mức lỗ tối đa -$15.00 cho TOÀN BỘ các cặp Forex.
-        Nếu vị thế lỗ vượt quá -$15.00 USD, kích hoạt đóng khẩn cấp ngay lập tức để bảo vệ tài khoản.
+        Portfolio Hard Stop Cap: Khống chế mức lỗ tối đa -$14.50 cho TOÀN BỘ các cặp Forex.
+        Nếu vị thế lỗ vượt quá -$14.50 USD, kích hoạt đóng khẩn cấp ngay lập tức để bảo vệ tài khoản.
         """
         positions = self.mt5_mgr.get_positions()
         closed_positions = []
@@ -1180,15 +1217,16 @@ class USFederationQuantRuntime:
     def manage_multi_tier_profit_ladder(self) -> List[Dict[str, Any]]:
         """
         TASK 1: BẬC THANG KHÓA LÃI 3 TẦNG (3-TIER PROFIT LADDER)
-        - Tầng 1 (Breakeven Plus: Floating PnL >= +$4.00 USD hoặc >= 40% TP):
-            Dời Hard SL về Entry + 1.5 pips buffer (hoặc khóa tối thiểu +$0.80 USD).
-            Cấp quyền Miễn nhiễm Stagnation Exit.
-        - Tầng 2 (Profit Lock & Runner: Floating PnL >= +$8.00 USD):
-            Dời Hard SL khóa cứng lợi nhuận tại +$4.00 USD và tự động nới rộng TP ra mức +$25.00 USD.
-            Cấp quyền Miễn nhiễm Stagnation Exit.
-        - Tầng 3 (Super Trend Lock: Floating PnL >= +$15.00 USD):
+        - Tầng 1 (Breakeven Plus):
+            Trigger: Floating PnL >= +$4.80 USD trong Golden Hours (13:00 - 17:00 UTC), hoặc >= +$4.00 USD ngoài giờ.
+            Khóa SL tại Entry + 1.0 pip (hoặc tối thiểu +$1.20 USD).
+            Tạo khoảng thở +$3.60 USD chịu nhịp pullback nến M15. Miễn nhiễm Stagnation Exit.
+        - Tầng 2 (Profit Lock & Runner: Floating PnL >= +$8.50 USD):
+            Dời Hard SL khóa cứng lợi nhuận tại +$4.50 USD và tự động nới rộng TP ra mức +$25.00 USD.
+            Miễn nhiễm Stagnation Exit.
+        - Tầng 3 (Super Trend Lock: Floating PnL >= +$14.50 USD):
             Dời Hard SL khóa cứng lợi nhuận tại +$10.00 USD và nới rộng TP ra mức +$40.00 USD.
-            Cấp quyền Miễn nhiễm Stagnation Exit.
+            Miễn nhiễm Stagnation Exit.
         """
         import MetaTrader5 as mt5
         positions = self.mt5_mgr.get_positions()
@@ -1238,7 +1276,7 @@ class USFederationQuantRuntime:
                 spread = 2.0 * point
 
             pip_size = point * 10.0 if digits in (3, 5) else point
-            buffer_price = 1.5 * pip_size
+            buffer_price = 1.0 * pip_size
 
             # Tính giá trị biến động tương ứng với volume (val_per_price)
             if trade_tick_sz > 0:
@@ -1255,6 +1293,11 @@ class USFederationQuantRuntime:
             should_modify = False
             tier_label = ""
 
+            # Khung giờ Golden Hours (13:00 - 17:00 UTC)
+            current_hour_utc = datetime.now(timezone.utc).hour
+            is_golden_hour = 13 <= current_hour_utc <= 17
+            t1_trigger = 4.80 if is_golden_hour else 4.00
+
             # Kiểm tra tiến độ 40% quãng đường tới TP
             progress_40pct_tp = False
             if tp > 0:
@@ -1263,8 +1306,8 @@ class USFederationQuantRuntime:
                 if total_tp_dist > 0 and (current_dist / total_tp_dist) >= 0.40:
                     progress_40pct_tp = True
 
-            # --- TẦNG 3: SUPER TREND LOCK (Floating PnL >= +$15.00 USD) ---
-            if profit >= 15.0:
+            # --- TẦNG 3: SUPER TREND LOCK (Floating PnL >= +$14.50 USD) ---
+            if profit >= 14.50:
                 dist_10usd = 10.0 / val_per_price
                 dist_40usd = 40.0 / val_per_price
                 tier_label = "TIER_3_SUPER_TREND (+10$ Lock / +40$ TP)"
@@ -1291,14 +1334,14 @@ class USFederationQuantRuntime:
                 self._profit_ladder_locked_tickets.add(ticket)
                 self._tier2_locked_tickets.add(ticket)
 
-            # --- TẦNG 2: PROFIT LOCK & RUNNER (Floating PnL >= +$8.00 USD) ---
-            elif profit >= 8.0:
-                dist_4usd = 4.0 / val_per_price
+            # --- TẦNG 2: PROFIT LOCK & RUNNER (Floating PnL >= +$8.50 USD) ---
+            elif profit >= 8.50:
+                dist_4_5usd = 4.50 / val_per_price
                 dist_25usd = 25.0 / val_per_price
-                tier_label = "TIER_2_RUNNER (+4$ Lock / +25$ TP)"
+                tier_label = "TIER_2_RUNNER (+4.50$ Lock / +25$ TP)"
 
                 if pos_type in ["BUY", 0]:
-                    calc_sl = round(entry + dist_4usd, digits)
+                    calc_sl = round(entry + dist_4_5usd, digits)
                     calc_tp = round(entry + dist_25usd, digits)
                     if calc_sl > target_new_sl and calc_sl < (curr_price - min_stop_gap):
                         target_new_sl = calc_sl
@@ -1307,7 +1350,7 @@ class USFederationQuantRuntime:
                         target_new_tp = calc_tp
                         should_modify = True
                 elif pos_type in ["SELL", 1]:
-                    calc_sl = round(entry - dist_4usd, digits)
+                    calc_sl = round(entry - dist_4_5usd, digits)
                     calc_tp = round(entry - dist_25usd, digits)
                     if (target_new_sl == 0.0 or calc_sl < target_new_sl) and calc_sl > (curr_price + min_stop_gap):
                         target_new_sl = calc_sl
@@ -1319,11 +1362,11 @@ class USFederationQuantRuntime:
                 self._profit_ladder_locked_tickets.add(ticket)
                 self._tier2_locked_tickets.add(ticket)
 
-            # --- TẦNG 1: BREAKEVEN PLUS (Floating PnL >= +$4.00 USD hoặc Progress >= 40% TP) ---
-            elif profit >= 4.0 or progress_40pct_tp:
-                dist_min_profit = 0.80 / val_per_price
+            # --- TẦNG 1: BREAKEVEN PLUS (Floating PnL >= +$4.80 Golden / +$4.00 hoặc Progress >= 40% TP) ---
+            elif profit >= t1_trigger or progress_40pct_tp:
+                dist_min_profit = 1.20 / val_per_price
                 be_offset = max(buffer_price, dist_min_profit)
-                tier_label = "TIER_1_BREAKEVEN_PLUS (Entry + 1.5p / +0.80$ Lock)"
+                tier_label = f"TIER_1_BREAKEVEN_PLUS (Entry + 1.0p / +1.20$ Lock | Trigger ${t1_trigger:.2f})"
 
                 if pos_type in ["BUY", 0]:
                     calc_sl = round(entry + be_offset, digits)
@@ -2304,8 +2347,8 @@ class USFederationQuantRuntime:
                 self.enforce_weekend_hold_sweeper(now_utc)
 
                 # 2. Hard Stop Caps (Sub-second emergency loss limiters)
-                self.enforce_gbpchf_uk100_hard_stop_cap(max_loss_usd=15.0)
-                self.enforce_forex_portfolio_hard_stop_cap(max_loss_usd=15.0)
+                self.enforce_gbpchf_uk100_hard_stop_cap(max_loss_usd=14.50)
+                self.enforce_forex_portfolio_hard_stop_cap(max_loss_usd=14.50)
                 self.enforce_index_hard_stop_cap(max_loss_usd=60.0)
                 self.enforce_xauusd_hard_stop_cap(max_loss_usd=75.0)
 
