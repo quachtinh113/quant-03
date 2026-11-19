@@ -315,7 +315,7 @@ def _parse_log_diagnostics(log_dir: Path) -> Dict[str, Any]:
 def run_universal_bot_audit(
     bot_dir: Optional[Path] = None,
     use_live_mt5: bool = True,
-    daily_target_usd: float = 100.0,
+    daily_target_usd: float = 120.0,
     lookback_hours: int = 168,
 ) -> Dict[str, Any]:
     """Universal 07_Skill Quant Audit Engine with real MT5 deal metrics."""
@@ -449,7 +449,7 @@ def run_universal_bot_audit(
     if net_realized < 0:
         status_tiers.append({
             "tier": "🟡 WARNING (Vàng)",
-            "rule": "Institutional Profitability & Target Gate ($100/day)",
+            "rule": "Institutional Profitability & Target Gate ($120/day)",
             "detail": (
                 f"Hiệu suất tuần âm: Net Realized=${net_realized:+.2f} USD (PF={profit_factor:.2f}, WR={win_rate:.1f}%). "
                 f"Tổn thất tập trung tại Full SL GBPCHF/UK100 (-${full_sl_loss:.2f} USD) và Loop Bug (-${loop_loss:.2f} USD). "
@@ -674,7 +674,7 @@ def main() -> None:
     payload = run_universal_bot_audit(
         bot_dir=Path(args.bot_dir),
         use_live_mt5=args.live_mt5,
-        daily_target_usd=100.0,
+        daily_target_usd=120.0,
     )
     if args.pretty:
         print_pretty_report(payload)

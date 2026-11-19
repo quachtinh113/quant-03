@@ -60,7 +60,7 @@ def main():
     config_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "status": "ELITE_WHITELIST_ACTIVE",
-        "daily_profit_target_usd": 100.0,
+        "daily_profit_target_usd": 120.0,
         "max_pod_daily_drawdown_pct": 1.5,
         "max_account_daily_drawdown_pct": 2.0,
         "active_elite_count": len(active_states),
@@ -72,7 +72,7 @@ def main():
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
     print(f"\n💾 Đã lưu cấu hình thực chiến -> {config_file}")
-    print("🚀 Hệ thống đã sẵn sàng vận hành tự động theo mục tiêu $100 USD/ngày!")
+    print("🚀 Hệ thống đã sẵn sàng vận hành tự động theo mục tiêu $120 USD/ngày!")
     print("=" * 95 + "\n")
 
 

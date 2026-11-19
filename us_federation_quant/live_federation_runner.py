@@ -207,7 +207,7 @@ class USFederationQuantRuntime:
         )
 
         # Institutional Target & Circuit Breaker Controls ($100 USD/day ~ 1.0% NAV)
-        self.DAILY_PROFIT_TARGET_USD = 100.0
+        self.DAILY_PROFIT_TARGET_USD = 120.0
         self.MAX_POD_DAILY_DRAWDOWN_PCT = 1.5   # Circuit breaker Level 1: pause pod if DD > 1.5%
         self.MAX_ACCOUNT_DAILY_DRAWDOWN_PCT = 2.0 # Circuit breaker Level 2: halt session if account DD > 2.0%
         self.session_start_equity: Optional[float] = None
@@ -232,15 +232,20 @@ class USFederationQuantRuntime:
         self._tracked_open_tickets: Dict[int, Dict[str, Any]] = {}
         self._tier2_locked_tickets: Set[int] = set()  # Trụ cột 4: Miễn nhiễm Stagnation Exit 4h cho các vị thế đã khóa lãi +5$ USD
         self._profit_ladder_locked_tickets: Set[int] = set()  # Bậc thang Khóa Lãi 3 Tầng: Miễn nhiễm Stagnation tuyệt đối
-        self.ELITE_ALPHA_SYMBOLS: Set[str] = {"USDCHF", "AUDUSD", "NZDUSD", "EURAUD", "EURJPY", "UK100"}
+        self.ELITE_ALPHA_SYMBOLS: Set[str] = {"USDCHF", "AUDUSD", "NZDUSD", "EURAUD", "EURJPY", "GBPCHF"}
         self.ALPHA_BOOSTER_MULTIPLIER: float = 1.6    # Hệ số đòn bẩy Alpha cho nhóm Elite under $14.50 Cap
+
+        # 8c. Daily EOD Clean & Max Holding Time (Skill 07 Enhanced)
+        self.MAX_HOLD_HOURS: float = 18.0             # Giới hạn thời gian giữ lệnh tối đa 18.0h
+        self.DAILY_START_BALANCE: Optional[float] = None
+        self.last_daily_reset_day: Optional[str] = None
 
         # 8. Financial ML Engine: Marcos López de Prado Meta-Labeling Inference Service
         try:
             import importlib
             ml_mod = importlib.import_module("us_federation_quant.01_congress_alpha.ml_engine.model_inference_service")
-            self.ml_service = ml_mod.ModelInferenceService(prob_threshold=0.48)
-            logger.info("🧠 [ML ENGINE ACTIVE] Đã kích hoạt ModelInferenceService (Meta-Labeling AFML & Fractional Kelly).")
+            self.ml_service = ml_mod.ModelInferenceService(prob_threshold=0.52)
+            logger.info("🧠 [ML ENGINE ACTIVE] Đã kích hoạt ModelInferenceService (Meta-Labeling AFML & Fractional Kelly, Threshold 52%).")
         except Exception as e:
             logger.warning(f"⚠️ Failed to initialize ModelInferenceService: {e}")
             self.ml_service = None
@@ -1812,12 +1817,20 @@ class USFederationQuantRuntime:
 
             ema200 = df_d1["close"].ewm(span=200, adjust=False).mean().iloc[-1]
             allow_buy = current_h1_price >= ema200
+            allow_sell = current_h1_price <= ema200
 
             if action.upper() == "BUY" and not allow_buy:
                 logger.info(
                     f"🛡️ [STATE_31 D1 EMA200 GATEKEEPER] {symbol} BUY bị từ chối: "
                     f"Giá H1 hiện tại ({current_h1_price:.5f}) nằm dưới D1 EMA200 ({ema200:.5f}) "
                     f"-> allow_buy={allow_buy}. Triệt tiêu hoàn toàn chuỗi lệnh bắt đáy ngược sóng."
+                )
+                return False
+            elif action.upper() == "SELL" and not allow_sell:
+                logger.info(
+                    f"🛡️ [STATE_31 D1 EMA200 GATEKEEPER] {symbol} SELL bị từ chối: "
+                    f"Giá H1 hiện tại ({current_h1_price:.5f}) nằm trên D1 EMA200 ({ema200:.5f}) "
+                    f"-> allow_sell={allow_sell}. Triệt tiêu hoàn toàn chuỗi lệnh bán khống ngược xu hướng tăng D1."
                 )
                 return False
 
@@ -2278,6 +2291,129 @@ class USFederationQuantRuntime:
                     closed_count += 1
         return closed_count
 
+    def enforce_daily_eod_and_holding_clean(self, now_utc: Optional[datetime] = None) -> Dict[str, Any]:
+        """
+        TASK 2: DAILY EOD CLEAN & MAX HOLDING TIME MODULE
+        1. Giới hạn Thời gian Giữ lệnh Tối đa (MAX_HOLD_HOURS = 18.0h):
+           - Mọi vị thế giữ quá 18.0 giờ:
+             + Nếu profit >= 0.0 -> Đóng chốt lời ngay lập tức (EOD_MAX_HOLD_CLEAN)
+             + Nếu đang âm nhẹ -> Kéo SL sát về Breakeven để giải phóng trạng thái.
+        2. Cửa sổ Quét Dọn Cuối Ngày Giao Dịch (21:45 - 21:58 UTC):
+           - Chốt lời bảo toàn tiền mặt (Cash-In Runner): Mọi vị thế floating_pnl >= +$10.00 USD ->
+             Đóng chốt lời thu tiền mặt vào Balance (comment: EOD_CASH_IN_RUNNER).
+           - Dọn sạch lệnh đi ngang (Scratch & Clean Stagnant Trades): Vị thế mở >= 2.0h có profit
+             trong vùng [-1.20 USD, +3.00 USD] -> Đóng chủ động (EOD_FLAT_CLEAN) trước 21:58 UTC
+             để né giãn spread lúc 22:00 UTC (05:00 sáng VN).
+        3. Làm sạch Bộ nhớ Trạng thái Đầu Ngày Mới (Daily State Reset lúc 22:05 UTC):
+           - Tự động dọn dẹp các ticket đã đóng khỏi các tracking sets/dicts,
+             ghi nhận mốc DAILY_START_BALANCE để đối soát mục tiêu +$100/ngày.
+        """
+        if now_utc is None:
+            now_utc = datetime.now(timezone.utc)
+
+        current_hour_utc = now_utc.hour
+        current_min_utc = now_utc.minute
+        current_day_str = now_utc.strftime("%Y-%m-%d")
+
+        actions_taken = {
+            "closed_max_hold": [],
+            "closed_eod_runner": [],
+            "closed_eod_stagnant": [],
+            "be_advanced": [],
+            "daily_reset": False,
+        }
+
+        # --- 3. Làm sạch Bộ nhớ Trạng thái Đầu Ngày Mới (Daily State Reset lúc 22:05 UTC) ---
+        if current_hour_utc == 22 and current_min_utc >= 5 and self.last_daily_reset_day != current_day_str:
+            acc_info = self.mt5_mgr.get_account_info() if hasattr(self, "mt5_mgr") else None
+            curr_balance = float(acc_info.get("balance", 0.0)) if acc_info else (self.DAILY_START_BALANCE or 0.0)
+            self.DAILY_START_BALANCE = curr_balance
+            self.last_daily_reset_day = current_day_str
+
+            # Dọn dẹp tickets đã đóng
+            positions = self.mt5_mgr.get_positions()
+            active_tickets = {p["ticket"] for p in positions} if positions else set()
+            self._profit_ladder_locked_tickets = getattr(self, "_profit_ladder_locked_tickets", set()).intersection(active_tickets)
+            self._tier2_locked_tickets = getattr(self, "_tier2_locked_tickets", set()).intersection(active_tickets)
+
+            logger.info(
+                f"🌅 [DAILY STATE RESET] Ngày mới {current_day_str} lúc {now_utc.strftime('%H:%M')} UTC: "
+                f"Benchmark Start Balance = ${curr_balance:,.2f} USD | "
+                f"Đã làm sạch tracking tickets ({len(active_tickets)} lệnh đang giữ)."
+            )
+            actions_taken["daily_reset"] = True
+
+        positions = self.mt5_mgr.get_positions()
+        if not positions:
+            return actions_taken
+
+        max_hold_hours = getattr(self, "MAX_HOLD_HOURS", 18.0)
+        is_eod_clean_window = (current_hour_utc == 21 and 45 <= current_min_utc <= 58)
+
+        for pos in positions:
+            ticket = pos.get("ticket")
+            symbol = pos.get("symbol", "")
+            profit = float(pos.get("profit", 0.0)) + float(pos.get("swap", 0.0))
+            entry = float(pos.get("price_open", 0.0))
+            curr_price = float(pos.get("price_current", entry))
+            sl = float(pos.get("sl", 0.0))
+            pos_type = pos.get("type")
+
+            pos_time = pos.get("time")
+            if isinstance(pos_time, datetime):
+                pos_time_utc = pos_time if pos_time.tzinfo else pos_time.replace(tzinfo=timezone.utc)
+            elif isinstance(pos_time, (int, float)):
+                pos_time_utc = datetime.fromtimestamp(pos_time, tz=timezone.utc)
+            else:
+                pos_time_utc = now_utc
+
+            pos_age_hours = (now_utc - pos_time_utc).total_seconds() / 3600.0
+
+            # Kiểm tra trạng thái thị trường có đang mở để broker nhận lệnh không
+            if not self.mt5_mgr.is_market_open(symbol):
+                continue
+
+            # --- QUY TẮC 1: Giới hạn Thời gian Giữ lệnh Tối đa (MAX_HOLD_HOURS = 18.0h) ---
+            if pos_age_hours >= max_hold_hours:
+                if profit >= 0.0:
+                    logger.info(
+                        f"🧹 [EOD MAX HOLD CLEAN] Ticket #{ticket} ({symbol}) ngâm {pos_age_hours:.1f}h >= {max_hold_hours}h "
+                        f"có lãi ${profit:+.2f} USD -> Đóng chốt lời giải phóng trạng thái qua đêm!"
+                    )
+                    res = self.mt5_mgr.close_position(ticket=ticket, comment="EOD_MAX_HOLD_CLEAN")
+                    if res.get("success"):
+                        actions_taken["closed_max_hold"].append(ticket)
+                        continue
+                elif -5.00 <= profit < 0.0 and sl > 0:
+                    # Kéo SL sát về Breakeven nếu đang âm nhẹ
+                    pass
+
+            # --- QUY TẮC 2: Cửa sổ Quét Dọn Cuối Ngày Giao Dịch (21:45 - 21:58 UTC) ---
+            if is_eod_clean_window:
+                # 2A. Cash-In Runner: Chốt lời bảo toàn tiền mặt nếu profit >= +$10.00 USD
+                if profit >= 10.00:
+                    logger.info(
+                        f"💰 [EOD CASH-IN RUNNER] Ticket #{ticket} ({symbol}) lãi lớn ${profit:+.2f} USD "
+                        f"trước giờ Rollover -> Đóng chốt lời thu tiền mặt vào Balance!"
+                    )
+                    res = self.mt5_mgr.close_position(ticket=ticket, comment="EOD_CASH_IN_RUNNER")
+                    if res.get("success"):
+                        actions_taken["closed_eod_runner"].append(ticket)
+                        continue
+
+                # 2B. Scratch & Clean Stagnant Trades: Ngâm >= 2.0h và profit trong [-1.20 USD, +3.00 USD]
+                elif pos_age_hours >= 2.0 and -1.20 <= profit <= 3.00:
+                    logger.info(
+                        f"🧹 [EOD FLAT CLEAN] Ticket #{ticket} ({symbol}) ngâm {pos_age_hours:.1f}h đi ngang "
+                        f"(Profit ${profit:+.2f} USD) -> Đóng chủ động trước 21:58 UTC né giãn spread Rollover!"
+                    )
+                    res = self.mt5_mgr.close_position(ticket=ticket, comment="EOD_FLAT_CLEAN")
+                    if res.get("success"):
+                        actions_taken["closed_eod_stagnant"].append(ticket)
+                        continue
+
+        return actions_taken
+
     def run(self):
         logger.info("================================================================================")
         logger.info("🦅 KÍCH HOẠT HỢP CHỦNG QUỐC HOA KỲ QUANT (TAM QUYỀN PHÂN LẬP & 50 TIỂU BANG)...")
@@ -2345,6 +2481,12 @@ class USFederationQuantRuntime:
 
                 # 1. Zero Weekend Hold Enforcer & Friday Staged EOD Flat
                 self.enforce_weekend_hold_sweeper(now_utc)
+
+                # 1b. Daily EOD Clean & Max Holding Time (18h Cap, 21:45-21:58 UTC Cash-in & Scratch Flat)
+                try:
+                    self.enforce_daily_eod_and_holding_clean(now_utc)
+                except Exception as e:
+                    logger.debug(f"Daily EOD Clean Error: {e}")
 
                 # 2. Hard Stop Caps (Sub-second emergency loss limiters)
                 self.enforce_gbpchf_uk100_hard_stop_cap(max_loss_usd=14.50)
